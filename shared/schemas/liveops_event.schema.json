@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LiveOpsEventAndQuestSchema",
+  "type": "object",
+  "required": ["id", "title_key", "event_type", "start_time", "end_time", "is_active"],
+  "properties": {
+    "id": { "type": "string" },
+    "title_key": { "type": "string" },
+    "description_key": { "type": "string" },
+    "event_type": {
+      "type": "string",
+      "enum": ["tournament", "seasonal_quest", "chronal_expedition", "scenario_spotlight"]
+    },
+    "start_time": { "type": "string", "format": "date-time" },
+    "end_time": { "type": "string", "format": "date-time" },
+    "is_active": { "type": "boolean" },
+    "target_scenario_id": { "type": "string" },
+    "quests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["quest_id", "title_key", "target_type", "target_count", "reward"],
+        "properties": {
+          "quest_id": { "type": "string" },
+          "title_key": { "type": "string" },
+          "target_type": { "type": "string", "enum": ["complete_matches", "trigger_echoes", "achieve_perfect_harmony", "use_smart_pings"] },
+          "target_count": { "type": "integer", "minimum": 1 },
+          "reward": {
+            "type": "object",
+            "required": ["type", "amount"],
+            "properties": {
+              "type": { "type": "string", "enum": ["chrono_flux", "chrono_shards", "cosmetic_item"] },
+              "item_id": { "type": "string" },
+              "amount": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "leaderboard_config": {
+      "type": "object",
+      "properties": {
+        "metric": { "type": "string", "enum": ["fastest_completion_sec", "highest_harmony_score", "total_echoes_resolved"] },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["tier_name_key", "min_rank", "max_rank", "reward"],
+            "properties": {
+              "tier_name_key": { "type": "string" },
+              "min_rank": { "type": "integer" },
+              "max_rank": { "type": "integer" },
+              "reward": { "type": "object" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

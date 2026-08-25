@@ -1,0 +1,25 @@
+{
+  "name": "echoline-game-server",
+  "version": "1.0.0",
+  "description": "ECHO//LINE Authoritative Game Server (deploy to Render free tier)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "pino": "^9.1.0",
+    "pino-pretty": "^11.1.0",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.8.3"
+  }
+}

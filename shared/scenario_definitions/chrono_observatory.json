@@ -1,0 +1,99 @@
+{
+  "id": "chrono_observatory",
+  "name_key": "scenario.observatory.name",
+  "description_key": "scenario.observatory.desc",
+  "supported_timelines": ["past", "present", "future"],
+  "catastrophe": {
+    "id": "gravitational_inversion",
+    "duration_seconds": 600,
+    "stages": [
+      { "name": "stable", "threshold_pct": 100.0, "warning_key": "catastrophe.stage.stable" },
+      { "name": "destabilizing", "threshold_pct": 65.0, "warning_key": "catastrophe.stage.destabilizing" },
+      { "name": "critical", "threshold_pct": 25.0, "warning_key": "catastrophe.stage.critical" },
+      { "name": "imminent_collapse", "threshold_pct": 10.0, "warning_key": "catastrophe.stage.imminent" }
+    ]
+  },
+  "timelines_initial_state": {
+    "past": {
+      "astrolabe_calibration": { "aligned": false }
+    },
+    "present": {
+      "star_lens_focus": { "aligned": false, "focused": false }
+    },
+    "future": {
+      "gravity_anchor": { "unlocked": false, "calibrated": false }
+    }
+  },
+  "echo_rules": [
+    {
+      "id": "echo_align_astrolabe",
+      "source_timeline": "past",
+      "source_entity": "astrolabe_calibration",
+      "trigger_action": "align_stars",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "astrolabe_calibration", "action": "set_property", "property": "aligned", "value": true },
+        { "target_timeline": "present", "entity": "star_lens_focus", "action": "set_property", "property": "aligned", "value": true, "propagation_delay_ms": 600 }
+      ],
+      "reversible": false,
+      "conflict_priority": 80,
+      "localization_key": "echo.align_astrolabe",
+      "audio_cue": "sfx_astrolabe_spin",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_focus_star_lens",
+      "source_timeline": "present",
+      "source_entity": "star_lens_focus",
+      "trigger_action": "focus_lens",
+      "preconditions": [
+        { "timeline": "present", "entity": "star_lens_focus", "property": "aligned", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "star_lens_focus", "action": "set_property", "property": "focused", "value": true },
+        { "target_timeline": "future", "entity": "gravity_anchor", "action": "set_property", "property": "unlocked", "value": true, "propagation_delay_ms": 700 }
+      ],
+      "reversible": false,
+      "conflict_priority": 85,
+      "localization_key": "echo.focus_star_lens",
+      "audio_cue": "sfx_lens_focus",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_calibrate_gravity_anchor",
+      "source_timeline": "future",
+      "source_entity": "gravity_anchor",
+      "trigger_action": "lock_gravity",
+      "preconditions": [
+        { "timeline": "future", "entity": "gravity_anchor", "property": "unlocked", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "gravity_anchor", "action": "set_property", "property": "calibrated", "value": true }
+      ],
+      "reversible": false,
+      "conflict_priority": 100,
+      "localization_key": "echo.calibrate_gravity_anchor",
+      "audio_cue": "sfx_temporal_anchor_ignite",
+      "visual_ripple": "temporal_wave_gold"
+    }
+  ],
+  "win_conditions": [
+    {
+      "id": "observatory_realigned",
+      "outcome_key": "outcome.observatory_realigned",
+      "grade": "perfect",
+      "requirements": [
+        { "timeline": "future", "entity": "gravity_anchor", "property": "calibrated", "operator": "==", "value": true }
+      ]
+    }
+  ],
+  "loss_conditions": [
+    {
+      "id": "gravity_collapse",
+      "outcome_key": "outcome.temporal_erasure",
+      "requirements": [
+        { "timeline": "system", "entity": "catastrophe", "property": "timer_remaining_ms", "operator": "<=", "value": 0 }
+      ]
+    }
+  ]
+}

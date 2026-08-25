@@ -1,0 +1,6 @@
+.godot/
+.import/
+builds/
+*.translation
+*.remap
+.DS_Store

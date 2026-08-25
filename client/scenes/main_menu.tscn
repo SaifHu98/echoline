@@ -1,0 +1,93 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1menu_main"]
+
+[ext_resource type="Script" path="res://scenes/main_menu.gd" id="1_menu"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.03, 0.04, 0.07, 1)
+
+[node name="Center" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -250.0
+offset_right = 200.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center"]
+layout_mode = 2
+text = "ECHO//LINE"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 48
+theme_override_colors/font_color = Color(0, 0.9, 1, 1)
+
+[node name="Subtitle" type="Label" parent="Center"]
+layout_mode = 2
+text = "Echoes Across Time"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
+
+[node name="Spacer1" type="Control" parent="Center"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(280, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "▶ PLAY"
+
+[node name="TutorialButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(280, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "How to Play"
+
+[node name="SettingsButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(280, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "⚙ Settings"
+
+[node name="LanguageButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(280, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "🌐 Language"
+
+[node name="Spacer2" type="Control" parent="Center"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="VersionLabel" type="Label" parent="Center"]
+layout_mode = 2
+text = "v0.1.0"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.4, 0.45, 0.55, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="StatusLabel" type="Label" parent="Center"]
+layout_mode = 2
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.5, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 12

@@ -1,0 +1,366 @@
+[gd_scene load_steps=8 format=3 uid="uid://c8b9d4e5f6a1"]
+
+[ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://ui/lobby/lobby_view.gd" id="2_lobby"]
+[ext_resource type="Script" path="res://ui/hud/hud.gd" id="3_hud"]
+[ext_resource type="Script" path="res://ui/hud/smart_ping_wheel.gd" id="4_ping"]
+[ext_resource type="Script" path="res://ui/hud/quick_chat.gd" id="5_chat"]
+[ext_resource type="Script" path="res://ui/recap/causal_recap_view.gd" id="6_recap"]
+[ext_resource type="Script" path="res://ui/settings/settings_view.gd" id="7_settings"]
+[ext_resource type="Script" path="res://gameplay/timelines/timeline_manager.gd" id="8_timeline"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 5, 8)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 10, 0)
+shadow_enabled = true
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="TimelineManager" type="Node3D" parent="World"]
+script = ExtResource("8_timeline")
+
+[node name="GroundMesh" type="CSGBox3D" parent="World"]
+size = Vector3(30, 0.5, 30)
+
+[node name="ClocktowerMesh" type="CSGBox3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, -10)
+size = Vector3(4, 12, 4)
+
+[node name="CanalWater" type="CSGBox3D" parent="World/TimelineManager"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.1, 0)
+size = Vector3(3, 0.2, 20)
+visible = false
+
+[node name="CourtyardTree" type="CSGCylinder3D" parent="World/TimelineManager"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, 0)
+radius = 1.5
+height = 4.0
+visible = false
+
+[node name="CanopyBridge" type="CSGBox3D" parent="World/TimelineManager"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 4, -5)
+size = Vector3(2, 0.3, 10)
+visible = false
+
+[node name="HydroTurbine" type="CSGCylinder3D" parent="World/TimelineManager"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1, -8)
+radius = 1.0
+height = 2.0
+
+[node name="GateStabilizer" type="CSGBox3D" parent="World/TimelineManager"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+size = Vector3(2, 2, 2)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="LobbyView" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_lobby")
+
+[node name="Panel" type="PanelContainer" parent="UI/LobbyView"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -200.0
+offset_right = 300.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/LobbyView/Panel"]
+layout_mode = 2
+
+[node name="JoinRow" type="HBoxContainer" parent="UI/LobbyView/Panel/VBox"]
+layout_mode = 2
+
+[node name="RoomCodeInput" type="LineEdit" parent="UI/LobbyView/Panel/VBox/JoinRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "ENTER 4-CHAR ROOM CODE"
+
+[node name="JoinButton" type="Button" parent="UI/LobbyView/Panel/VBox/JoinRow"]
+layout_mode = 2
+text = "Join Lobby"
+
+[node name="CreateButton" type="Button" parent="UI/LobbyView/Panel/VBox/JoinRow"]
+layout_mode = 2
+text = "Create Lobby"
+
+[node name="StatusLabel" type="Label" parent="UI/LobbyView/Panel/VBox"]
+layout_mode = 2
+text = "Select a timeline role and prepare to link."
+
+[node name="CardsRow" type="HBoxContainer" parent="UI/LobbyView/Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PastCard" type="Button" parent="UI/LobbyView/Panel/VBox/CardsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "◆ The Past"
+
+[node name="PresentCard" type="Button" parent="UI/LobbyView/Panel/VBox/CardsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "▲ The Present"
+
+[node name="FutureCard" type="Button" parent="UI/LobbyView/Panel/VBox/CardsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "● The Future"
+
+[node name="ReadyButton" type="Button" parent="UI/LobbyView/Panel/VBox"]
+layout_mode = 2
+text = "Ready"
+
+[node name="GameHUD" type="Control" parent="UI"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_hud")
+
+[node name="TopBar" type="HBoxContainer" parent="UI/GameHUD"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 60.0
+grow_horizontal = 2
+
+[node name="TimelineBadge" type="Label" parent="UI/GameHUD/TopBar"]
+layout_mode = 2
+text = "◆ The Past"
+
+[node name="StabilityBar" type="ProgressBar" parent="UI/GameHUD/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="TimerLabel" type="Label" parent="UI/GameHUD/TopBar"]
+layout_mode = 2
+text = "Time Remaining: 600s"
+
+[node name="StageLabel" type="Label" parent="UI/GameHUD/TopBar"]
+layout_mode = 2
+text = "Stable"
+
+[node name="BottomBar" type="HBoxContainer" parent="UI/GameHUD"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -70.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="InteractButton" type="Button" parent="UI/GameHUD/BottomBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Interact"
+
+[node name="PingButton" type="Button" parent="UI/GameHUD/BottomBar"]
+layout_mode = 2
+text = "Smart Ping"
+
+[node name="QuickChatButton" type="Button" parent="UI/GameHUD/BottomBar"]
+layout_mode = 2
+text = "Quick Messages"
+
+[node name="SubtitleContainer" type="CenterContainer" parent="UI/GameHUD"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -120.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="SubtitleLabel" type="Label" parent="UI/GameHUD/SubtitleContainer"]
+visible = false
+layout_mode = 2
+text = "[♪ Sound Caption]"
+
+[node name="MessageFeed" type="Control" parent="UI/GameHUD"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 20.0
+offset_top = 80.0
+offset_right = 350.0
+offset_bottom = 300.0
+
+[node name="FeedContainer" type="VBoxContainer" parent="UI/GameHUD/MessageFeed"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SmartPingWheel" type="Control" parent="UI/GameHUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_ping")
+
+[node name="QuickChatMenu" type="PanelContainer" parent="UI/GameHUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -320.0
+offset_top = -320.0
+offset_right = -20.0
+offset_bottom = -80.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("5_chat")
+
+[node name="CausalRecapView" type="Control" parent="UI"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_recap")
+
+[node name="Panel" type="PanelContainer" parent="UI/CausalRecapView"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -250.0
+offset_right = 350.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/CausalRecapView/Panel"]
+layout_mode = 2
+
+[node name="OutcomeTitle" type="Label" parent="UI/CausalRecapView/Panel/VBox"]
+layout_mode = 2
+text = "Causal Timeline Recap"
+
+[node name="OutcomeDesc" type="Label" parent="UI/CausalRecapView/Panel/VBox"]
+layout_mode = 2
+text = "Timeline Restored: Perfect Harmony!"
+
+[node name="StatsLabel" type="Label" parent="UI/CausalRecapView/Panel/VBox"]
+layout_mode = 2
+text = "Echo Chains Resolved: 5 | Time: 180s"
+
+[node name="Scroll" type="ScrollContainer" parent="UI/CausalRecapView/Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TreeContainer" type="VBoxContainer" parent="UI/CausalRecapView/Panel/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ReturnButton" type="Button" parent="UI/CausalRecapView/Panel/VBox"]
+layout_mode = 2
+text = "Return to Menu"
+
+[node name="SettingsView" type="Control" parent="UI"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_settings")
+
+[node name="Panel" type="PanelContainer" parent="UI/SettingsView"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -180.0
+offset_right = 250.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/SettingsView/Panel"]
+layout_mode = 2
+
+[node name="LangRow" type="HBoxContainer" parent="UI/SettingsView/Panel/VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="UI/SettingsView/Panel/VBox/LangRow"]
+layout_mode = 2
+text = "Language / اللغة: "
+
+[node name="OptionButton" type="OptionButton" parent="UI/SettingsView/Panel/VBox/LangRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ContrastCheck" type="CheckBox" parent="UI/SettingsView/Panel/VBox"]
+layout_mode = 2
+text = "High Contrast Mode"
+
+[node name="MotionCheck" type="CheckBox" parent="UI/SettingsView/Panel/VBox"]
+layout_mode = 2
+text = "Reduced Motion"
+
+[node name="ScaleRow" type="HBoxContainer" parent="UI/SettingsView/Panel/VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="UI/SettingsView/Panel/VBox/ScaleRow"]
+layout_mode = 2
+text = "Text Scale: "
+
+[node name="Slider" type="HSlider" parent="UI/SettingsView/Panel/VBox/ScaleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 80.0
+max_value = 160.0
+value = 100.0
+
+[node name="CloseButton" type="Button" parent="UI/SettingsView/Panel/VBox"]
+layout_mode = 2
+text = "Close"

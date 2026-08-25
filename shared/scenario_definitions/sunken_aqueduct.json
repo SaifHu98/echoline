@@ -1,0 +1,102 @@
+{
+  "id": "sunken_aqueduct",
+  "name_key": "scenario.aqueduct.name",
+  "description_key": "scenario.aqueduct.desc",
+  "supported_timelines": ["past", "present", "future"],
+  "catastrophe": {
+    "id": "submersion_deluge",
+    "duration_seconds": 600,
+    "stages": [
+      { "name": "stable", "threshold_pct": 100.0, "warning_key": "catastrophe.stage.stable" },
+      { "name": "destabilizing", "threshold_pct": 70.0, "warning_key": "catastrophe.stage.destabilizing" },
+      { "name": "critical", "threshold_pct": 30.0, "warning_key": "catastrophe.stage.critical" },
+      { "name": "imminent_collapse", "threshold_pct": 10.0, "warning_key": "catastrophe.stage.imminent" }
+    ]
+  },
+  "timelines_initial_state": {
+    "past": {
+      "aqueduct_intake": { "open": false },
+      "limestone_filtration": { "installed": false }
+    },
+    "present": {
+      "hydraulic_pump": { "running": false },
+      "submerged_chamber": { "drained": false }
+    },
+    "future": {
+      "deep_siphon_valve": { "depressurized": false },
+      "aqueduct_stabilizer": { "anchored": false }
+    }
+  },
+  "echo_rules": [
+    {
+      "id": "echo_open_aqueduct_intake",
+      "source_timeline": "past",
+      "source_entity": "aqueduct_intake",
+      "trigger_action": "open_intake",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "aqueduct_intake", "action": "set_property", "property": "open", "value": true },
+        { "target_timeline": "present", "entity": "hydraulic_pump", "action": "set_property", "property": "running", "value": true, "propagation_delay_ms": 600 }
+      ],
+      "reversible": false,
+      "conflict_priority": 80,
+      "localization_key": "echo.open_aqueduct_intake",
+      "audio_cue": "sfx_water_flow_surge",
+      "visual_ripple": "temporal_wave_cyan"
+    },
+    {
+      "id": "echo_drain_submerged_chamber",
+      "source_timeline": "present",
+      "source_entity": "submerged_chamber",
+      "trigger_action": "engage_pumps",
+      "preconditions": [
+        { "timeline": "present", "entity": "hydraulic_pump", "property": "running", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "submerged_chamber", "action": "set_property", "property": "drained", "value": true },
+        { "target_timeline": "future", "entity": "deep_siphon_valve", "action": "set_property", "property": "depressurized", "value": true, "propagation_delay_ms": 800 }
+      ],
+      "reversible": false,
+      "conflict_priority": 85,
+      "localization_key": "echo.drain_submerged_chamber",
+      "audio_cue": "sfx_pump_whir",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_anchor_aqueduct_stabilizer",
+      "source_timeline": "future",
+      "source_entity": "aqueduct_stabilizer",
+      "trigger_action": "anchor_valve",
+      "preconditions": [
+        { "timeline": "future", "entity": "deep_siphon_valve", "property": "depressurized", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "aqueduct_stabilizer", "action": "set_property", "property": "anchored", "value": true }
+      ],
+      "reversible": false,
+      "conflict_priority": 100,
+      "localization_key": "echo.anchor_aqueduct_stabilizer",
+      "audio_cue": "sfx_temporal_anchor_ignite",
+      "visual_ripple": "temporal_wave_gold"
+    }
+  ],
+  "win_conditions": [
+    {
+      "id": "aqueduct_restored",
+      "outcome_key": "outcome.aqueduct_restored",
+      "grade": "perfect",
+      "requirements": [
+        { "timeline": "future", "entity": "aqueduct_stabilizer", "property": "anchored", "operator": "==", "value": true }
+      ]
+    }
+  ],
+  "loss_conditions": [
+    {
+      "id": "aqueduct_deluge_collapse",
+      "outcome_key": "outcome.temporal_erasure",
+      "requirements": [
+        { "timeline": "system", "entity": "catastrophe", "property": "timer_remaining_ms", "operator": "<=", "value": 0 }
+      ]
+    }
+  ]
+}

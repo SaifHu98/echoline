@@ -1,0 +1,165 @@
+{
+  "id": "temporal_traitor",
+  "name_key": "scenario.traitor.name",
+  "description_key": "scenario.traitor.desc",
+  "supported_timelines": ["past", "present", "future"],
+  "catastrophe": {
+    "id": "temporal_rift_divergence",
+    "duration_seconds": 600,
+    "stages": [
+      { "name": "stable", "threshold_pct": 100.0, "warning_key": "catastrophe.stage.stable" },
+      { "name": "destabilizing", "threshold_pct": 60.0, "warning_key": "catastrophe.stage.destabilizing" },
+      { "name": "critical", "threshold_pct": 20.0, "warning_key": "catastrophe.stage.critical" },
+      { "name": "imminent_collapse", "threshold_pct": 5.0, "warning_key": "catastrophe.stage.imminent" }
+    ]
+  },
+  "timelines_initial_state": {
+    "past": {
+      "quantum_flux_gate": { "frequency": "harmonic" },
+      "archive_cipher": { "tampered": false },
+      "primary_power_cell": { "charge": 100, "diverted": false }
+    },
+    "present": {
+      "flux_relay_station": { "overclocked": false },
+      "security_protocol": { "bypassed": false },
+      "stabilizer_core": { "calibrated": false }
+    },
+    "future": {
+      "temporal_siphon": { "active": false },
+      "alternate_anchor": { "charged": false },
+      "true_timeline_beacon": { "ready": false, "anchored": false }
+    }
+  },
+  "echo_rules": [
+    {
+      "id": "echo_align_quantum_flux",
+      "source_timeline": "past",
+      "source_entity": "quantum_flux_gate",
+      "trigger_action": "tune_harmonic",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "quantum_flux_gate", "action": "set_property", "property": "frequency", "value": "aligned" },
+        { "target_timeline": "present", "entity": "stabilizer_core", "action": "set_property", "property": "calibrated", "value": true, "propagation_delay_ms": 600 }
+      ],
+      "reversible": false,
+      "conflict_priority": 70,
+      "localization_key": "echo.align_quantum_flux",
+      "audio_cue": "sfx_flux_tune",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_divert_past_power",
+      "source_timeline": "past",
+      "source_entity": "primary_power_cell",
+      "trigger_action": "divert_power",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "primary_power_cell", "action": "set_property", "property": "diverted", "value": true },
+        { "target_timeline": "present", "entity": "flux_relay_station", "action": "set_property", "property": "powered", "value": true, "propagation_delay_ms": 600 }
+      ],
+      "reversible": false,
+      "conflict_priority": 65,
+      "localization_key": "echo.divert_past_power",
+      "audio_cue": "sfx_power_hum",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_calibrate_present_core",
+      "source_timeline": "present",
+      "source_entity": "stabilizer_core",
+      "trigger_action": "lock_harmonics",
+      "preconditions": [
+        { "timeline": "present", "entity": "stabilizer_core", "property": "calibrated", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "security_protocol", "action": "set_property", "property": "bypassed", "value": true },
+        { "target_timeline": "future", "entity": "true_timeline_beacon", "action": "set_property", "property": "ready", "value": true, "propagation_delay_ms": 700 }
+      ],
+      "reversible": false,
+      "conflict_priority": 75,
+      "localization_key": "echo.calibrate_present_core",
+      "audio_cue": "sfx_core_lock",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_overclock_flux_relay",
+      "source_timeline": "present",
+      "source_entity": "flux_relay_station",
+      "trigger_action": "overclock",
+      "preconditions": [
+        { "timeline": "present", "entity": "flux_relay_station", "property": "powered", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "flux_relay_station", "action": "set_property", "property": "overclocked", "value": true },
+        { "target_timeline": "future", "entity": "temporal_siphon", "action": "set_property", "property": "active", "value": true, "propagation_delay_ms": 800 }
+      ],
+      "reversible": false,
+      "conflict_priority": 85,
+      "localization_key": "echo.overclock_flux_relay",
+      "audio_cue": "sfx_relay_overclock",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_anchor_true_beacon",
+      "source_timeline": "future",
+      "source_entity": "true_timeline_beacon",
+      "trigger_action": "anchor_beacon",
+      "preconditions": [
+        { "timeline": "future", "entity": "true_timeline_beacon", "property": "ready", "operator": "==", "value": true },
+        { "timeline": "future", "entity": "temporal_siphon", "property": "active", "operator": "==", "value": false }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "true_timeline_beacon", "action": "set_property", "property": "anchored", "value": true }
+      ],
+      "reversible": false,
+      "conflict_priority": 100,
+      "localization_key": "echo.anchor_true_beacon",
+      "audio_cue": "sfx_temporal_anchor_ignite",
+      "visual_ripple": "temporal_wave_gold"
+    },
+    {
+      "id": "echo_charge_alternate_anchor",
+      "source_timeline": "future",
+      "source_entity": "alternate_anchor",
+      "trigger_action": "charge_alternate",
+      "preconditions": [
+        { "timeline": "future", "entity": "temporal_siphon", "property": "active", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "alternate_anchor", "action": "set_property", "property": "charged", "value": true }
+      ],
+      "reversible": false,
+      "conflict_priority": 95,
+      "localization_key": "echo.charge_alternate_anchor",
+      "audio_cue": "sfx_alternate_rift",
+      "visual_ripple": "temporal_wave_violet"
+    }
+  ],
+  "win_conditions": [
+    {
+      "id": "innocent_crew_victory",
+      "outcome_key": "outcome.crew_victory",
+      "grade": "perfect",
+      "requirements": [
+        { "timeline": "future", "entity": "true_timeline_beacon", "property": "anchored", "operator": "==", "value": true }
+      ]
+    },
+    {
+      "id": "traitor_alternate_victory",
+      "outcome_key": "outcome.traitor_victory",
+      "grade": "major_success",
+      "requirements": [
+        { "timeline": "future", "entity": "alternate_anchor", "property": "charged", "operator": "==", "value": true }
+      ]
+    }
+  ],
+  "loss_conditions": [
+    {
+      "id": "rift_collapse_all_lost",
+      "outcome_key": "outcome.temporal_erasure",
+      "requirements": [
+        { "timeline": "system", "entity": "catastrophe", "property": "timer_remaining_ms", "operator": "<=", "value": 0 }
+      ]
+    }
+  ]
+}

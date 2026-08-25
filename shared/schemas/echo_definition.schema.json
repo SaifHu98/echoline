@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TemporalEchoDefinition",
+  "type": "object",
+  "required": [
+    "id",
+    "source_timeline",
+    "trigger_action",
+    "source_entity",
+    "preconditions",
+    "effects",
+    "reversible",
+    "localization_key"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "source_timeline": {
+      "type": "string",
+      "enum": ["past", "present", "future", "alternate"]
+    },
+    "trigger_action": {
+      "type": "string"
+    },
+    "source_entity": {
+      "type": "string"
+    },
+    "preconditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["timeline", "entity", "property", "value"],
+        "properties": {
+          "timeline": { "type": "string" },
+          "entity": { "type": "string" },
+          "property": { "type": "string" },
+          "operator": { "type": "string", "enum": ["==", "!=", ">", "<", ">=", "<=", "contains"], "default": "==" },
+          "value": {}
+        }
+      }
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target_timeline", "entity", "action"],
+        "properties": {
+          "target_timeline": { "type": "string" },
+          "entity": { "type": "string" },
+          "action": { "type": "string", "enum": ["set_property", "spawn_entity", "despawn_entity", "trigger_hazard", "unlock_route"] },
+          "property": { "type": "string" },
+          "value": {},
+          "propagation_delay_ms": { "type": "integer", "minimum": 0, "default": 0 }
+        }
+      }
+    },
+    "reversible": {
+      "type": "boolean"
+    },
+    "reverse_effects": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "conflict_priority": {
+      "type": "integer",
+      "default": 50
+    },
+    "localization_key": {
+      "type": "string"
+    },
+    "audio_cue": {
+      "type": "string"
+    },
+    "visual_ripple": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ShopCatalogAndIAPSchema",
+  "type": "object",
+  "required": ["currencies", "categories", "items"],
+  "properties": {
+    "currencies": {
+      "type": "object",
+      "properties": {
+        "soft_currency": { "type": "string", "default": "chrono_flux" },
+        "hard_currency": { "type": "string", "default": "chrono_shards" }
+      }
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title_key", "icon"],
+        "properties": {
+          "id": { "type": "string" },
+          "title_key": { "type": "string" },
+          "icon": { "type": "string" }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title_key", "category_id", "item_type", "price"],
+        "properties": {
+          "id": { "type": "string" },
+          "title_key": { "type": "string" },
+          "description_key": { "type": "string" },
+          "category_id": { "type": "string" },
+          "item_type": {
+            "type": "string",
+            "enum": ["currency_pack", "chronicle_pass", "character_outfit", "ripple_shader", "ping_cosmetic", "profile_frame"]
+          },
+          "google_play_sku": { "type": "string" },
+          "price": {
+            "type": "object",
+            "required": ["currency", "amount"],
+            "properties": {
+              "currency": { "type": "string", "enum": ["real_usd", "chrono_flux", "chrono_shards"] },
+              "amount": { "type": "number", "minimum": 0 }
+            }
+          },
+          "discount_pct": { "type": "number", "default": 0 },
+          "is_featured": { "type": "boolean", "default": false },
+          "is_limited_time": { "type": "boolean", "default": false },
+          "grant_contents": {
+            "type": "object",
+            "properties": {
+              "chrono_shards": { "type": "integer" },
+              "chrono_flux": { "type": "integer" },
+              "cosmetic_item_id": { "type": "string" },
+              "pass_tier_boost": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

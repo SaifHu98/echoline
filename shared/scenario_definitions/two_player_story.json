@@ -1,0 +1,117 @@
+{
+  "id": "two_player_story",
+  "name_key": "scenario.story.name",
+  "description_key": "scenario.story.desc",
+  "supported_timelines": ["past", "future"],
+  "catastrophe": {
+    "id": "temporal_decay",
+    "duration_seconds": 720,
+    "stages": [
+      { "name": "stable", "threshold_pct": 100.0, "warning_key": "catastrophe.stage.stable" },
+      { "name": "destabilizing", "threshold_pct": 65.0, "warning_key": "catastrophe.stage.destabilizing" },
+      { "name": "critical", "threshold_pct": 25.0, "warning_key": "catastrophe.stage.critical" },
+      { "name": "imminent_collapse", "threshold_pct": 10.0, "warning_key": "catastrophe.stage.imminent" }
+    ]
+  },
+  "timelines_initial_state": {
+    "past": {
+      "historian_journal": { "state": "hidden_in_wall" },
+      "canal_sluice": { "position": "closed" },
+      "monument_inscription": { "text": "unwritten" }
+    },
+    "future": {
+      "ruined_wall": { "searched": false, "journal_found": false },
+      "hydro_turbine": { "spinning": false },
+      "memorial_monument": { "inspected": false, "code_revealed": false },
+      "temporal_beacon": { "anchored": false }
+    }
+  },
+  "echo_rules": [
+    {
+      "id": "echo_hide_journal_in_wall",
+      "source_timeline": "past",
+      "source_entity": "historian_journal",
+      "trigger_action": "hide_journal",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "historian_journal", "action": "set_property", "property": "state", "value": "sealed_in_brick" },
+        { "target_timeline": "future", "entity": "ruined_wall", "action": "set_property", "property": "journal_found", "value": true, "propagation_delay_ms": 600 }
+      ],
+      "reversible": false,
+      "conflict_priority": 80,
+      "localization_key": "echo.hide_journal_in_wall",
+      "audio_cue": "sfx_brick_slide",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_inscribe_monument",
+      "source_timeline": "past",
+      "source_entity": "monument_inscription",
+      "trigger_action": "carve_words",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "monument_inscription", "action": "set_property", "property": "text", "value": "eternal_bond" },
+        { "target_timeline": "future", "entity": "memorial_monument", "action": "set_property", "property": "code_revealed", "value": true, "propagation_delay_ms": 800 }
+      ],
+      "reversible": false,
+      "conflict_priority": 85,
+      "localization_key": "echo.inscribe_monument",
+      "audio_cue": "sfx_stone_chisel",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_open_past_sluice",
+      "source_timeline": "past",
+      "source_entity": "canal_sluice",
+      "trigger_action": "open_valve",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "canal_sluice", "action": "set_property", "property": "position", "value": "open" },
+        { "target_timeline": "future", "entity": "hydro_turbine", "action": "set_property", "property": "spinning", "value": true, "propagation_delay_ms": 1000 }
+      ],
+      "reversible": false,
+      "conflict_priority": 75,
+      "localization_key": "echo.open_past_sluice",
+      "audio_cue": "sfx_water_flow_surge",
+      "visual_ripple": "temporal_wave_cyan"
+    },
+    {
+      "id": "echo_anchor_temporal_beacon",
+      "source_timeline": "future",
+      "source_entity": "temporal_beacon",
+      "trigger_action": "sync_beacon",
+      "preconditions": [
+        { "timeline": "future", "entity": "hydro_turbine", "property": "spinning", "operator": "==", "value": true },
+        { "timeline": "future", "entity": "ruined_wall", "property": "journal_found", "operator": "==", "value": true },
+        { "timeline": "future", "entity": "memorial_monument", "property": "code_revealed", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "temporal_beacon", "action": "set_property", "property": "anchored", "value": true }
+      ],
+      "reversible": false,
+      "conflict_priority": 100,
+      "localization_key": "echo.anchor_temporal_beacon",
+      "audio_cue": "sfx_temporal_anchor_ignite",
+      "visual_ripple": "temporal_wave_gold"
+    }
+  ],
+  "win_conditions": [
+    {
+      "id": "timelines_reunited",
+      "outcome_key": "outcome.timelines_reunited",
+      "grade": "perfect",
+      "requirements": [
+        { "timeline": "future", "entity": "temporal_beacon", "property": "anchored", "operator": "==", "value": true }
+      ]
+    }
+  ],
+  "loss_conditions": [
+    {
+      "id": "story_decay_collapse",
+      "outcome_key": "outcome.temporal_erasure",
+      "requirements": [
+        { "timeline": "system", "entity": "catastrophe", "property": "timer_remaining_ms", "operator": "<=", "value": 0 }
+      ]
+    }
+  ]
+}

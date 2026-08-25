@@ -1,0 +1,124 @@
+{
+  "id": "subterranean_vaults",
+  "name_key": "scenario.vaults.name",
+  "description_key": "scenario.vaults.desc",
+  "supported_timelines": ["past", "present", "future"],
+  "catastrophe": {
+    "id": "geothermal_overload",
+    "duration_seconds": 600,
+    "stages": [
+      { "name": "stable", "threshold_pct": 100.0, "warning_key": "catastrophe.stage.stable" },
+      { "name": "destabilizing", "threshold_pct": 70.0, "warning_key": "catastrophe.stage.destabilizing" },
+      { "name": "critical", "threshold_pct": 30.0, "warning_key": "catastrophe.stage.critical" },
+      { "name": "imminent_collapse", "threshold_pct": 10.0, "warning_key": "catastrophe.stage.imminent" }
+    ]
+  },
+  "timelines_initial_state": {
+    "past": {
+      "magma_vent_valve": { "state": "sealed" },
+      "cooling_channel": { "state": "dry" },
+      "crystal_prism": { "aligned": false }
+    },
+    "present": {
+      "magma_pressure_gauge": { "level": "danger_high" },
+      "crystal_resonator": { "charged": false },
+      "magnetic_conduit": { "connected": false }
+    },
+    "future": {
+      "thermal_generator": { "online": false },
+      "vault_security_seal": { "locked": true },
+      "chronal_anchor": { "active": false }
+    }
+  },
+  "echo_rules": [
+    {
+      "id": "echo_open_cooling_channel",
+      "source_timeline": "past",
+      "source_entity": "cooling_channel",
+      "trigger_action": "divert_coolant",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "cooling_channel", "action": "set_property", "property": "state", "value": "flooded" },
+        { "target_timeline": "present", "entity": "magma_pressure_gauge", "action": "set_property", "property": "level", "value": "nominal", "propagation_delay_ms": 500 }
+      ],
+      "reversible": false,
+      "conflict_priority": 80,
+      "localization_key": "echo.open_cooling_channel",
+      "audio_cue": "sfx_coolant_surge",
+      "visual_ripple": "temporal_wave_cyan"
+    },
+    {
+      "id": "echo_align_crystal_prism",
+      "source_timeline": "past",
+      "source_entity": "crystal_prism",
+      "trigger_action": "rotate_prism",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "crystal_prism", "action": "set_property", "property": "aligned", "value": true },
+        { "target_timeline": "present", "entity": "crystal_resonator", "action": "set_property", "property": "charged", "value": true, "propagation_delay_ms": 700 }
+      ],
+      "reversible": false,
+      "conflict_priority": 75,
+      "localization_key": "echo.align_crystal_prism",
+      "audio_cue": "sfx_crystal_hum",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_connect_magnetic_conduit",
+      "source_timeline": "present",
+      "source_entity": "magnetic_conduit",
+      "trigger_action": "engage_circuit",
+      "preconditions": [
+        { "timeline": "present", "entity": "crystal_resonator", "property": "charged", "operator": "==", "value": true },
+        { "timeline": "present", "entity": "magma_pressure_gauge", "property": "level", "operator": "==", "value": "nominal" }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "magnetic_conduit", "action": "set_property", "property": "connected", "value": true },
+        { "target_timeline": "future", "entity": "thermal_generator", "action": "set_property", "property": "online", "value": true, "propagation_delay_ms": 900 },
+        { "target_timeline": "future", "entity": "vault_security_seal", "action": "set_property", "property": "locked", "value": false, "propagation_delay_ms": 900 }
+      ],
+      "reversible": false,
+      "conflict_priority": 90,
+      "localization_key": "echo.connect_magnetic_conduit",
+      "audio_cue": "sfx_magnetic_lock",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_activate_chronal_anchor",
+      "source_timeline": "future",
+      "source_entity": "chronal_anchor",
+      "trigger_action": "lock_anchor",
+      "preconditions": [
+        { "timeline": "future", "entity": "vault_security_seal", "property": "locked", "operator": "==", "value": false },
+        { "timeline": "future", "entity": "thermal_generator", "property": "online", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "chronal_anchor", "action": "set_property", "property": "active", "value": true }
+      ],
+      "reversible": false,
+      "conflict_priority": 100,
+      "localization_key": "echo.activate_chronal_anchor",
+      "audio_cue": "sfx_temporal_anchor_ignite",
+      "visual_ripple": "temporal_wave_gold"
+    }
+  ],
+  "win_conditions": [
+    {
+      "id": "vault_stabilized",
+      "outcome_key": "outcome.vault_stabilized",
+      "grade": "perfect",
+      "requirements": [
+        { "timeline": "future", "entity": "chronal_anchor", "property": "active", "operator": "==", "value": true }
+      ]
+    }
+  ],
+  "loss_conditions": [
+    {
+      "id": "vault_overload_erasure",
+      "outcome_key": "outcome.temporal_erasure",
+      "requirements": [
+        { "timeline": "system", "entity": "catastrophe", "property": "timer_remaining_ms", "operator": "<=", "value": 0 }
+      ]
+    }
+  ]
+}

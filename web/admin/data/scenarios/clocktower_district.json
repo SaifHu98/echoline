@@ -1,0 +1,250 @@
+{
+  "id": "clocktower_district",
+  "name_key": "scenario.clocktower.name",
+  "description_key": "scenario.clocktower.desc",
+  "supported_timelines": ["past", "present", "future"],
+  "catastrophe": {
+    "id": "temporal_gate_collapse",
+    "duration_seconds": 600,
+    "stages": [
+      { "name": "stable", "threshold_pct": 100.0, "warning_key": "catastrophe.stage.stable" },
+      { "name": "destabilizing", "threshold_pct": 75.0, "warning_key": "catastrophe.stage.destabilizing" },
+      { "name": "critical", "threshold_pct": 35.0, "warning_key": "catastrophe.stage.critical" },
+      { "name": "imminent_collapse", "threshold_pct": 10.0, "warning_key": "catastrophe.stage.imminent" }
+    ]
+  },
+  "timelines_initial_state": {
+    "past": {
+      "canal_debris": { "state": "blocking" },
+      "canal_sluice_gate": { "state": "closed" },
+      "courtyard_soil": { "state": "wet_soil", "seed_planted": false },
+      "builder_archive_tablet": { "carving": "empty", "code_assigned": "CHRONOS_77" },
+      "water_wheel": { "state": "rusted_idle" },
+      "workshop_tool_rack": { "has_crowbar": true, "has_bronze_gear": true }
+    },
+    "present": {
+      "canal_basin": { "water_level": "dry" },
+      "canal_distribution_valve": { "direction": "fountain" },
+      "courtyard_tree": { "state": "absent", "pruned": false },
+      "clock_gear_mechanism": { "state": "missing_gear" },
+      "archive_manuscript": { "state": "decayed_illegible" },
+      "residential_passage": { "cleared": false }
+    },
+    "future": {
+      "hydro_turbine": { "status": "offline_dry", "power_output": 0 },
+      "canopy_bridge": { "exists": false, "traversable": false },
+      "temporal_gate_console": { "power_supplied": false, "code_verified": false, "frequency_tuned": false },
+      "gate_stabilizer_unit": { "state": "offline", "locked": true },
+      "collapsed_gallery_access": { "accessible": false }
+    }
+  },
+  "echo_rules": [
+    {
+      "id": "echo_clear_debris",
+      "source_timeline": "past",
+      "source_entity": "canal_debris",
+      "trigger_action": "clear_debris",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "canal_debris", "action": "set_property", "property": "state", "value": "cleared" }
+      ],
+      "reversible": false,
+      "conflict_priority": 10,
+      "localization_key": "echo.clear_debris",
+      "audio_cue": "sfx_debris_smash",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_divert_canal_water",
+      "source_timeline": "past",
+      "source_entity": "canal_sluice_gate",
+      "trigger_action": "open_sluice_gate",
+      "preconditions": [
+        { "timeline": "past", "entity": "canal_debris", "property": "state", "operator": "==", "value": "cleared" }
+      ],
+      "effects": [
+        { "target_timeline": "past", "entity": "canal_sluice_gate", "action": "set_property", "property": "state", "value": "open" },
+        { "target_timeline": "present", "entity": "canal_basin", "action": "set_property", "property": "water_level", "value": "flowing", "propagation_delay_ms": 600 },
+        { "target_timeline": "future", "entity": "hydro_turbine", "action": "set_property", "property": "status", "value": "water_powered", "propagation_delay_ms": 1200 },
+        { "target_timeline": "future", "entity": "hydro_turbine", "action": "set_property", "property": "power_output", "value": 50, "propagation_delay_ms": 1200 }
+      ],
+      "reversible": false,
+      "conflict_priority": 80,
+      "localization_key": "echo.divert_canal_water",
+      "audio_cue": "sfx_water_flow_surge",
+      "visual_ripple": "temporal_wave_cyan"
+    },
+    {
+      "id": "echo_plant_seed_courtyard",
+      "source_timeline": "past",
+      "source_entity": "courtyard_soil",
+      "trigger_action": "plant_seed",
+      "preconditions": [
+        { "timeline": "past", "entity": "courtyard_soil", "property": "seed_planted", "operator": "==", "value": false }
+      ],
+      "effects": [
+        { "target_timeline": "past", "entity": "courtyard_soil", "action": "set_property", "property": "seed_planted", "value": true },
+        { "target_timeline": "present", "entity": "courtyard_tree", "action": "set_property", "property": "state", "value": "mature_oak", "propagation_delay_ms": 800 },
+        { "target_timeline": "future", "entity": "canopy_bridge", "action": "set_property", "property": "exists", "value": true, "propagation_delay_ms": 1500 }
+      ],
+      "reversible": false,
+      "conflict_priority": 90,
+      "localization_key": "echo.plant_seed_courtyard",
+      "audio_cue": "sfx_tree_grow_harmonic",
+      "visual_ripple": "temporal_wave_green"
+    },
+    {
+      "id": "echo_carve_archive_tablet",
+      "source_timeline": "past",
+      "source_entity": "builder_archive_tablet",
+      "trigger_action": "carve_tablet",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "builder_archive_tablet", "action": "set_property", "property": "carving", "value": "engraved" },
+        { "target_timeline": "present", "entity": "archive_manuscript", "action": "set_property", "property": "state", "value": "partially_readable", "propagation_delay_ms": 500 }
+      ],
+      "reversible": false,
+      "conflict_priority": 70,
+      "localization_key": "echo.carve_archive_tablet",
+      "audio_cue": "sfx_stone_chisel",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_prune_tree_branches",
+      "source_timeline": "present",
+      "source_entity": "courtyard_tree",
+      "trigger_action": "prune_branches",
+      "preconditions": [
+        { "timeline": "present", "entity": "courtyard_tree", "property": "state", "operator": "==", "value": "mature_oak" }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "courtyard_tree", "action": "set_property", "property": "pruned", "value": true },
+        { "target_timeline": "future", "entity": "canopy_bridge", "action": "set_property", "property": "traversable", "value": true, "propagation_delay_ms": 700 },
+        { "target_timeline": "future", "entity": "collapsed_gallery_access", "action": "set_property", "property": "accessible", "value": true, "propagation_delay_ms": 700 }
+      ],
+      "reversible": false,
+      "conflict_priority": 85,
+      "localization_key": "echo.prune_tree_branches",
+      "audio_cue": "sfx_wood_bridge_creak",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_replace_clock_gear",
+      "source_timeline": "present",
+      "source_entity": "clock_gear_mechanism",
+      "trigger_action": "insert_gear",
+      "preconditions": [
+        { "timeline": "present", "entity": "canal_basin", "property": "water_level", "operator": "==", "value": "flowing" }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "clock_gear_mechanism", "action": "set_property", "property": "state", "value": "ticking_calibrated" },
+        { "target_timeline": "future", "entity": "hydro_turbine", "action": "set_property", "property": "power_output", "value": 100, "propagation_delay_ms": 1000 },
+        { "target_timeline": "future", "entity": "temporal_gate_console", "action": "set_property", "property": "power_supplied", "value": true, "propagation_delay_ms": 1000 }
+      ],
+      "reversible": false,
+      "conflict_priority": 95,
+      "localization_key": "echo.replace_clock_gear",
+      "audio_cue": "sfx_clock_chime_resonance",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_restore_archive_document",
+      "source_timeline": "present",
+      "source_entity": "archive_manuscript",
+      "trigger_action": "restore_manuscript",
+      "preconditions": [
+        { "timeline": "present", "entity": "archive_manuscript", "property": "state", "operator": "==", "value": "partially_readable" }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "archive_manuscript", "action": "set_property", "property": "state", "value": "fully_deciphered" }
+      ],
+      "reversible": false,
+      "conflict_priority": 60,
+      "localization_key": "echo.restore_archive_document",
+      "audio_cue": "sfx_parchment_reveal",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_align_temporal_resonator",
+      "source_timeline": "future",
+      "source_entity": "temporal_gate_console",
+      "trigger_action": "tune_frequency",
+      "preconditions": [
+        { "timeline": "future", "entity": "collapsed_gallery_access", "property": "accessible", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "temporal_gate_console", "action": "set_property", "property": "frequency_tuned", "value": true }
+      ],
+      "reversible": false,
+      "conflict_priority": 50,
+      "localization_key": "echo.align_temporal_resonator",
+      "audio_cue": "sfx_resonator_harmonic",
+      "visual_ripple": "temporal_wave_violet"
+    },
+    {
+      "id": "echo_input_temporal_code",
+      "source_timeline": "future",
+      "source_entity": "temporal_gate_console",
+      "trigger_action": "submit_code",
+      "preconditions": [
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "power_supplied", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "temporal_gate_console", "action": "set_property", "property": "code_verified", "value": true },
+        { "target_timeline": "future", "entity": "gate_stabilizer_unit", "action": "set_property", "property": "locked", "value": false }
+      ],
+      "reversible": false,
+      "conflict_priority": 90,
+      "localization_key": "echo.input_temporal_code",
+      "audio_cue": "sfx_gate_unlocked_hum",
+      "visual_ripple": "temporal_wave_violet"
+    },
+    {
+      "id": "echo_activate_gate_stabilizer",
+      "source_timeline": "future",
+      "source_entity": "gate_stabilizer_unit",
+      "trigger_action": "activate_stabilizer",
+      "preconditions": [
+        { "timeline": "future", "entity": "gate_stabilizer_unit", "property": "locked", "operator": "==", "value": false },
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "power_supplied", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "gate_stabilizer_unit", "action": "set_property", "property": "state", "value": "active_anchored" }
+      ],
+      "reversible": false,
+      "conflict_priority": 100,
+      "localization_key": "echo.activate_gate_stabilizer",
+      "audio_cue": "sfx_temporal_anchor_ignite",
+      "visual_ripple": "temporal_wave_gold"
+    }
+  ],
+  "win_conditions": [
+    {
+      "id": "perfect_restoration",
+      "outcome_key": "outcome.perfect_restoration",
+      "grade": "perfect",
+      "requirements": [
+        { "timeline": "future", "entity": "gate_stabilizer_unit", "property": "state", "operator": "==", "value": "active_anchored" },
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "frequency_tuned", "operator": "==", "value": true }
+      ]
+    },
+    {
+      "id": "city_saved_with_sacrifices",
+      "outcome_key": "outcome.city_saved",
+      "grade": "major_success",
+      "requirements": [
+        { "timeline": "future", "entity": "gate_stabilizer_unit", "property": "state", "operator": "==", "value": "active_anchored" },
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "frequency_tuned", "operator": "==", "value": false }
+      ]
+    }
+  ],
+  "loss_conditions": [
+    {
+      "id": "temporal_erasure",
+      "outcome_key": "outcome.temporal_erasure",
+      "requirements": [
+        { "timeline": "system", "entity": "catastrophe", "property": "timer_remaining_ms", "operator": "<=", "value": 0 }
+      ]
+    }
+  ]
+}

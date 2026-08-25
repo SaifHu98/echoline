@@ -1,0 +1,69 @@
+{
+  "events": [
+    {
+      "id": "event_chronal_championship_s1",
+      "title_key": "liveops.championship.title",
+      "description_key": "liveops.championship.desc",
+      "event_type": "tournament",
+      "start_time": "2026-08-01T00:00:00Z",
+      "end_time": "2026-09-30T23:59:59Z",
+      "is_active": true,
+      "target_scenario_id": "clocktower_district",
+      "quests": [
+        {
+          "quest_id": "quest_achieve_perfect_harmony",
+          "title_key": "quest.perfect_harmony.title",
+          "target_type": "achieve_perfect_harmony",
+          "target_count": 3,
+          "reward": {
+            "type": "chrono_shards",
+            "amount": 250
+          }
+        },
+        {
+          "quest_id": "quest_trigger_25_echoes",
+          "title_key": "quest.trigger_echoes.title",
+          "target_type": "trigger_echoes",
+          "target_count": 25,
+          "reward": {
+            "type": "chrono_flux",
+            "amount": 1000
+          }
+        },
+        {
+          "quest_id": "quest_smart_pings_used",
+          "title_key": "quest.smart_pings.title",
+          "target_type": "use_smart_pings",
+          "target_count": 15,
+          "reward": {
+            "type": "chrono_flux",
+            "amount": 500
+          }
+        }
+      ],
+      "leaderboard_config": {
+        "metric": "fastest_completion_sec",
+        "tiers": [
+          {
+            "tier_name_key": "tier.grand_chronomancer",
+            "min_rank": 1,
+            "max_rank": 10,
+            "reward": { "type": "chrono_shards", "amount": 2000, "cosmetic_item": "skin_chrono_sovereign" }
+          },
+          {
+            "tier_name_key": "tier.temporal_master",
+            "min_rank": 11,
+            "max_rank": 100,
+            "reward": { "type": "chrono_shards", "amount": 750, "cosmetic_item": "frame_temporal_vanguard" }
+          },
+          {
+            "tier_name_key": "tier.timeline_adept",
+            "min_rank": 101,
+            "max_rank": 1000,
+            "reward": { "type": "chrono_flux", "amount": 2500 }
+          }
+        ]
+      }
+    }
+  ]
+}

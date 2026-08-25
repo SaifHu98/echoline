@@ -1,0 +1,102 @@
+{
+  "id": "endless_chrono_rift",
+  "name_key": "scenario.endless.name",
+  "description_key": "scenario.endless.desc",
+  "supported_timelines": ["past", "present", "future"],
+  "catastrophe": {
+    "id": "infinite_temporal_surge",
+    "duration_seconds": 900,
+    "stages": [
+      { "name": "wave_1_harmonic", "threshold_pct": 100.0, "warning_key": "catastrophe.stage.stable" },
+      { "name": "wave_2_turbulence", "threshold_pct": 70.0, "warning_key": "catastrophe.stage.destabilizing" },
+      { "name": "wave_3_chrono_storm", "threshold_pct": 35.0, "warning_key": "catastrophe.stage.critical" },
+      { "name": "wave_4_void_collapse", "threshold_pct": 10.0, "warning_key": "catastrophe.stage.imminent" }
+    ]
+  },
+  "timelines_initial_state": {
+    "past": {
+      "chronal_resonator": { "tuned": false },
+      "ancient_sundial": { "aligned": false }
+    },
+    "present": {
+      "quantum_dampener": { "primed": false },
+      "grid_converter": { "synchronized": false }
+    },
+    "future": {
+      "sub_space_anchor": { "charged": false },
+      "omega_stabilizer": { "locked": false }
+    }
+  },
+  "echo_rules": [
+    {
+      "id": "echo_tune_resonator",
+      "source_timeline": "past",
+      "source_entity": "chronal_resonator",
+      "trigger_action": "tune_frequency",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "chronal_resonator", "action": "set_property", "property": "tuned", "value": true },
+        { "target_timeline": "present", "entity": "quantum_dampener", "action": "set_property", "property": "primed", "value": true, "propagation_delay_ms": 500 }
+      ],
+      "reversible": false,
+      "conflict_priority": 80,
+      "localization_key": "echo.tune_resonator",
+      "audio_cue": "sfx_resonator_hum",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_prime_dampener",
+      "source_timeline": "present",
+      "source_entity": "quantum_dampener",
+      "trigger_action": "discharge_pulse",
+      "preconditions": [
+        { "timeline": "present", "entity": "quantum_dampener", "property": "primed", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "grid_converter", "action": "set_property", "property": "synchronized", "value": true },
+        { "target_timeline": "future", "entity": "sub_space_anchor", "action": "set_property", "property": "charged", "value": true, "propagation_delay_ms": 600 }
+      ],
+      "reversible": false,
+      "conflict_priority": 85,
+      "localization_key": "echo.prime_dampener",
+      "audio_cue": "sfx_dampener_pulse",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_lock_omega_stabilizer",
+      "source_timeline": "future",
+      "source_entity": "omega_stabilizer",
+      "trigger_action": "lock_stabilizer",
+      "preconditions": [
+        { "timeline": "future", "entity": "sub_space_anchor", "property": "charged", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "omega_stabilizer", "action": "set_property", "property": "locked", "value": true }
+      ],
+      "reversible": false,
+      "conflict_priority": 100,
+      "localization_key": "echo.lock_omega_stabilizer",
+      "audio_cue": "sfx_temporal_anchor_ignite",
+      "visual_ripple": "temporal_wave_gold"
+    }
+  ],
+  "win_conditions": [
+    {
+      "id": "endless_rift_stabilized",
+      "outcome_key": "outcome.endless_stabilized",
+      "grade": "perfect",
+      "requirements": [
+        { "timeline": "future", "entity": "omega_stabilizer", "property": "locked", "operator": "==", "value": true }
+      ]
+    }
+  ],
+  "loss_conditions": [
+    {
+      "id": "infinite_void_overrun",
+      "outcome_key": "outcome.temporal_erasure",
+      "requirements": [
+        { "timeline": "system", "entity": "catastrophe", "property": "timer_remaining_ms", "operator": "<=", "value": 0 }
+      ]
+    }
+  ]
+}

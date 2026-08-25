@@ -1,0 +1,65 @@
+# ============================================================
+# ECHO//LINE — Hostinger .htaccess
+# ============================================================
+
+# Force HTTPS
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Block access to sensitive files
+<FilesMatch "\.(env|sql|json|md|yml|yaml|lock|gitignore|git|htaccess|htpasswd|ini|log|sh|sql|bak)$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
+# Disable directory browsing
+Options -Indexes
+
+# Security headers
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(self), camera=()"
+</IfModule>
+
+# Compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
+  AddOutputFilterByType DEFLATE application/javascript application/json application/xml
+</IfModule>
+
+# Caching for static assets
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/jpg "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType text/css "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+  ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+# Pretty URLs (optional)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^api/config/?$ api.php?action=config [QSA,L]
+  RewriteRule ^api/shop/?$ api.php?action=shop [QSA,L]
+  RewriteRule ^api/events/?$ api.php?action=events [QSA,L]
+  RewriteRule ^api/quests/?$ api.php?action=quests [QSA,L]
+  RewriteRule ^api/scenarios/?$ api.php?action=scenarios [QSA,L]
+</IfModule>
+
+# Default error pages
+ErrorDocument 404 /admin/login.php
+ErrorDocument 500 /admin/login.php
+
+# Disable server signature
+ServerSignature Off

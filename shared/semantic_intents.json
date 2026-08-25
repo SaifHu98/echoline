@@ -1,0 +1,45 @@
+{
+  "quick_messages": [
+    { "id": "MSG_WATER_NEED_FLOW", "loc_key": "quickmsg.water_need_flow", "category": "request", "icon": "water_drop" },
+    { "id": "MSG_WATER_STOP_FLOW", "loc_key": "quickmsg.water_stop_flow", "category": "request", "icon": "water_off" },
+    { "id": "MSG_FOUND_HISTORICAL_CODE", "loc_key": "quickmsg.found_historical_code", "category": "info", "icon": "key" },
+    { "id": "MSG_TURBINE_POWER_READY", "loc_key": "quickmsg.turbine_power_ready", "category": "status", "icon": "bolt" },
+    { "id": "MSG_DO_NOT_DESTROY", "loc_key": "quickmsg.do_not_destroy", "category": "warning", "icon": "block" },
+    { "id": "MSG_PLANT_IN_COURTYARD", "loc_key": "quickmsg.plant_in_courtyard", "category": "suggestion", "icon": "forest" },
+    { "id": "MSG_WAIT_FOR_SYNC", "loc_key": "quickmsg.wait_for_sync", "category": "coordination", "icon": "hourglass" },
+    { "id": "MSG_GATE_DESTABILIZING", "loc_key": "quickmsg.gate_destabilizing", "category": "danger", "icon": "warning" },
+    { "id": "MSG_NEED_PRESENT_REPAIR", "loc_key": "quickmsg.need_present_repair", "category": "request", "icon": "build" },
+    { "id": "MSG_BRIDGE_ACCESSIBLE", "loc_key": "quickmsg.bridge_accessible", "category": "info", "icon": "bridge" }
+  ],
+  "ping_types": [
+    { "id": "PING_LOOK_HERE", "loc_key": "ping.look_here", "color": "#4A90E2", "icon": "pin" },
+    { "id": "PING_INTERACT_REQUIRED", "loc_key": "ping.interact_required", "color": "#F5A623", "icon": "touch" },
+    { "id": "PING_DANGER_HAZARD", "loc_key": "ping.danger_hazard", "color": "#D0021B", "icon": "hazard" },
+    { "id": "PING_CAUSAL_CHANGE", "loc_key": "ping.causal_change", "color": "#7ED321", "icon": "echo" },
+    { "id": "PING_CODE_FOUND", "loc_key": "ping.code_found", "color": "#BD10E0", "icon": "code" },
+    { "id": "PING_COUNTDOWN", "loc_key": "ping.countdown", "color": "#FF851B", "icon": "timer" }
+  ],
+  "timeline_identifiers": {
+    "past": {
+      "loc_key": "timeline.past",
+      "symbol": "◆",
+      "color": "#D4AF37",
+      "secondary_color": "#2D5A27",
+      "audio_leitmotif": "motif_past_amber"
+    },
+    "present": {
+      "loc_key": "timeline.present",
+      "symbol": "▲",
+      "color": "#4A90E2",
+      "secondary_color": "#708090",
+      "audio_leitmotif": "motif_present_copper"
+    },
+    "future": {
+      "loc_key": "timeline.future",
+      "symbol": "●",
+      "color": "#9013FE",
+      "secondary_color": "#00E5FF",
+      "audio_leitmotif": "motif_future_violet"
+    }
+  }
+}

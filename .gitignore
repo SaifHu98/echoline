@@ -1,0 +1,76 @@
+# === OS junk ===
+Thumbs.db
+.DS_Store
+desktop.ini
+*.lnk
+ehthumbs.db
+ehthumbs_vista.db
+
+# === IDEs ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+
+# === Secrets (NEVER commit) ===
+.env
+.env.local
+.env.*.local
+
+# === Logs ===
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === Dependencies ===
+node_modules/
+vendor/
+.bundle/
+
+# === Build outputs ===
+client/builds/
+game-server/dist/
+game-server/coverage/
+
+# === Tests ===
+coverage/
+.nyc_output/
+test-results/
+
+# === Local config (Hostinger credentials) ===
+web/admin/config.local.php
+web/admin/config.hostinger.php
+web/admin/includes/credentials.local.php
+
+# === Database dumps (may contain real data) ===
+*.sql
+!web/admin/database/schema.sql
+!web/admin/database/install.sql
+*.sql.bak
+*.dump
+*.db
+*.sqlite
+*.sqlite3
+
+# === User data ===
+web/admin/data/sessions/
+web/admin/data/backups/
+web/admin/data/uploads/
+web/admin/data/exports/
+web/admin/data/scenarios/*.json.local
+
+# === Godot ===
+client/.godot/
+client/.import/
+client/.translation/
+client/addons/
+
+# === Temporary ===
+*.tmp
+*.temp
+*.bak
+*.orig
+*~

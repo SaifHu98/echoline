@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ScenarioDefinition",
+  "type": "object",
+  "required": [
+    "id",
+    "name_key",
+    "description_key",
+    "supported_timelines",
+    "catastrophe",
+    "timelines_initial_state",
+    "echo_rules",
+    "win_conditions",
+    "loss_conditions"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "name_key": { "type": "string" },
+    "description_key": { "type": "string" },
+    "supported_timelines": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 2
+    },
+    "catastrophe": {
+      "type": "object",
+      "required": ["id", "duration_seconds", "stages"],
+      "properties": {
+        "id": { "type": "string" },
+        "duration_seconds": { "type": "integer", "minimum": 60 },
+        "stages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "threshold_pct", "warning_key"],
+            "properties": {
+              "name": { "type": "string" },
+              "threshold_pct": { "type": "number" },
+              "warning_key": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "timelines_initial_state": {
+      "type": "object"
+    },
+    "echo_rules": {
+      "type": "array",
+      "items": {
+        "$ref": "echo_definition.schema.json"
+      }
+    },
+    "win_conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "outcome_key", "grade", "requirements"],
+        "properties": {
+          "id": { "type": "string" },
+          "outcome_key": { "type": "string" },
+          "grade": { "type": "string", "enum": ["perfect", "major_success", "partial_success"] },
+          "requirements": { "type": "array" }
+        }
+      }
+    },
+    "loss_conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "outcome_key", "requirements"],
+        "properties": {
+          "id": { "type": "string" },
+          "outcome_key": { "type": "string" },
+          "requirements": { "type": "array" }
+        }
+      }
+    }
+  }
+}

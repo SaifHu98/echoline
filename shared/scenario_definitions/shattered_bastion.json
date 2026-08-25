@@ -1,0 +1,99 @@
+{
+  "id": "shattered_bastion",
+  "name_key": "scenario.bastion.name",
+  "description_key": "scenario.bastion.desc",
+  "supported_timelines": ["past", "present", "future"],
+  "catastrophe": {
+    "id": "temporal_siege_overrun",
+    "duration_seconds": 600,
+    "stages": [
+      { "name": "stable", "threshold_pct": 100.0, "warning_key": "catastrophe.stage.stable" },
+      { "name": "destabilizing", "threshold_pct": 65.0, "warning_key": "catastrophe.stage.destabilizing" },
+      { "name": "critical", "threshold_pct": 25.0, "warning_key": "catastrophe.stage.critical" },
+      { "name": "imminent_collapse", "threshold_pct": 10.0, "warning_key": "catastrophe.stage.imminent" }
+    ]
+  },
+  "timelines_initial_state": {
+    "past": {
+      "iron_portcullis": { "raised": false }
+    },
+    "present": {
+      "bastion_shield_generator": { "powered": false, "shield_active": false }
+    },
+    "future": {
+      "aegis_anchor": { "ready": false, "engaged": false }
+    }
+  },
+  "echo_rules": [
+    {
+      "id": "echo_raise_portcullis",
+      "source_timeline": "past",
+      "source_entity": "iron_portcullis",
+      "trigger_action": "raise_gate",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past", "entity": "iron_portcullis", "action": "set_property", "property": "raised", "value": true },
+        { "target_timeline": "present", "entity": "bastion_shield_generator", "action": "set_property", "property": "powered", "value": true, "propagation_delay_ms": 600 }
+      ],
+      "reversible": false,
+      "conflict_priority": 80,
+      "localization_key": "echo.raise_portcullis",
+      "audio_cue": "sfx_gate_chain_clank",
+      "visual_ripple": "temporal_wave_amber"
+    },
+    {
+      "id": "echo_charge_bastion_shields",
+      "source_timeline": "present",
+      "source_entity": "bastion_shield_generator",
+      "trigger_action": "charge_shields",
+      "preconditions": [
+        { "timeline": "present", "entity": "bastion_shield_generator", "property": "powered", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "bastion_shield_generator", "action": "set_property", "property": "shield_active", "value": true },
+        { "target_timeline": "future", "entity": "aegis_anchor", "action": "set_property", "property": "ready", "value": true, "propagation_delay_ms": 700 }
+      ],
+      "reversible": false,
+      "conflict_priority": 85,
+      "localization_key": "echo.charge_bastion_shields",
+      "audio_cue": "sfx_shield_charge",
+      "visual_ripple": "temporal_wave_copper"
+    },
+    {
+      "id": "echo_engage_aegis_anchor",
+      "source_timeline": "future",
+      "source_entity": "aegis_anchor",
+      "trigger_action": "lock_aegis",
+      "preconditions": [
+        { "timeline": "future", "entity": "aegis_anchor", "property": "ready", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "aegis_anchor", "action": "set_property", "property": "engaged", "value": true }
+      ],
+      "reversible": false,
+      "conflict_priority": 100,
+      "localization_key": "echo.engage_aegis_anchor",
+      "audio_cue": "sfx_temporal_anchor_ignite",
+      "visual_ripple": "temporal_wave_gold"
+    }
+  ],
+  "win_conditions": [
+    {
+      "id": "bastion_defended",
+      "outcome_key": "outcome.bastion_defended",
+      "grade": "perfect",
+      "requirements": [
+        { "timeline": "future", "entity": "aegis_anchor", "property": "engaged", "operator": "==", "value": true }
+      ]
+    }
+  ],
+  "loss_conditions": [
+    {
+      "id": "bastion_overrun",
+      "outcome_key": "outcome.temporal_erasure",
+      "requirements": [
+        { "timeline": "system", "entity": "catastrophe", "property": "timer_remaining_ms", "operator": "<=", "value": 0 }
+      ]
+    }
+  ]
+}

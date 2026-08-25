@@ -1,0 +1,119 @@
+{
+  "currencies": {
+    "soft_currency": "chrono_flux",
+    "hard_currency": "chrono_shards"
+  },
+  "categories": [
+    { "id": "cat_currency", "title_key": "shop.cat.currency", "icon": "gem" },
+    { "id": "cat_chronicle_pass", "title_key": "shop.cat.pass", "icon": "badge" },
+    { "id": "cat_outfits", "title_key": "shop.cat.outfits", "icon": "checkroom" },
+    { "id": "cat_vfx_shaders", "title_key": "shop.cat.vfx", "icon": "auto_awesome" },
+    { "id": "cat_pings_frames", "title_key": "shop.cat.flair", "icon": "palette" }
+  ],
+  "items": [
+    {
+      "id": "item_shards_pouch_500",
+      "title_key": "shop.item.shards_500.title",
+      "description_key": "shop.item.shards_500.desc",
+      "category_id": "cat_currency",
+      "item_type": "currency_pack",
+      "google_play_sku": "com.ecouni.echoline.shards500",
+      "price": { "currency": "real_usd", "amount": 4.99 },
+      "discount_pct": 0,
+      "is_featured": false,
+      "is_limited_time": false,
+      "grant_contents": { "chrono_shards": 500 }
+    },
+    {
+      "id": "item_shards_chest_1200",
+      "title_key": "shop.item.shards_1200.title",
+      "description_key": "shop.item.shards_1200.desc",
+      "category_id": "cat_currency",
+      "item_type": "currency_pack",
+      "google_play_sku": "com.ecouni.echoline.shards1200",
+      "price": { "currency": "real_usd", "amount": 9.99 },
+      "discount_pct": 20,
+      "is_featured": true,
+      "is_limited_time": false,
+      "grant_contents": { "chrono_shards": 1200 }
+    },
+    {
+      "id": "item_pass_season_1",
+      "title_key": "shop.item.season1_pass.title",
+      "description_key": "shop.item.season1_pass.desc",
+      "category_id": "cat_chronicle_pass",
+      "item_type": "chronicle_pass",
+      "google_play_sku": "com.ecouni.echoline.season1pass",
+      "price": { "currency": "real_usd", "amount": 7.99 },
+      "discount_pct": 0,
+      "is_featured": true,
+      "is_limited_time": true,
+      "grant_contents": { "pass_tier_boost": 5, "chrono_flux": 2000 }
+    },
+    {
+      "id": "item_outfit_past_artisan",
+      "title_key": "shop.item.outfit_artisan.title",
+      "description_key": "shop.item.outfit_artisan.desc",
+      "category_id": "cat_outfits",
+      "item_type": "character_outfit",
+      "google_play_sku": null,
+      "price": { "currency": "chrono_shards", "amount": 500 },
+      "discount_pct": 0,
+      "is_featured": false,
+      "is_limited_time": false,
+      "grant_contents": { "cosmetic_item_id": "skin_past_artisan" }
+    },
+    {
+      "id": "item_outfit_future_cyber_weaver",
+      "title_key": "shop.item.outfit_cyber_weaver.title",
+      "description_key": "shop.item.outfit_cyber_weaver.desc",
+      "category_id": "cat_outfits",
+      "item_type": "character_outfit",
+      "google_play_sku": null,
+      "price": { "currency": "chrono_shards", "amount": 800 },
+      "discount_pct": 15,
+      "is_featured": true,
+      "is_limited_time": false,
+      "grant_contents": { "cosmetic_item_id": "skin_future_cyber_weaver" }
+    },
+    {
+      "id": "item_vfx_aurora_ripple",
+      "title_key": "shop.item.vfx_aurora.title",
+      "description_key": "shop.item.vfx_aurora.desc",
+      "category_id": "cat_vfx_shaders",
+      "item_type": "ripple_shader",
+      "google_play_sku": null,
+      "price": { "currency": "chrono_shards", "amount": 350 },
+      "discount_pct": 0,
+      "is_featured": false,
+      "is_limited_time": false,
+      "grant_contents": { "cosmetic_item_id": "shader_aurora_ripple" }
+    },
+    {
+      "id": "item_ping_cosmic_runes",
+      "title_key": "shop.item.ping_cosmic.title",
+      "description_key": "shop.item.ping_cosmic.desc",
+      "category_id": "cat_pings_frames",
+      "item_type": "ping_cosmetic",
+      "google_play_sku": null,
+      "price": { "currency": "chrono_flux", "amount": 1500 },
+      "discount_pct": 0,
+      "is_featured": false,
+      "is_limited_time": false,
+      "grant_contents": { "cosmetic_item_id": "ping_skin_cosmic_runes" }
+    },
+    {
+      "id": "item_frame_gold_crest",
+      "title_key": "shop.item.frame_gold.title",
+      "description_key": "shop.item.frame_gold.desc",
+      "category_id": "cat_pings_frames",
+      "item_type": "profile_frame",
+      "google_play_sku": null,
+      "price": { "currency": "chrono_flux", "amount": 2500 },
+      "discount_pct": 0,
+      "is_featured": false,
+      "is_limited_time": false,
+      "grant_contents": { "cosmetic_item_id": "frame_gold_chrono_crest" }
+    }
+  ]
+}
