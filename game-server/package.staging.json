@@ -1,0 +1,25 @@
+{
+  "name": "ECHO//LINE Game Server (Staging)",
+  "version": "1.0.0-staging",
+  "description": "Staging environment with deterministic seeds and feature flags enabled",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "start:staging": "NODE_ENV=staging node src/server.js",
+    "start:production": "NODE_ENV=production node src/server.js",
+    "test": "node --test tests/*.test.js tests/building/*.js tests/security/*.js",
+    "test:smoke": "node tests/smoke/smoke_test.js",
+    "test:load": "node tests/load/load_runner.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "compression": "^1.7.5",
+    "helmet": "^8.0.0",
+    "cors": "^2.8.5"
+  }
+}

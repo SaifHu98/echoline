@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: echoline-game-server-staging
+    runtime: node
+    plan: free
+    region: oregon
+    branch: develop
+    buildCommand: cd game-server && npm ci --omit=dev
+    startCommand: cd game-server && npm run start:staging
+    healthCheckPath: /readyz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: PORT
+        value: 10000
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://echoline-staging.eduiraq.net,https://staging.echoline.app
+      - key: ADMIN_API_URL
+        value: https://echoline.eduiraq.net/echoline/api
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: LOG_LEVEL
+        value: debug
+      - key: ECHO_KILL_FLAGS
+        value: ""
+      - key: ECHO_FEATURE_FLAG_BUILDING
+        value: enabled
+      - key: ECHO_FEATURE_FLAG_VOICE_CHAT
+        value: staged_rollout
+      - key: ECHO_ROLLOUT_PERCENTAGE
+        value: 5
+      - key: ECHO_ROLLOUT_SALT
+        value: staging-rollout-2026
+      - key: MYSQL_HOST
+        sync: false
+      - key: MYSQL_DB
+        sync: false
+      - key: MYSQL_USER
+        sync: false
+      - key: MYSQL_PASS
+        sync: false

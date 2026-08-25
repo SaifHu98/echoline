@@ -1,0 +1,102 @@
+// ECHO//LINE Android Gradle Configuration
+// Used by Godot 4.7.2 Android export template
+
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.echoline.game'
+    compileSdkVersion 34
+    buildToolsVersion '34.0.0'
+    ndkVersion '25.2.9519653'
+
+    defaultConfig {
+        applicationId 'com.echoline.game'
+        minSdkVersion 24
+        targetSdkVersion 34
+        versionCode 1
+        versionName '1.0.0'
+        multiDexEnabled true
+
+        ndk {
+            abiFilters 'arm64-v8a', 'x86_64'
+        }
+
+        manifestPlaceholders = [
+            'godotEditorPluginEnabled': 'false',
+            'godotRemotePluginEnabled': 'false',
+            'godotRemoteBaseURL': 'https://echoline-game-server.onrender.com',
+            'ECHOLINE_API_BASE': 'https://echoline-game-server.onrender.com'
+        ]
+    }
+
+    signingConfigs {
+        release {
+            if (project.hasProperty('ECHOLINE_KEYSTORE_PATH')) {
+                storeFile file(ECHOLINE_KEYSTORE_PATH)
+                storePassword ECHOLINE_KEYSTORE_PASSWORD
+                keyAlias ECHOLINE_KEYSTORE_USER
+                keyPassword ECHOLINE_KEYSTORE_PASSWORD
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            debuggable true
+            minifyEnabled false
+            shrinkResources false
+            versionNameSuffix '-DEBUG'
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            ndk {
+                debugSymbolLevel 'SYMBOL_TABLE'
+            }
+        }
+    }
+
+    bundle {
+        language {
+            enableSplit true
+        }
+        density {
+            enableSplit true
+        }
+        abi {
+            enableSplit true
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging false
+        }
+        resources {
+            excludes += [
+                'META-INF/LICENSE*',
+                'META-INF/NOTICE*',
+                'META-INF/*.kotlin_module'
+            ]
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.8.4'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.google.android.gms:play-services-base:18.4.0'
+}
+
+proguardFiles 'proguard-rules.pro'

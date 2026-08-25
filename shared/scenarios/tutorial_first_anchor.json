@@ -1,0 +1,348 @@
+{
+  "$schema": "../scenario.schema.json",
+  "scenario_id": "tutorial_first_anchor_v1",
+  "version": "1.0.0",
+  "title": {
+    "en": "Your First Anchor",
+    "ar": "أول مرسى لك"
+  },
+  "subtitle": {
+    "en": "Learn to collect shards and build with friends",
+    "ar": "تعلم جمع الشظايا والبناء مع الأصدقاء"
+  },
+  "description": {
+    "en": "A 5-minute tutorial for new players. Solos with bots filling other slots. Introduces Echoes → Shards → Anchor flow.",
+    "ar": "درس تعليمي مدته 5 دقائق للاعبين الجدد. يلعب مع bots لملء المواقع. يعلّم تدفق الصدى ← الشظايا ← المرسى."
+  },
+  "duration_target_seconds": 300,
+  "min_players": 1,
+  "max_players": 4,
+  "recommended_players": 2,
+  "bot_fill_strategy": "fill_to_recommended",
+  "difficulty": 1,
+  "category": "tutorial",
+  "skip_allowed": true,
+  "completion_credits": 50,
+  "first_completion_bonus_shards": 5,
+  "intro_sequence": [
+    {
+      "step_id": "welcome",
+      "type": "narrator_card",
+      "display_name": { "en": "Welcome to ECHO//LINE", "ar": "مرحباً بك في إيكو//لاين" },
+      "body": {
+        "en": "Three timelines fractured. You'll inhabit one — Past, Present, or Future — and cooperate with players in other timelines to stabilize reality.",
+        "ar": "ثلاث حقب زمنية متصدعة. ستسكن واحدة — الماضي، الحاضر، أو المستقبل — وتتعاون مع لاعبين في الحقب الأخرى لاستقرار الواقع."
+      },
+      "duration_ms": 5000,
+      "advance_on": "tap_to_continue"
+    },
+    {
+      "step_id": "tap_an_echo",
+      "type": "guided_action",
+      "display_name": { "en": "Tap the glowing Echo", "ar": "اضغط على الصدى المتوهج" },
+      "highlight_target": "echo_intro_001",
+      "hint_text": {
+        "en": "Each Echo is a frozen moment from another timeline. Tap to investigate.",
+        "ar": "كل صدى هو لحظة مجمدة من حقبة أخرى. اضغط للتحقيق."
+      },
+      "duration_ms": 6000,
+      "advance_on": "object_interacted"
+    },
+    {
+      "step_id": "shard_drop",
+      "type": "feedback",
+      "display_name": { "en": "You found a Memory Shard", "ar": "لقد وجدت شظية ذاكرة" },
+      "body": {
+        "en": "Every resolved Echo drops a Memory Shard. Each shard belongs to a timeline and carries its essence.",
+        "ar": "كل صدى محلول يُسقط شظية ذاكرة. كل شظية تنتمي إلى حقبة وتحمل جوهرها."
+      },
+      "duration_ms": 4000,
+      "advance_on": "tap_to_continue"
+    },
+    {
+      "step_id": "open_inventory",
+      "type": "guided_action",
+      "display_name": { "en": "Open your Shard Inventory", "ar": "افتح مخزن الشظايا" },
+      "highlight_target": "shard_inventory_bar",
+      "hint_text": {
+        "en": "Tap the shard bar at the bottom of your screen to see what you've collected.",
+        "ar": "اضغط شريط الشظايا في أسفل الشاشة لرؤية ما جمعته."
+      },
+      "duration_ms": 5000,
+      "advance_on": "inventory_opened"
+    }
+  ],
+  "echoes": [
+    {
+      "echo_id": "echo_intro_001",
+      "display_name": { "en": "First Echo — Cradle Song", "ar": "الصدى الأول — نشيدة المهد" },
+      "timeline": "past",
+      "type": "single_choice",
+      "prompt": {
+        "en": "A lullaby hums from a stone cradle. What do you do?",
+        "ar": "تغنية تنبعث من مهد حجري. ماذا تفعل؟"
+      },
+      "options": [
+        {
+          "option_id": "listen",
+          "label": { "en": "Listen carefully", "ar": "استمع بانتباه" },
+          "outcome": "shard_past_memorial_stone",
+          "hint": { "en": "Quiet listening reveals hidden meaning", "ar": "الإصغاء الهادئ يكشف المعنى المخفي" }
+        },
+        {
+          "option_id": "silence",
+          "label": { "en": "Stay silent", "ar": "ابق صامتاً" },
+          "outcome": "shard_past_carved_wood",
+          "hint": { "en": "Silence echoes", "ar": "الصمت يتردد صداه" }
+        },
+        {
+          "option_id": "hum",
+          "label": { "en": "Hum along", "ar": "رنم مع اللحن" },
+          "outcome": "fail",
+          "hint": { "en": "Don't interfere", "ar": "لا تتدخل" }
+        }
+      ],
+      "completion_effects": [
+        {
+          "type": "drop_shard",
+          "source": "echo_past_resolved",
+          "rarity_bonus": false
+        }
+      ],
+      "max_attempts": 2,
+      "timeout_seconds": 60
+    },
+    {
+      "echo_id": "echo_intro_002",
+      "display_name": { "en": "First Echo — Mechanism Click", "ar": "الصدى الأول — طقطقة الآلية" },
+      "timeline": "present",
+      "type": "single_choice",
+      "prompt": {
+        "en": "A clockwork device ticks in rhythm with your heartbeat. What do you do?",
+        "ar": "جهاز ساعة يدق بإيقاع نبضات قلبك. ماذا تفعل؟"
+      },
+      "options": [
+        {
+          "option_id": "examine",
+          "label": { "en": "Examine the gears", "ar": "افحص التروس" },
+          "outcome": "shard_present_steel_frame",
+          "hint": { "en": "Look closely", "ar": "انظر عن قرب" }
+        },
+        {
+          "option_id": "wind",
+          "label": { "en": "Wind the spring", "ar": "شد النابض" },
+          "outcome": "shard_present_quartz_panel",
+          "hint": { "en": "Give it energy", "ar": "امنحه طاقة" }
+        }
+      ],
+      "completion_effects": [
+        {
+          "type": "drop_shard",
+          "source": "echo_present_resolved",
+          "rarity_bonus": false
+        }
+      ],
+      "max_attempts": 2,
+      "timeout_seconds": 60
+    },
+    {
+      "echo_id": "echo_intro_003",
+      "display_name": { "en": "First Echo — Holo Frame", "ar": "الصدى الأول — الإطار الهولو" },
+      "timeline": "future",
+      "type": "single_choice",
+      "prompt": {
+        "en": "A holographic frame flickers, showing a future that never was. What do you do?",
+        "ar": "إطار هولوغرافي يرمش، يُظهر مستقبلاً لم يحدث أبداً. ماذا تفعل؟"
+      },
+      "options": [
+        {
+          "option_id": "stabilize",
+          "label": { "en": "Stabilize the hologram", "ar": "ثبّت الهولوغرام" },
+          "outcome": "shard_future_holographic_crystal",
+          "hint": { "en": "Add structure", "ar": "أضف بنية" }
+        },
+        {
+          "option_id": "study",
+          "label": { "en": "Study the data", "ar": "ادرس البيانات" },
+          "outcome": "shard_future_quantum_thread",
+          "hint": { "en": "Read the signals", "ar": "اقرأ الإشارات" }
+        }
+      ],
+      "completion_effects": [
+        {
+          "type": "drop_shard",
+          "source": "echo_future_resolved",
+          "rarity_bonus": false
+        }
+      ],
+      "max_attempts": 2,
+      "timeout_seconds": 60
+    }
+  ],
+  "anchor_blueprint_id": "support_wall",
+  "anchor_intro": {
+    "display_name": { "en": "Now let's build together!", "ar": "والآن لنبنِ معاً!" },
+    "body": {
+      "en": "You have shards from different timelines. Tap a shard, then tap a glowing slot on the Anchor to place it. Each slot accepts shards from a specific timeline.",
+      "ar": "لديك شظايا من حقب مختلفة. اضغط شظية، ثم اضغط فتحة متوهجة على المرسى لوضعها. كل فتحة تقبل شظايا من حقبة محددة."
+    },
+    "duration_ms": 8000,
+    "advance_on": "tap_to_continue"
+  },
+  "anchor_guidance": [
+    {
+      "step_id": "select_shard_past",
+      "type": "guided_action",
+      "display_name": { "en": "Pick a Past shard", "ar": "اختر شظية ماضية" },
+      "highlight_target": "shard_past_memorial_stone",
+      "hint_text": {
+        "en": "Tap a Past shard in your inventory",
+        "ar": "اضغط شظية ماضية في مخزنك"
+      },
+      "duration_ms": 6000,
+      "advance_on": "shard_selected",
+      "validation": {
+        "shard_must_be_timeline": "past"
+      }
+    },
+    {
+      "step_id": "place_in_slot",
+      "type": "guided_action",
+      "display_name": { "en": "Place it in the slot", "ar": "ضعها في الفتحة" },
+      "highlight_target": "anchor_slot_0",
+      "hint_text": {
+        "en": "Now tap the glowing slot to place it",
+        "ar": "الآن اضغط الفتحة المتوهجة لوضعها"
+      },
+      "duration_ms": 6000,
+      "advance_on": "shard_placed",
+      "validation": {
+        "slot_must_accept_timeline": "past"
+      }
+    },
+    {
+      "step_id": "select_shard_present",
+      "type": "guided_action",
+      "display_name": { "en": "Pick a Present shard", "ar": "اختر شظية حاضرة" },
+      "highlight_target": "shard_present_steel_frame",
+      "hint_text": {
+        "en": "Now pick a Present shard",
+        "ar": "الآن اختر شظية حاضرة"
+      },
+      "duration_ms": 6000,
+      "advance_on": "shard_selected",
+      "validation": {
+        "shard_must_be_timeline": "present"
+      }
+    },
+    {
+      "step_id": "place_in_slot",
+      "type": "guided_action",
+      "display_name": { "en": "Place it", "ar": "ضعها" },
+      "highlight_target": "anchor_slot_1",
+      "hint_text": {
+        "en": "Place it in the next slot",
+        "ar": "ضعها في الفتحة التالية"
+      },
+      "duration_ms": 6000,
+      "advance_on": "shard_placed",
+      "validation": {
+        "slot_must_accept_timeline": "present"
+      }
+    },
+    {
+      "step_id": "select_shard_future",
+      "type": "guided_action",
+      "display_name": { "en": "Pick a Future shard", "ar": "اختر شظية مستقبلة" },
+      "highlight_target": "shard_future_holographic_crystal",
+      "hint_text": {
+        "en": "One more — pick a Future shard",
+        "ar": "شظية أخيرة — اختر شظية مستقبلة"
+      },
+      "duration_ms": 6000,
+      "advance_on": "shard_selected",
+      "validation": {
+        "shard_must_be_timeline": "future"
+      }
+    },
+    {
+      "step_id": "place_in_slot",
+      "type": "guided_action",
+      "display_name": { "en": "Place it", "ar": "ضعها" },
+      "highlight_target": "anchor_slot_2",
+      "hint_text": {
+        "en": "Place it in the third slot",
+        "ar": "ضعها في الفتحة الثالثة"
+      },
+      "duration_ms": 6000,
+      "advance_on": "shard_placed",
+      "validation": {
+        "slot_must_accept_timeline": "future"
+      }
+    },
+    {
+      "step_id": "final_cap",
+      "type": "guided_action",
+      "display_name": { "en": "Add the capstone", "ar": "أضف الغطاء" },
+      "highlight_target": "anchor_slot_3",
+      "hint_text": {
+        "en": "Place any remaining shard on the cap slot to complete the wall",
+        "ar": "ضع أي شظية متبقية على فتحة الغطاء لإكمال الجدار"
+      },
+      "duration_ms": 8000,
+      "advance_on": "shard_placed"
+    }
+  ],
+  "completion_sequence": [
+    {
+      "step_id": "celebration",
+      "type": "celebration_card",
+      "display_name": { "en": "You built your first Anchor!", "ar": "لقد بنيت أول مرسى لك!" },
+      "body": {
+        "en": "This was a Support Wall — a simple structure. In real matches, you'll build the Echo Triad Anchor with shards from all three timelines AND the Epoch Alignment Marker. That requires cooperation with other players.",
+        "ar": "كان هذا جدار دعم — هيكل بسيط. في المباريات الحقيقية، ستبني مرسى الثلاثي بشظايا من الحقب الثلاث وعلامة محاذاة العصور. يتطلب ذلك تعاوناً مع لاعبين آخرين."
+      },
+      "duration_ms": 8000,
+      "advance_on": "tap_to_continue"
+    },
+    {
+      "step_id": "first_completion_reward",
+      "type": "reward",
+      "display_name": { "en": "First Anchor Bonus", "ar": "مكافأة المرسى الأول" },
+      "reward_type": "shards",
+      "reward_amount": 5,
+      "shard_id": "epoch_alignment_marker",
+      "duration_ms": 4000,
+      "advance_on": "tap_to_continue"
+    },
+    {
+      "step_id": "ready_for_real_match",
+      "type": "narrator_card",
+      "display_name": { "en": "Ready for a real match?", "ar": "هل أنت مستعد لمباراة حقيقية؟" },
+      "body": {
+        "en": "You're ready to play the full Clockmaker's Testament scenario. Tap Continue to enter matchmaking.",
+        "ar": "أنت مستعد للعب سيناريو وصية صانع الساعات. اضغط متابعة لدخول نظام المطابقة."
+      },
+      "duration_ms": 5000,
+      "advance_on": "tap_to_continue",
+      "next_action": "matchmake_into_scenario:the_clockmaker_testament"
+    }
+  ],
+  "failure_outcomes": [
+    {
+      "trigger": "anchor_incomplete_at_timeout",
+      "display_name": { "en": "Time's up — let's try again", "ar": "انتهى الوقت — لنحاول مرة أخرى" },
+      "body": {
+        "en": "Don't worry! Anchor building is new. We'll restart from the placement step.",
+        "ar": "لا تقلق! بناء المرسى جديد. سنعيد البدء من خطوة الوضع."
+      },
+      "retry_strategy": "restart_from_anchor_intro"
+    }
+  ],
+  "telemetry": {
+    "track_completion_rate": true,
+    "track_drop_off_step": true,
+    "track_first_attempt_success": true,
+    "track_avg_duration_seconds": true
+  }
+}
