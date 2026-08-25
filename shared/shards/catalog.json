@@ -1,0 +1,171 @@
+{
+  "$schema": "shards/catalog.schema.json",
+  "version": "1.0.0",
+  "rules": {
+    "drop_rate_base": 0.35,
+    "drop_rate_cap": 1.0,
+    "cooperation_bonus": 0.15,
+    "duplicate_conversion": 3,
+    "rare_shard_unlock_match": 8
+  },
+  "shards": {
+    "past_memorial_stone": {
+      "id": "past_memorial_stone",
+      "timeline": "past",
+      "tier": "common",
+      "display_name": {
+        "en": "Past Memorial Stone",
+        "ar": "حجر التذكار"
+      },
+      "lore": {
+        "en": "A weathered fragment from the era of parchment and brass. The wind still hums a forgotten song through it.",
+        "ar": "شظية متآكلة من عصر الورق البردي والنحاس. الريح لا تزال تنشد أغنية منسية عبرها."
+      },
+      "shape": "rounded",
+      "material": "stone",
+      "emissive_color": "#9B6A3F",
+      "weight": 1.0,
+      "drop_sources": ["echo_past_resolved", "puzzle_past_completed"],
+      "use_in": ["anchor_past_base", "wall_past_cap", "pillar_past_core"],
+      "icon": "shards/stone_past.svg",
+      "sound_pickup": "audio/pickup_stone.ogg",
+      "vfx_appear": "ripple_past"
+    },
+    "past_carved_wood": {
+      "id": "past_carved_wood",
+      "timeline": "past",
+      "tier": "common",
+      "display_name": {
+        "en": "Past Carved Wood",
+        "ar": "خشب منحوت"
+      },
+      "shape": "plank",
+      "material": "wood",
+      "emissive_color": "#7A4F2A",
+      "weight": 0.6,
+      "drop_sources": ["echo_past_resolved"],
+      "use_in": ["wall_past_section", "anchor_past_brace"]
+    },
+    "past_runic_iron": {
+      "id": "past_runic_iron",
+      "timeline": "past",
+      "tier": "rare",
+      "display_name": {
+        "en": "Past Runic Iron",
+        "ar": "حديد رونيقي"
+      },
+      "shape": "ring",
+      "material": "iron",
+      "emissive_color": "#A37F4C",
+      "weight": 0.3,
+      "drop_sources": ["rare_past_mastery"],
+      "use_in": ["anchor_past_core", "pillar_past_cap"]
+    },
+    "present_steel_frame": {
+      "id": "present_steel_frame",
+      "timeline": "present",
+      "tier": "common",
+      "display_name": {
+        "en": "Present Steel Frame",
+        "ar": "إطار فولاذي"
+      },
+      "shape": "box",
+      "material": "steel",
+      "emissive_color": "#6E7C8C",
+      "weight": 1.2,
+      "drop_sources": ["echo_present_resolved", "puzzle_present_completed"],
+      "use_in": ["anchor_present_base", "wall_present_section", "pillar_present_core"]
+    },
+    "present_quartz_panel": {
+      "id": "present_quartz_panel",
+      "timeline": "present",
+      "tier": "common",
+      "display_name": {
+        "en": "Present Quartz Panel",
+        "ar": "لوح كوارتز"
+      },
+      "shape": "flat",
+      "material": "glass",
+      "emissive_color": "#A4C8E0",
+      "weight": 0.4,
+      "drop_sources": ["echo_present_resolved"],
+      "use_in": ["wall_present_cap", "anchor_present_brace"]
+    },
+    "present_clockwork_mechanism": {
+      "id": "present_clockwork_mechanism",
+      "timeline": "present",
+      "tier": "rare",
+      "display_name": {
+        "en": "Present Clockwork",
+        "ar": "آلية ساعاتية"
+      },
+      "shape": "gear",
+      "material": "brass",
+      "emissive_color": "#C99A4A",
+      "weight": 0.3,
+      "drop_sources": ["rare_present_mastery"],
+      "use_in": ["anchor_present_core", "pillar_present_cap"]
+    },
+    "future_holographic_crystal": {
+      "id": "future_holographic_crystal",
+      "timeline": "future",
+      "tier": "common",
+      "display_name": {
+        "en": "Future Holographic Crystal",
+        "ar": "بلورة هولوغرامية"
+      },
+      "shape": "hex",
+      "material": "crystal",
+      "emissive_color": "#54E8C8",
+      "weight": 0.5,
+      "drop_sources": ["echo_future_resolved", "puzzle_future_completed"],
+      "use_in": ["anchor_future_base", "wall_future_section", "pillar_future_core"]
+    },
+    "future_quantum_thread": {
+      "id": "future_quantum_thread",
+      "timeline": "future",
+      "tier": "common",
+      "display_name": {
+        "en": "Future Quantum Thread",
+        "ar": "خيط كمومي"
+      },
+      "shape": "ring",
+      "material": "energy",
+      "emissive_color": "#9B7AE8",
+      "weight": 0.2,
+      "drop_sources": ["echo_future_resolved"],
+      "use_in": ["wall_future_cap", "anchor_future_brace"]
+    },
+    "future_singularity_core": {
+      "id": "future_singularity_core",
+      "timeline": "future",
+      "tier": "legendary",
+      "display_name": {
+        "en": "Future Singularity Core",
+        "ar": "نواة التفرد"
+      },
+      "shape": "sphere",
+      "material": "energy",
+      "emissive_color": "#FFE873",
+      "weight": 0.1,
+      "drop_sources": ["legendary_future_echo"],
+      "use_in": ["anchor_future_core"],
+      "drop_rate": 0.05
+    },
+    "epoch_alignment_marker": {
+      "id": "epoch_alignment_marker",
+      "timeline": "neutral",
+      "tier": "epic",
+      "display_name": {
+        "en": "Epoch Alignment Marker",
+        "ar": "علامــة محاذاة العصور"
+      },
+      "shape": "marker",
+      "material": "energy",
+      "emissive_color": "#F2F2F2",
+      "weight": 0.0,
+      "drop_sources": ["three_timeline_synchro"],
+      "use_in": ["anchor_junction"]
+    }
+  }
+}

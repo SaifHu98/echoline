@@ -1,0 +1,153 @@
+{
+  "$schema": "anchors/blueprint.schema.json",
+  "version": "1.0.0",
+  "anchors": {
+    "echo_triad_anchor": {
+      "id": "echo_triad_anchor",
+      "display_name": {
+        "en": "Echo Triad Anchor",
+        "ar": "مرسى الثلاثي الزمني"
+      },
+      "lore": {
+        "en": "A structure that fuses three timelines into one stabilized point. Each shard must be placed in the correct slot — order matters.",
+        "ar": "منشأة تدمج ثلاث حقب زمنية في نقطة واحدة مستقرة. كل شظية يجب أن توضع في الفتحة الصحيحة — الترتيب مهم."
+      },
+      "category": "primary",
+      "difficulty": 3,
+      "max_players": 4,
+      "snap_grid": 1.0,
+      "footprint_cells": {
+        "x": 3,
+        "y": 1,
+        "z": 3
+      },
+      "cooperation_required": true,
+      "min_players_building": 2,
+      "completion_time_seconds": 240,
+      "slots": [
+        {
+          "slot_id": "past_core",
+          "position": { "x": -1, "y": 0, "z": 0 },
+          "rotation_deg": { "x": 0, "y": 90, "z": 0 },
+          "shape_hint": "rounded",
+          "material_hint": "stone",
+          "valid_shards": ["past_memorial_stone", "past_carved_wood"],
+          "preferred_timeline": "past",
+          "owner_index_required": 0,
+          "weight": 1.0,
+          "visual_marker": "slot_past_glow.png"
+        },
+        {
+          "slot_id": "present_core",
+          "position": { "x": 0, "y": 0, "z": 0 },
+          "rotation_deg": { "x": 0, "y": 0, "z": 0 },
+          "shape_hint": "box",
+          "material_hint": "steel",
+          "valid_shards": ["present_steel_frame", "present_clockwork_mechanism"],
+          "preferred_timeline": "present",
+          "owner_index_required": 1,
+          "weight": 1.0,
+          "visual_marker": "slot_present_glow.png"
+        },
+        {
+          "slot_id": "future_core",
+          "position": { "x": 1, "y": 0, "z": 0 },
+          "rotation_deg": { "x": 0, "y": -90, "z": 0 },
+          "shape_hint": "hex",
+          "material_hint": "crystal",
+          "valid_shards": ["future_holographic_crystal", "future_singularity_core"],
+          "preferred_timeline": "future",
+          "owner_index_required": 2,
+          "weight": 1.0,
+          "visual_marker": "slot_future_glow.png"
+        },
+        {
+          "slot_id": "junction_marker",
+          "position": { "x": 0, "y": 1, "z": 0 },
+          "rotation_deg": { "x": 0, "y": 0, "z": 0 },
+          "shape_hint": "marker",
+          "material_hint": "energy",
+          "valid_shards": ["epoch_alignment_marker"],
+          "preferred_timeline": "neutral",
+          "owner_index_required": 3,
+          "weight": 0.5,
+          "visual_marker": "slot_junction_glow.png"
+        },
+        {
+          "slot_id": "brace_left",
+          "position": { "x": -1, "y": 0, "z": 1 },
+          "rotation_deg": { "x": 0, "y": 0, "z": 0 },
+          "shape_hint": "plank",
+          "valid_shards": ["past_carved_wood", "present_quartz_panel", "future_quantum_thread"],
+          "weight": 0.3
+        },
+        {
+          "slot_id": "brace_right",
+          "position": { "x": 1, "y": 0, "z": -1 },
+          "rotation_deg": { "x": 0, "y": 180, "z": 0 },
+          "shape_hint": "plank",
+          "valid_shards": ["past_carved_wood", "present_quartz_panel", "future_quantum_thread"],
+          "weight": 0.3
+        }
+      ],
+      "completion_effects": {
+        "scene_clear": true,
+        "vfx": "anchor_complete",
+        "audio": "anchor_resonance.ogg",
+        "score_award": 500,
+        "trigger_outcome": "perfect_testament"
+      }
+    },
+    "support_wall": {
+      "id": "support_wall",
+      "display_name": {
+        "en": "Timeline Support Wall",
+        "ar": "جدار دعم زمني"
+      },
+      "category": "secondary",
+      "difficulty": 1,
+      "max_players": 2,
+      "snap_grid": 1.0,
+      "footprint_cells": { "x": 4, "y": 2, "z": 1 },
+      "cooperation_required": false,
+      "min_players_building": 1,
+      "completion_time_seconds": 90,
+      "slots": [
+        {
+          "slot_id": "wall_base_left",
+          "position": { "x": -1.5, "y": 0, "z": 0 },
+          "shape_hint": "plank",
+          "valid_shards": ["past_memorial_stone", "present_steel_frame", "future_holographic_crystal"],
+          "weight": 0.5
+        },
+        {
+          "slot_id": "wall_base_mid",
+          "position": { "x": 0, "y": 0, "z": 0 },
+          "shape_hint": "plank",
+          "valid_shards": ["past_memorial_stone", "present_steel_frame", "future_holographic_crystal"],
+          "weight": 0.5
+        },
+        {
+          "slot_id": "wall_base_right",
+          "position": { "x": 1.5, "y": 0, "z": 0 },
+          "shape_hint": "plank",
+          "valid_shards": ["past_memorial_stone", "present_steel_frame", "future_holographic_crystal"],
+          "weight": 0.5
+        },
+        {
+          "slot_id": "wall_cap",
+          "position": { "x": 0, "y": 1, "z": 0 },
+          "shape_hint": "flat",
+          "valid_shards": ["past_carved_wood", "present_quartz_panel", "future_quantum_thread"],
+          "weight": 0.3
+        }
+      ],
+      "completion_effects": {
+        "scene_clear": false,
+        "vfx": "wall_complete",
+        "audio": "wall_settle.ogg",
+        "score_award": 150
+      }
+    }
+  }
+}
