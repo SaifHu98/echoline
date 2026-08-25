@@ -1,0 +1,393 @@
+{
+  "id": "clockmaker_testament",
+  "name_key": "scenario.clockmaker.name",
+  "description_key": "scenario.clockmaker.desc",
+  "duration_minutes": "10-15",
+  "tutorial_required": true,
+  "supported_timelines": ["past", "present", "future"],
+  "intro": {
+    "narrator_key": "scenario.clockmaker.intro",
+    "duration_seconds": 60,
+    "steps": [
+      { "step": "team_meet", "duration_sec": 10, "instruction_key": "tutorial.team_meet" },
+      { "step": "timeline_intro", "duration_sec": 20, "instruction_key": "tutorial.timeline_intro" },
+      { "step": "first_echo", "duration_sec": 20, "instruction_key": "tutorial.first_echo" },
+      { "step": "objectives_brief", "duration_sec": 10, "instruction_key": "tutorial.objectives_brief" }
+    ]
+  },
+  "catastrophe": {
+    "id": "temporal_gate_collapse",
+    "duration_seconds": 900,
+    "stages": [
+      { "name": "stable",          "threshold_pct": 100, "warning_key": "catastrophe.stage.stable" },
+      { "name": "destabilizing",   "threshold_pct": 75,  "warning_key": "catastrophe.stage.destabilizing" },
+      { "name": "critical",        "threshold_pct": 35,  "warning_key": "catastrophe.stage.critical" },
+      { "name": "imminent_collapse","threshold_pct": 10,  "warning_key": "catastrophe.stage.imminent" }
+    ]
+  },
+  "public_timeline_hints": {
+    "past":   ["courtyard_soil", "canal_debris", "workshop_anvil"],
+    "present":["canal_basin", "courtyard_tree", "clock_gear_mechanism"],
+    "future": ["hydro_turbine", "canopy_bridge", "temporal_gate_console"]
+  },
+  "timelines_initial_state": {
+    "past": {
+      "courtyard_soil":      { "state": "prepared",  "seed_id": null,        "memory_stone_carved": false, "carved_code": null },
+      "canal_debris":        { "state": "blocking",  "passage_open": false },
+      "workshop_anvil":      { "state": "cold",     "rune_inscribed": false, "inscribed_rune": null },
+      "ledger_chest":        { "state": "locked",   "rune_locked": true,    "ledger_taken": false }
+    },
+    "present": {
+      "canal_basin":         { "water_level": "dry",   "water_flowing": false,  "seedling_present": false },
+      "courtyard_tree":      { "state": "sapling",  "branches_clear": false, "tree_health": 30 },
+      "clock_gear_mechanism":{ "state": "missing_gear","gear_seated": false,  "code_engraved": null },
+      "residential_passage": { "cleared": false, "passage_blocked": true }
+    },
+    "future": {
+      "hydro_turbine":       { "status": "offline_dry","power_output": 0,     "turbine_powered": false },
+      "canopy_bridge":       { "exists": false, "traversable": false,     "bridge_sealed": true },
+      "temporal_gate_console":{ "power_supplied": false, "frequency_tuned": false, "code_verified": false, "console_code": null },
+      "gate_stabilizer_unit":{ "state": "offline","locked": true,         "stabilizer_anchored": false }
+    }
+  },
+
+  "echo_rules": [
+    {
+      "id": "echo_t1_lift_memory_stone",
+      "tutorial": true,
+      "description_key": "echo.t1.desc",
+      "source_timeline": "past",
+      "source_entity": "courtyard_soil",
+      "trigger_action": "lift_stone",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past",   "entity": "courtyard_soil", "action": "set_property", "property": "state",  "value": "stone_removed" },
+        { "target_timeline": "present", "entity": "courtyard_tree", "action": "set_property", "property": "state",  "value": "seedling_visible", "propagation_delay_ms": 300 }
+      ],
+      "hints": [
+        null,
+        "hint.t1.l2",
+        "hint.t1.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 5,
+      "audio_cue": "sfx_stone_lift",
+      "visual_ripple": "temporal_wave_amber"
+    },
+
+    {
+      "id": "echo_t2_plant_seed",
+      "source_timeline": "past",
+      "source_entity": "courtyard_soil",
+      "trigger_action": "plant_seed",
+      "preconditions": [
+        { "timeline": "past", "entity": "courtyard_soil", "property": "state", "operator": "==", "value": "stone_removed" }
+      ],
+      "effects": [
+        { "target_timeline": "past",   "entity": "courtyard_soil", "action": "set_property", "property": "seed_id", "value": "oak_of_echoes" },
+        { "target_timeline": "present", "entity": "canal_basin",    "action": "set_property", "property": "seedling_present", "value": true, "propagation_delay_ms": 600 }
+      ],
+      "hints": [
+        null,
+        "hint.t2.l2",
+        "hint.t2.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 10,
+      "audio_cue": "sfx_seed_plant",
+      "visual_ripple": "temporal_wave_amber"
+    },
+
+    {
+      "id": "echo_t3_open_passage",
+      "source_timeline": "past",
+      "source_entity": "canal_debris",
+      "trigger_action": "clear_debris",
+      "preconditions": [
+        { "timeline": "past", "entity": "courtyard_soil", "property": "state", "operator": "==", "value": "stone_removed" }
+      ],
+      "effects": [
+        { "target_timeline": "past",   "entity": "canal_debris", "action": "set_property", "property": "state", "value": "cleared" },
+        { "target_timeline": "present", "entity": "canal_basin",   "action": "set_property", "property": "passage_blocked", "value": false, "propagation_delay_ms": 500 }
+      ],
+      "hints": [
+        null,
+        "hint.t3.l2",
+        "hint.t3.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 8,
+      "audio_cue": "sfx_debris_clear",
+      "visual_ripple": "temporal_wave_amber"
+    },
+
+    {
+      "id": "echo_t4_carve_rune",
+      "source_timeline": "past",
+      "source_entity": "workshop_anvil",
+      "trigger_action": "carve_rune",
+      "preconditions": [],
+      "effects": [
+        { "target_timeline": "past",    "entity": "workshop_anvil", "action": "set_property", "property": "rune_inscribed", "value": true },
+        { "target_timeline": "past",    "entity": "workshop_anvil", "action": "set_property", "property": "inscribed_rune", "value": "ECHO_77" },
+        { "target_timeline": "present", "entity": "ledger_chest",   "action": "set_property", "property": "rune_locked",     "value": false, "propagation_delay_ms": 400 }
+      ],
+      "hints": [
+        null,
+        "hint.t4.l2",
+        "hint.t4.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 12,
+      "audio_cue": "sfx_rune_carve",
+      "visual_ripple": "temporal_wave_amber",
+      "reveals_secret": "ECHO_77"
+    },
+
+    {
+      "id": "echo_t5_open_ledger",
+      "source_timeline": "past",
+      "source_entity": "ledger_chest",
+      "trigger_action": "open_chest",
+      "preconditions": [
+        { "timeline": "past", "entity": "workshop_anvil", "property": "rune_inscribed", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "past",    "entity": "ledger_chest",   "action": "set_property", "property": "state",     "value": "open" },
+        { "target_timeline": "past",    "entity": "ledger_chest",   "action": "set_property", "property": "ledger_taken", "value": true },
+        { "target_timeline": "present", "entity": "clock_gear_mechanism", "action": "set_property", "property": "code_engraved", "value": "ECHO_77", "propagation_delay_ms": 700 }
+      ],
+      "hints": [
+        null,
+        "hint.t5.l2",
+        "hint.t5.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 18,
+      "audio_cue": "sfx_chest_open",
+      "visual_ripple": "temporal_wave_amber"
+    },
+
+    {
+      "id": "echo_t6_water_flow",
+      "source_timeline": "present",
+      "source_entity": "canal_basin",
+      "trigger_action": "release_water",
+      "preconditions": [
+        { "timeline": "present", "entity": "canal_basin", "property": "passage_blocked", "operator": "==", "value": false }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "canal_basin",  "action": "set_property", "property": "water_level",  "value": "flowing" },
+        { "target_timeline": "present", "entity": "canal_basin",  "action": "set_property", "property": "water_flowing","value": true },
+        { "target_timeline": "future",  "entity": "hydro_turbine","action": "set_property", "property": "status",       "value": "water_powered", "propagation_delay_ms": 800 },
+        { "target_timeline": "future",  "entity": "hydro_turbine","action": "set_property", "property": "power_output", "value": 60, "propagation_delay_ms": 800 }
+      ],
+      "hints": [
+        null,
+        "hint.t6.l2",
+        "hint.t6.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 22,
+      "audio_cue": "sfx_water_release",
+      "visual_ripple": "temporal_wave_copper"
+    },
+
+    {
+      "id": "echo_t7_prune_tree",
+      "source_timeline": "present",
+      "source_entity": "courtyard_tree",
+      "trigger_action": "prune_branches",
+      "preconditions": [
+        { "timeline": "present", "entity": "courtyard_tree", "property": "state", "operator": "==", "value": "mature_oak" },
+        { "timeline": "present", "entity": "canal_basin",    "property": "water_flowing", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "courtyard_tree", "action": "set_property", "property": "branches_clear", "value": true },
+        { "target_timeline": "present", "entity": "residential_passage", "action": "set_property", "property": "cleared", "value": true, "propagation_delay_ms": 700 },
+        { "target_timeline": "future",  "entity": "canopy_bridge",      "action": "set_property", "property": "exists", "value": true, "propagation_delay_ms": 1500 }
+      ],
+      "hints": [
+        null,
+        "hint.t7.l2",
+        "hint.t7.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 30,
+      "audio_cue": "sfx_prune_branches",
+      "visual_ripple": "temporal_wave_copper"
+    },
+
+    {
+      "id": "echo_t8_seat_gear",
+      "source_timeline": "present",
+      "source_entity": "clock_gear_mechanism",
+      "trigger_action": "seat_gear",
+      "preconditions": [
+        { "timeline": "present", "entity": "clock_gear_mechanism", "property": "code_engraved", "operator": "==", "value": "ECHO_77" },
+        { "timeline": "present", "entity": "canal_basin", "property": "water_flowing", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "present", "entity": "clock_gear_mechanism", "action": "set_property", "property": "state",      "value": "ticking_calibrated" },
+        { "target_timeline": "present", "entity": "clock_gear_mechanism", "action": "set_property", "property": "gear_seated", "value": true },
+        { "target_timeline": "future",  "entity": "temporal_gate_console", "action": "set_property", "property": "power_supplied", "value": true, "propagation_delay_ms": 900 },
+        { "target_timeline": "future",  "entity": "hydro_turbine", "action": "set_property", "property": "power_output", "value": 100, "propagation_delay_ms": 900 }
+      ],
+      "hints": [
+        null,
+        "hint.t8.l2",
+        "hint.t8.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 35,
+      "audio_cue": "sfx_gear_seat",
+      "visual_ripple": "temporal_wave_copper"
+    },
+
+    {
+      "id": "echo_t9_open_bridge",
+      "source_timeline": "future",
+      "source_entity": "canopy_bridge",
+      "trigger_action": "unseal_bridge",
+      "preconditions": [
+        { "timeline": "future", "entity": "canopy_bridge", "property": "exists", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "canopy_bridge", "action": "set_property", "property": "bridge_sealed", "value": false },
+        { "target_timeline": "future", "entity": "canopy_bridge", "action": "set_property", "property": "traversable",   "value": true }
+      ],
+      "hints": [
+        null,
+        "hint.t9.l2",
+        "hint.t9.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 40,
+      "audio_cue": "sfx_bridge_open",
+      "visual_ripple": "temporal_wave_violet"
+    },
+
+    {
+      "id": "echo_t10_tune_console",
+      "source_timeline": "future",
+      "source_entity": "temporal_gate_console",
+      "trigger_action": "tune_frequency",
+      "preconditions": [
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "power_supplied", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "temporal_gate_console", "action": "set_property", "property": "frequency_tuned", "value": true },
+        { "target_timeline": "future", "entity": "temporal_gate_console", "action": "set_property", "property": "console_code",   "value": "ECHO_77" }
+      ],
+      "hints": [
+        null,
+        "hint.t10.l2",
+        "hint.t10.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 45,
+      "audio_cue": "sfx_console_tune",
+      "visual_ripple": "temporal_wave_violet"
+    },
+
+    {
+      "id": "echo_t11_input_code",
+      "source_timeline": "future",
+      "source_entity": "temporal_gate_console",
+      "trigger_action": "input_code",
+      "preconditions": [
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "frequency_tuned", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "temporal_gate_console", "action": "set_property", "property": "code_verified", "value": true },
+        { "target_timeline": "future", "entity": "gate_stabilizer_unit",   "action": "set_property", "property": "locked",         "value": false }
+      ],
+      "hints": [
+        null,
+        "hint.t11.l2",
+        "hint.t11.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 50,
+      "audio_cue": "sfx_code_input",
+      "visual_ripple": "temporal_wave_violet"
+    },
+
+    {
+      "id": "echo_t12_anchor_stabilizer",
+      "source_timeline": "future",
+      "source_entity": "gate_stabilizer_unit",
+      "trigger_action": "anchor_stabilizer",
+      "preconditions": [
+        { "timeline": "future", "entity": "gate_stabilizer_unit", "property": "locked", "operator": "==", "value": false },
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "code_verified", "operator": "==", "value": true }
+      ],
+      "effects": [
+        { "target_timeline": "future", "entity": "gate_stabilizer_unit", "action": "set_property", "property": "state", "value": "active_anchored" },
+        { "target_timeline": "future", "entity": "gate_stabilizer_unit", "action": "set_property", "property": "stabilizer_anchored", "value": true }
+      ],
+      "hints": [
+        null,
+        "hint.t12.l2",
+        "hint.t12.l3"
+      ],
+      "reversible": false,
+      "conflict_priority": 60,
+      "audio_cue": "sfx_stabilizer_anchor",
+      "visual_ripple": "temporal_wave_gold"
+    }
+  ],
+
+  "win_conditions": [
+    {
+      "id": "perfect_testament",
+      "outcome_key": "outcome.perfect_testament",
+      "grade": "perfect",
+      "description_key": "outcome.perfect_testament.desc",
+      "requirements": [
+        { "timeline": "future", "entity": "gate_stabilizer_unit",   "property": "stabilizer_anchored", "operator": "==", "value": true },
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "code_verified",       "operator": "==", "value": true },
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "frequency_tuned",     "operator": "==", "value": true }
+      ]
+    },
+    {
+      "id": "good_testament",
+      "outcome_key": "outcome.good_testament",
+      "grade": "major_success",
+      "description_key": "outcome.good_testament.desc",
+      "requirements": [
+        { "timeline": "future", "entity": "gate_stabilizer_unit", "property": "stabilizer_anchored", "operator": "==", "value": true }
+      ]
+    },
+    {
+      "id": "partial_testament",
+      "outcome_key": "outcome.partial_testament",
+      "grade": "partial_success",
+      "description_key": "outcome.partial_testament.desc",
+      "requirements": [
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "power_supplied", "operator": "==", "value": true },
+        { "timeline": "present", "entity": "clock_gear_mechanism", "property": "gear_seated",    "operator": "==", "value": true }
+      ]
+    }
+  ],
+
+  "loss_conditions": [
+    {
+      "id": "temporal_erasure",
+      "outcome_key": "outcome.temporal_erasure",
+      "description_key": "outcome.temporal_erasure.desc",
+      "requirements": [
+        { "timeline": "system", "entity": "catastrophe", "property": "timer_remaining_ms", "operator": "<=", "value": 0 }
+      ]
+    }
+  ],
+
+  "recovery": {
+    "enabled": true,
+    "cooperative_score_thresholds": [
+      { "score": 50,  "bonus_seconds": 30, "message_key": "recovery.bonus_small" },
+      { "score": 100, "bonus_seconds": 60, "message_key": "recovery.bonus_medium" },
+      { "score": 200, "bonus_seconds": 120, "message_key": "recovery.bonus_large" }
+    ]
+  }
+}

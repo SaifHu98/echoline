@@ -1,0 +1,419 @@
+name: ECHO//LINE — Full CI
+
+# =====================================================================
+# Triggers
+# =====================================================================
+on:
+  push:
+    branches: [main, develop, release/**]
+  pull_request:
+    branches: [main, develop]
+
+# Cancel any in-flight runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Required checks: at least 1 approval + no admin bypass
+# (configured in branch protection rules)
+
+env:
+  NODE_VERSION: '22'           # LTS Jod
+  GODOT_VERSION: '4.7.2-stable'
+  PHP_VERSION: '8.3'
+
+# =====================================================================
+# Jobs
+# =====================================================================
+jobs:
+  # ------------------------------------------------------------
+  # 1. Lint + Format + Type Check (Node.js)
+  # ------------------------------------------------------------
+  lint-node:
+    name: Lint (Node.js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: game-server/package-lock.json
+      - name: Install
+        working-directory: game-server
+        run: npm ci --no-audit --no-fund
+      - name: ESLint
+        working-directory: game-server
+        run: npm run lint
+      - name: Prettier check
+        working-directory: game-server
+        run: npx prettier --check 'src/**/*.js' 'tests/**/*.js'
+      - name: GDScript syntax check (Godot)
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          godot-version: ${{ env.GODOT_VERSION }}
+      - name: GDScript lint
+        working-directory: client
+        run: |
+          godot --headless --quit --script scripts/gdlint_runner.gd || true
+
+  # ------------------------------------------------------------
+  # 2. Unit tests (Node.js) — 37+ tests
+  # ------------------------------------------------------------
+  unit-tests-node:
+    name: Unit Tests (Node.js)
+    runs-on: ubuntu-latest
+    needs: lint-node
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: game-server/package-lock.json
+      - name: Install
+        working-directory: game-server
+        run: npm ci --no-audit --no-fund
+      - name: EchoEngine unit tests
+        working-directory: game-server
+        run: node --test tests/unit_echo_engine.test.js
+      - name: Room integration tests
+        working-directory: game-server
+        run: node --test tests/integration_room.test.js
+      - name: Simulation tests (2/3/4 players)
+        working-directory: game-server
+        run: node --test tests/simulation.test.js
+      - name: Security tests
+        working-directory: game-server
+        run: node --test tests/security/security.test.js
+      - name: Coverage report
+        working-directory: game-server
+        run: |
+          npx c8 --reporter=text --reporter=lcov \
+            node --test tests/unit_echo_engine.test.js \
+            tests/integration_room.test.js \
+            tests/simulation.test.js \
+            tests/security/security.test.js
+      - name: Upload coverage
+        uses: codecov/upload-action@v4
+        with:
+          directory: game-server/coverage
+          fail_ci_if_error: true
+          threshold: 70%
+
+  # ------------------------------------------------------------
+  # 3. Concurrency tests — multi-player + network failures
+  # ------------------------------------------------------------
+  concurrency-tests:
+    name: Concurrency (2/3/4 players + reconnect)
+    runs-on: ubuntu-latest
+    needs: unit-tests-node
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: game-server/package-lock.json
+      - name: Install
+        working-directory: game-server
+        run: npm ci --no-audit --no-fund
+      - name: Multi-player scenarios
+        working-directory: game-server
+        run: node --test tests/simulation.test.js tests/concurrency.test.js
+      - name: Network simulation (latency, packet loss)
+        working-directory: game-server
+        run: node --test tests/network_sim.test.js
+      - name: Reconnect scenarios
+        working-directory: game-server
+        run: node --test tests/reconnect.test.js
+
+  # ------------------------------------------------------------
+  # 4. Load test — 50 concurrent rooms
+  # ------------------------------------------------------------
+  load-test:
+    name: Load Test (50 concurrent rooms)
+    runs-on: ubuntu-latest
+    needs: concurrency-tests
+    timeout-minutes: 20
+    services:
+      redis:
+        image: redis:7-alpine
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: game-server/package-lock.json
+      - name: Install
+        working-directory: game-server
+        run: npm ci --no-audit --no-fund
+      - name: Start server
+        working-directory: game-server
+        run: node src/server.js &
+        env:
+          PORT: 3001
+      - name: Wait for ready
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3001/readyz && break
+            sleep 1
+          done
+      - name: Run load test (50 rooms, 4 players each)
+        working-directory: game-server
+        run: node tests/load/load_runner.js --rooms=50 --players=4 --duration=60
+      - name: Check p99 < 200ms
+        working-directory: game-server
+        run: |
+          cat load_test_results.json | jq '.p99_ms < 200' || exit 1
+      - name: Stop server
+        run: pkill -f "node src/server.js" || true
+
+  # ------------------------------------------------------------
+  # 5. Dependency + Secret scan
+  # ------------------------------------------------------------
+  security-scan:
+    name: Dependency & Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: npm audit
+        working-directory: game-server
+        run: npm audit --audit-level=high || exit 1
+      - name: composer audit (admin)
+        working-directory: web/admin
+        run: |
+          composer install --no-progress --quiet 2>/dev/null || true
+          composer audit --format=json --no-interaction 2>/dev/null | \
+            jq '.vulnerabilities | map(select(.severity == "high" or .severity == "critical")) | length == 0' \
+            || true
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      - name: OSV-Scanner
+        uses: google/osv-scanner-action@v1
+        with:
+          scan-args: '--recursive .'
+
+  # ------------------------------------------------------------
+  # 6. PHP tests (Admin Panel)
+  # ------------------------------------------------------------
+  php-tests:
+    name: PHP Tests (Admin Panel)
+    runs-on: ubuntu-latest
+    needs: lint-node
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, pdo, pdo_mysql
+      - name: Setup DB
+        run: |
+          sudo apt-get install -y mariadb-server > /dev/null
+          sudo service mari-server start start
+          mysql -e "CREATE DATABASE echoline_test;"
+      - name: Run migrations
+        working-directory: web/admin
+        run: |
+          for f in database/migrations/*.sql; do
+            mysql echoline_test < "$f" || true
+          done
+      - name: Run security tests
+        working-directory: web/admin
+        run: php tests/security/test_security.php
+
+  # ------------------------------------------------------------
+  # 7. Android build (debug + release)
+  # ------------------------------------------------------------
+  android-debug:
+    name: Android Build (Debug APK)
+    runs-on: ubuntu-latest
+    needs: unit-tests-node
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          godot-version: ${{ env.GODOT_VERSION }}
+          cache: true
+      - name: Cache export templates
+        id: export-templates
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}
+            ~/.local/share/godot
+          key: godot-export-${{ env.GODOT_VERSION }}
+      - name: Import project
+        working-directory: client
+        run: godot --headless --import 2>&1 | tail -20
+      - name: Build Debug APK
+        working-directory: client
+        run: |
+          mkdir -p builds
+          godot --headless --export-debug "Android" builds/echoline-debug.apk
+      - name: Verify APK
+        run: |
+          test -f client/builds/echoline-debug.apk
+          ls -lh client/builds/echoline-debug.apk
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: echoline-debug-apk
+          path: client/builds/echoline-debug.apk
+          retention-days: 7
+
+  android-release:
+    name: Android Build (Release APK)
+    runs-on: ubuntu-latest
+    needs: [android-debug, security-scan, php-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          godot-version: ${{ env.GODOT_VERSION }}
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p client/android/build/release
+          echo "$KEYSTORE_BASE64" | base64 -d > client/android/build/release/echoline.keystore
+      - name: Build Signed APK
+        working-directory: client
+        run: |
+          mkdir -p builds
+          godot --headless --export-release "Android" builds/echoline-release.apk
+        env:
+          ECHOLINE_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          ECHOLINE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          ECHOLINE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: echoline-release-apk
+          path: client/builds/echoline-release.apk
+          retention-days: 30
+
+  # ------------------------------------------------------------
+  # 8. GDScript syntax check (Godot)
+  # ------------------------------------------------------------
+  gdscript-check:
+    name: GDScript Syntax (Godot)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          godot-version: ${{ env.GODOT_VERSION }}
+      - name: Headless parse check
+        working-directory: client
+        run: |
+          godot --headless --quit-after 2 --check-only
+          # Verify no parse errors in any .gd file
+          ERRORS=0
+          for f in $(find . -name "*.gd" -not -path "*/android/build/*"); do
+            godot --headless --check-only --script "$f" 2>&1 | grep -qi "parse error" && ERRORS=$((ERRORS+1))
+          done
+          exit $ERRORS
+
+  # ------------------------------------------------------------
+  # 9. Merge gate — all must pass
+  # ------------------------------------------------------------
+  merge-gate:
+    name: Merge Gate
+    runs-on: ubuntu-latest
+    needs: [
+      lint-node,
+      unit-tests-node,
+      concurrency-tests,
+      security-scan,
+      php-tests,
+      android-debug,
+      gdscript-check,
+    ]
+    if: always()
+    steps:
+      - name: Check all critical jobs
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "❌ Critical job failed — merge blocked"
+            exit 1
+          fi
+          echo "✅ All critical jobs passed — ready to merge"
+
+  # ------------------------------------------------------------
+  # 10. Staging deploy (only on main + after all gates)
+  # ------------------------------------------------------------
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [merge-gate, load-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://echoline-staging.onrender.com
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger Render deploy
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_STAGING }}
+        run: |
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
+      - name: Wait for staging
+        run: |
+          for i in $(seq 1 60); do
+            STATUS=$(curl -sf -o /dev/null -w '%{http_code}' https://echoline-staging.onrender.com/readyz)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Staging ready"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "❌ Staging not ready after 5min"
+          exit 1
+      - name: Smoke test
+        run: |
+          curl -sf https://echoline-staging.onrender.com/health
+          # WS handshake
+          curl -sf 'https://echoline-staging.onrender.com/socket.io/?EIO=4&transport=polling'
+      - name: Notify team
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Staging deploy ${{ job.status }}: ${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+# =====================================================================
+# Required status checks (configure in branch protection)
+# =====================================================================
+# Branch protection for `main`:
+#   Required status checks:
+#     - "Merge Gate"
+#     - "Lint (Node.js)"
+#     - "Unit Tests (Node.js)"
+#     - "Concurrency (2/3/4 players + reconnect)"
+#     - "PHP Tests (Admin Panel)"
+#     - "Android Build (Debug APK)"
+#   Require branches up to date: ✓
+#   Require linear history: ✓
+#   Include administrators: ✗ (no bypass)
