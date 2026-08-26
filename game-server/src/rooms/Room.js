@@ -105,7 +105,7 @@ class Room {
       uid,
       socketId,
       displayName: String(displayName || 'Player').substring(0, 32),
-      language: ['en', 'ar'].includes(language) ? language : 'en',
+      language: ['en', 'ar', 'qps_mirrored', 'qps_expanded'].includes(language) ? language : 'en',
       timeline,
       isHost,
       isReady: false,

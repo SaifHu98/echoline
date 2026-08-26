@@ -288,8 +288,9 @@ async function main() {
   section('5. Language Switching');
   // Verify the localization JSON files on disk cover the same keys.
   const fs = require('fs');
-  const arPath = path.join(__dirname, '..', '..', 'shared', 'localization', 'ar.json');
-  const enPath = path.join(__dirname, '..', '..', 'shared', 'localization', 'en.json');
+  // Path resolution: __dirname = game-server/tests/e2e/ → ../../shared/localization
+  const arPath = path.resolve(__dirname, '..', '..', '..', 'shared', 'localization', 'ar.json');
+  const enPath = path.resolve(__dirname, '..', '..', '..', 'shared', 'localization', 'en.json');
   let ar = null;
   let en = null;
   try {
