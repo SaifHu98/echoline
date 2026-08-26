@@ -58,7 +58,7 @@ func create_bt_player_for_npc(npc_name: String, parent: Node3D) -> Node:
 		push_error("[NPCBehavior] Unknown NPC '%s'" % npc_name)
 		return null
 	var profile: Dictionary = NPC_BEHAVIORS[npc_name]
-	var BTPlayerClass := ClassDB.instantiate("BTPlayer")
+	var BTPlayerClass: Node = ClassDB.instantiate("BTPlayer")
 	if BTPlayerClass == null:
 		push_warning("[NPCBehavior] BTPlayer class not in ClassDB")
 		return null

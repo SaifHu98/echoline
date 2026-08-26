@@ -1,72 +1,43 @@
-~ start
-
-# ECHO//LINE — Echo Greeting (Past Timeline)
-# Used when a player first enters the Past timeline.
-# Title and balloon are configured in Dialogue Manager settings.
-
-if Engine.has_singleton("DialogueManager") or ClassDB.class_exists("DialogueManager"):
-	# Dialogue Manager is enabled: this file is loaded directly via
-	# DialogueManager.show_dialogue_balloon_scene().
-	pass
-
-do intro_echo
+~ intro_echo
 intro_echo: The wind carries whispers of an ancient era. Stones still hum with forgotten hymns.
 do intro_echo_2
 intro_echo_2: As the Past player, your foundation shapes all that follows.
 do intro_echo_3
 intro_echo_3: What will you build first?
-
 => Build the foundation of the clock tower > END
 => Tend the gardens of the courtyard > END
 => Inscribe the archive tablet > END
+=> END
 
-~ end
-do memory_saved
+~ memory_saved
 memory_saved: Your choices echo forward. The Present stirs.
 => Continue > END
 
-~ start
-
-# ECHO//LINE — Clockmaker First Meeting
-# Triggered when player approaches the Clockmaker NPC in the Present timeline.
-
-do clockmaker_greeting
-clockmaker_greeting: Welcome, traveler. The mechanism falters. I am the Clockmaker — keeper of temporal balance.
+~ clockmaker_greeting
+clockmaker_greeting: Welcome, traveler. The mechanism falters. I am the Clockmaker, keeper of temporal balance.
 do clockmaker_choice
 clockmaker_choice: Will you aid me, or watch time unravel?
-
 => I will help. Tell me what to do. > END
 => What happens if I refuse? > END
 => Who are you, really? > END
+=> END
 
-~ end
-do clockmaker_grateful
-clockmaker_grateful: I knew you would choose wisely. Begin at the courtyard — the Past holds the key.
+~ clockmaker_grateful
+clockmaker_grateful: I knew you would choose wisely. Begin at the courtyard, the Past holds the key.
 => Continue > END
 
-~ start
-
-# ECHO//LINE — Tutorial Step 1
-# Triggered at the start of the Tutorial scenario.
-
-do tutorial_intro
+~ tutorial_intro
 tutorial_intro: Welcome to ECHO//LINE. You inhabit one of three fractured timelines.
 do tutorial_intro_2
 tutorial_intro_2: Across each, your actions ripple.
 do tutorial_intro_3
 tutorial_intro_3: Together, you must stabilize reality before catastrophe.
-
 => Continue > tutorial_step_2
 
 ~ tutorial_step_2
-do tutorial_step_2_line
-tutorial_step_2_line: Tap any glowing object in your timeline to interact.
-do tutorial_step_2_line_2
-tutorial_step_2_line_2: Watch for ripple effects in other timelines — your choices echo forward and backward.
-
+tutorial_step_2: Tap any glowing object in your timeline to interact.
 => Got it > END
 
-~ end
-do tutorial_complete
+~ tutorial_complete
 tutorial_complete: You are ready. Find your timeline. Choose your role. Begin.
 => Begin > END

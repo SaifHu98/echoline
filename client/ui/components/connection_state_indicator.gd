@@ -149,7 +149,9 @@ func _on_lobby_updated(roster: Variant) -> void:
 		players = roster.get("players", [])
 
 	var me = NetworkClient.get_player_uid()
-	var player = players.find(p => p.get("uid") == me) if players else null
+	var player = null
+	if players:
+		player = players.find(func(p): return p.get("uid") == me)
 	# ملاحظة: players قد لا يكون dictionary مع uid لكل عنصر
 	# البحث البديل:
 	if not player:

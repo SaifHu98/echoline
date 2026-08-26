@@ -74,7 +74,7 @@ func generate_world_for_timeline(timeline: String) -> void:
 
 func _build_terrain(timeline: String, config: Dictionary) -> void:
 	_dispose_old_terrain()
-	var Terrain3DClass := ClassDB.instantiate("Terrain3D")
+	var Terrain3DClass: Node3D = ClassDB.instantiate("Terrain3D")
 	if Terrain3DClass == null:
 		push_warning("[TerrainWorldGenerator] Failed to instantiate Terrain3D class")
 		_fallback_terrain(timeline)

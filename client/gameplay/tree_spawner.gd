@@ -66,7 +66,7 @@ func spawn_tree(world_pos: Vector3, timeline: String) -> Node3D:
 
 
 func _spawn_tree3d(world_pos: Vector3, profile: Dictionary) -> Node3D:
-	var Tree3DClass := ClassDB.instantiate("Tree3D")
+	var Tree3DClass: Node3D = ClassDB.instantiate("Tree3D")
 	if Tree3DClass == null:
 		return _spawn_fallback(world_pos, profile)
 	var tree: Node3D = Tree3DClass

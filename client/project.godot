@@ -39,6 +39,7 @@ VFXPool="*res://core/vfx_pool.gd"
 UXTelemetry="*res://autoload/ux_telemetry.gd"
 DarkPatternsGuard="*res://autoload/dark_patterns_guard.gd"
 IAPManager="*res://autoload/iap_manager.gd"
+GraphicsManager="*res://autoload/graphics_manager.gd"
 DialogueManager="*uid://c3rodes2l3gxb"
 PhantomCameraManager="*uid://duq6jhf6unyis"
 GodotxLabelUp="*uid://c5ckokjmesj66"
@@ -54,7 +55,7 @@ window/handheld/orientation=4
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/FoliageFlow/plugin.cfg", "res://addons/Gizmo3DScript/plugin.cfg", "res://addons/Surfaces/plugin.cfg", "res://addons/animation_combiner/plugin.cfg", "res://addons/at-icons/plugin.cfg", "res://addons/blendkit/plugin.cfg", "res://addons/cgheven/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/godot_3d_cursor/plugin.cfg", "res://addons/godot_state_charts/plugin.cfg", "res://addons/godotx_health_bar/plugin.cfg", "res://addons/godotx_label_up/plugin.cfg", "res://addons/kit_browser/plugin.cfg", "res://addons/lowpolyterrain/plugin.cfg", "res://addons/nexus_resonance/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/reactive_signal/plugin.cfg", "res://addons/road-generator/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
+enabled=PackedStringArray("res://addons/FoliageFlow/plugin.cfg", "res://addons/Gizmo3DScript/plugin.cfg", "res://addons/Surfaces/plugin.cfg", "res://addons/at-icons/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/godot_state_charts/plugin.cfg", "res://addons/godotx_health_bar/plugin.cfg", "res://addons/godotx_label_up/plugin.cfg", "res://addons/lowpolyterrain/plugin.cfg", "res://addons/nexus_resonance/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/reactive_signal/plugin.cfg", "res://addons/road-generator/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
 
 [internationalization]
 

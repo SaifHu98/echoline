@@ -109,7 +109,6 @@ func _show_offline_state() -> void:
 	if server_indicator:
 		server_indicator.color = Color(1.0, 0.7, 0.2, 1)
 	print("[MainMenu] Offline mode (no NetworkClient autoload)")
-		return
 	var timer = get_tree().create_timer(5.0)
 	if timer:
 		timer.timeout.connect(_check_connection_status)

@@ -146,13 +146,13 @@ func _show_target_change() -> void:
 	if world_environment and world_environment.environment:
 		match target.timeline:
 			"past":
-				world_environment.environment.background_mode = Environment.BG_MODE_COLOR
+				world_environment.environment.background_mode = Environment.BG_COLOR
 				world_environment.environment.background_color = Color("#3A2E1A")
 			"present":
-				world_environment.environment.background_mode = Environment.BG_MODE_COLOR
+				world_environment.environment.background_mode = Environment.BG_COLOR
 				world_environment.environment.background_color = Color("#1E2429")
 			"future":
-				world_environment.environment.background_mode = Environment.BG_MODE_COLOR
+				world_environment.environment.background_mode = Environment.BG_COLOR
 				world_environment.environment.background_color = Color("#1A1530")
 
 
@@ -168,3 +168,4 @@ func _trigger_demo_echo() -> void:
 
 func _show_hud() -> void:
 	pass
+

@@ -1,111 +1,35 @@
-# ECHO//LINE — Dialogue Resources
-# Drop these files into `client/data/dialogues/` after installing Dialogue Manager.
-# Each file is a `.dialogue` resource with branches for EN/AR + 3 timelines.
+~ past_sample_1
+past_sample_1: The stone courtyard hums with forgotten hymns.
+=> Continue > END
 
-# === File: data/dialogues/past_intro.dialogue ===
-~ start
-do intro_past_narrate
-intro_past_narrate: The wind carries whispers of an ancient era. Stones still hum with forgotten hymns. As the Past player, your foundation shapes all that follows. {PlayerName}, what will you build?
-do intro_past_choices
-=> Build the foundation of the clock tower > END
-=> Tend the gardens of the courtyard > END
-=> Inscribe the archive tablet > END
+~ past_sample_2
+past_sample_2: An archivist offers a memory in exchange for a name.
+=> Continue > END
 
-~ intro_past_choices
-- The courtyard awaits your touch. Will you lay stone, plant seed, or carve memory?
-- The archives yearn for keepers. What story will you preserve in stone?
+~ past_sample_3
+past_sample_3: Your choices echo forward. The Present stirs.
+=> Continue > END
 
-~ end
-do memory_saved
-memory_saved: Your choices echo forward. The Present stirs.
+~ present_sample_1
+present_sample_1: The clock shop is missing its largest gear.
+=> Continue > END
 
-# === File: data/dialogues/present_intro.dialogue ===
-~ start
-do intro_present_narrate
-intro_present_narrate: Gears grind against time. The mechanism hums with potential. As the Present player, your actions bridge what was and what will be. {PlayerName}, how will you maintain the link?
-do intro_present_choices
-=> Repair the clockwork gears > END
-=> Replace the broken mechanism > END
-=> Calibrate the temporal resonator > END
+~ present_sample_2
+present_sample_2: A market appears at midnight in an empty alley.
+=> Continue > END
 
-~ intro_present_choices
-- The mechanism shows wear. Each choice reshapes reality. What will you preserve?
+~ present_sample_3
+present_sample_3: The temporal mechanism stabilizes.
+=> Continue > END
 
-~ end
-do mechanism_restored
-mechanism_restored: Your repair ripples backward. The Past remembers.
+~ future_sample_1
+future_sample_1: Reality stutters. A second you appears.
+=> Continue > END
 
-# === File: data/dialogues/future_intro.dialogue ===
-~ start
-do intro_future_narrate
-intro_future_narrate: Energy hums in crystallized silence. The future awaits your direction. As the Future player, you channel ancient power into tomorrow's form. {PlayerName}, what will you anchor?
-do intro_future_choices
-=> Align the quantum flux > END
-=> Charge the temporal beacon > END
-=> Stabilize the omega anchor > END
+~ future_sample_2
+future_sample_2: The omega anchor begins to crack.
+=> Continue > END
 
-~ intro_future_choices
-- The threads of possibility await. Your direction shapes what comes.
-
-~ end
-do future_anchored
-future_anchored: Your anchor completes the triad. Reality stabilizes.
-
-# === File: data/dialogues/tutorial_step_1.dialogue ===
-~ start
-do tutorial_intro
-tutorial_intro: Welcome to ECHO//LINE. You inhabit one of three fractured timelines. Across each, your actions ripple. Together, you must stabilize reality before catastrophe.
-do tutorial_choices
-=> Continue > tutorial_step_2
-
-~ tutorial_step_2
-- Tap any glowing object in your timeline to interact. Watch for ripple effects in other timelines.
-
-~ end
-do tutorial_complete
-tutorial_complete: You are ready. Find your timeline. Choose your role. Begin.
-
-# === File: data/dialogues/clockmaker_first_meeting.dialogue ===
-~ start
-do clockmaker_greeting
-clockmaker_greeting: Welcome, traveler. The mechanism falters. I am the Clockmaker — keeper of temporal balance. Will you aid me, or watch time unravel?
-do clockmaker_choice
-=> I will help. Tell me what to do. > END
-=> What happens if I refuse? > END
-=> Who are you, really? > END
-
-~ clockmaker_choice
-- Every choice you make echoes across timelines. Aid me, and reality stabilizes. Refuse, and chaos claims all.
-
-~ end
-do clockmaker_grateful
-clockmaker_grateful: I knew you would choose wisely. Begin at the courtyard — the Past holds the key.
-
-# === File: data/dialogues/shopkeeper_dialogue.dialogue ===
-~ start
-do shopkeeper_greeting
-shopkeeper_greeting: Shards, traveler? The finest temporal currency in this realm. What catches your eye?
-do shopkeeper_offer
-=> Show me your shards > END
-=> I'll browse later > END
-
-~ shopkeeper_offer
-- *displays wares* — Choose wisely. Each shard carries a memory.
-
-~ end
-do shopkeeper_thanks
-shopkeeper_thanks: A wise purchase. May your timeline endure.
-
-# === File: data/dialogues/recap_outro.dialogue ===
-~ start
-do recap_narrate
-recap_narrate: The echoes have resolved. What began as fractured timelines is now... a single, resonant chord. Your cooperation across eras healed reality.
-do recap_continue
-=> See the recap > END
-
-~ recap_continue
-- Look closely — every choice you made shaped this outcome.
-
-~ end
-do recap_farewell
-recap_farewell: Until the next temporal breach, traveler. The mechanism rests.
+~ future_sample_3
+future_sample_3: The future stabilizes.
+=> Continue > END

@@ -63,7 +63,7 @@ func _set_quality() -> void:
 		slice_root._setup_quality()
 
 
-func _process(delta: float) -> void:
+func _process(delta: float) -> bool:
 	elapsed += delta
 
 	if elapsed >= SAMPLE_INTERVAL:
@@ -72,6 +72,7 @@ func _process(delta: float) -> void:
 
 	if slice_root and slice_root.has_method("_process"):
 		slice_root._process(delta)
+	return false
 
 	if _benchmark_time() >= DURATION_SEC:
 		_finish()
@@ -158,7 +159,7 @@ func _finish() -> void:
 	print("Draw Calls:")
 	print("  avg: %d" % draw_avg)
 	print("  max: %d" % draw_max)
-	print("  budget: %d" % QualityProfile.get_profile().get("particles_max", 100) * 2)  # rough budget
+	print("  budget: %d" % int(QualityProfile.get_profile().get("particles_max", 100) * 2))  # rough budget
 	print("")
 
 	# Memory

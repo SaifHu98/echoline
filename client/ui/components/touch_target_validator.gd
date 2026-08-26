@@ -58,7 +58,7 @@ static func _walk(node: Node, violations: Array[String], strict: bool) -> void:
 	if node is LineEdit:
 		var min_px = (RECOMMENDED_TARGET_DP if strict else MIN_TARGET_DP) * get_scale_factor()
 		if node.custom_minimum_size.y < min_px:
-			violations.append(node.get_path() + " (LineEdit)")
+			violations.append(String(node.get_path()) + " (LineEdit)")
 	for child in node.get_children():
 		_walk(child, violations, strict)
 

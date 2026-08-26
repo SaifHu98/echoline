@@ -15,8 +15,7 @@ extends Node3D
 #   - Allow players to rotate Memory Shards in their inventory preview.
 #   - Mark objective waypoints with a pulse gizmo.
 
-const Gizmo3DScript := preload("res://addons/Gizmo3DScript/gizmo3D.gd")
-const GizmoHelperScript := preload("res://addons/Gizmo3DScript/gizmo_helper.gd")
+var _Gizmo3DScript: GDScript = load("res://addons/Gizmo3DScript/gizmo3D.gd")
 
 var gizmo: Node3D = null
 var is_ready: bool = false
@@ -31,7 +30,11 @@ func _ready() -> void:
 	if not is_ready:
 		push_warning("[RuntimeGizmo] Gizmo3DScript not enabled")
 		return
-	gizmo = Gizmo3DScript.new()
+	if _Gizmo3DScript == null:
+		push_warning("[RuntimeGizmo] gizmo3D.gd not found")
+		is_ready = false
+		return
+	gizmo = _Gizmo3DScript.new()
 	gizmo.name = "AnchorGizmo"
 	add_child(gizmo)
 
@@ -59,11 +62,11 @@ func set_size(size: float) -> void:
 		gizmo.call("set_size", size)
 
 
-func hide() -> void:
+func hide_gizmo() -> void:
 	if gizmo:
 		gizmo.visible = false
 
 
-func show() -> void:
+func show_gizmo() -> void:
 	if gizmo:
 		gizmo.visible = true

@@ -48,14 +48,25 @@ func play(label: String) -> void:
 		return
 	_current_label = label
 	dialogue_started.emit(label)
-	DialogueManager.show_dialogue_balloon_scene(ECHO_GREETINGS, label)
+	# show_dialogue_balloon_scene signature:
+	#   (balloon_scene: Variant, resource: DialogueResource, cue: String, extra_game_states: Array)
+	# balloon_scene=null uses the default balloon; resource must be loaded.
+	var resource: Resource = load(ECHO_GREETINGS)
+	if resource == null:
+		push_error("[DialogueService] Could not load dialogue resource: " + ECHO_GREETINGS)
+		return
+	DialogueManager.show_dialogue_balloon_scene(null, resource, label)
 
 
 func play_with_balloon(label: String, balloon_scene: PackedScene) -> void:
 	if not is_ready:
 		dialogue_finished.emit(label)
 		return
-	DialogueManager.show_dialogue_balloon_scene(ECHO_GREETINGS, label, balloon_scene)
+	var resource: Resource = load(ECHO_GREETINGS)
+	if resource == null:
+		push_error("[DialogueService] Could not load dialogue resource: " + ECHO_GREETINGS)
+		return
+	DialogueManager.show_dialogue_balloon_scene(balloon_scene, resource, label)
 
 
 func play_raw(title: String, lines: Array) -> void:

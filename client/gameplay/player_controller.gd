@@ -54,11 +54,14 @@ func spawn_in_timeline(timeline: String) -> void:
 func try_jump() -> bool:
 	if not is_on_floor():
 		return false
-	if RealControllerScript and RealControllerScript.has_method("try_jump"):
-		RealControllerScript.try_jump(self)
-		is_jumping = true
-		return true
-	return false
+	# RealControllerScript is a GDScript class; we extend it but can't call
+	# non-static methods on the class itself. Use jump_velocity directly.
+	if "jump_velocity" in self:
+		velocity.y = float(self.jump_velocity)
+	else:
+		velocity.y = 4.5  # safe default
+	is_jumping = true
+	return true
 
 
 # Touch input shim — real-controller expects keyboard/gamepad; this function

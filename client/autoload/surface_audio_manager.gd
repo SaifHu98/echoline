@@ -65,4 +65,5 @@ func play_footstep(player: CollisionObject3D) -> void:
 
 
 func autoload_exists(name: String) -> bool:
-	return root != null and root.has_node(name)
+	var tree_root := get_tree().root if get_tree() else null
+	return tree_root != null and tree_root.has_node(name)
