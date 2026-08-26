@@ -1,4 +1,3 @@
-class_name VFXPool
 extends Node
 
 # ECHO//LINE — VFX Pool (specialized ObjectPool for visual effects)
@@ -87,3 +86,4 @@ func get_total_active() -> int:
 func _initialize_default_pools() -> void:
 	# Will be populated by registering PackedScenes after scene tree is ready
 	pass
+

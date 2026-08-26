@@ -39,3 +39,4 @@ func get_entity_property(timeline: String, entity: String, prop: String, default
 	if world_state.has(timeline) and world_state[timeline].has(entity) and world_state[timeline][entity].has(prop):
 		return world_state[timeline][entity][prop]
 	return default_val
+

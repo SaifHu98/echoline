@@ -29,13 +29,37 @@ func _ready() -> void:
 	if EventBus.has_signal("locale_changed"):
 		EventBus.locale_changed.connect(_on_locale_changed)
 
-	if interact_btn:
-		interact_btn.pressed.connect(_on_interact_pressed)
-	if quick_chat_btn:
-		quick_chat_btn.pressed.connect(_on_quick_chat_pressed)
-	if ping_btn:
-		ping_btn.pressed.connect(_on_ping_pressed)
+	# Connect buttons safely
+	_connect_button_safely(interact_btn, _on_interact_pressed)
+	_connect_button_safely(quick_chat_btn, _on_quick_chat_pressed)
+	_connect_button_safely(ping_btn, _on_ping_pressed)
 
+	_apply_localized_texts()
+	update_timeline_badge()
+
+
+func _connect_button_safely(btn: Button, callback: Callable) -> void:
+	if btn == null or not is_instance_valid(btn):
+		return
+	for conn in btn.pressed.get_connections():
+		btn.pressed.disconnect(conn.callable)
+	btn.pressed.connect(callback)
+
+
+func _apply_localized_texts() -> void:
+	var loc = get_node_or_null("/root/Localization")
+	if loc == null or not loc.has_method("t"):
+		return
+	if interact_btn:
+		interact_btn.text = loc.t("hud.interact")
+	if quick_chat_btn:
+		quick_chat_btn.text = loc.t("hud.quick_chat")
+	if ping_btn:
+		ping_btn.text = loc.t("hud.ping")
+
+
+func _on_locale_changed(_new_locale: String, _is_rtl: bool) -> void:
+	_apply_localized_texts()
 	update_timeline_badge()
 
 

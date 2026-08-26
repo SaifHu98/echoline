@@ -1,68 +1,107 @@
-class_name CausalRecapView
 extends Control
 
-# End-of-Match Causal Timeline Tree Visualizer
+# ECHO//LINE — Causal Timeline Recap (End-of-Match)
+# Shown after match concludes
 
 @onready var outcome_title: Label = $Panel/VBox/OutcomeTitle
 @onready var outcome_desc: Label = $Panel/VBox/OutcomeDesc
 @onready var stats_label: Label = $Panel/VBox/StatsLabel
-@onready var tree_container: VBoxContainer = $Panel/VBox/Scroll/TreeContainer
 @onready var return_btn: Button = $Panel/VBox/ReturnButton
+@onready var tree_container: VBoxContainer = $Panel/VBox/Scroll/TreeContainer
+@onready var panel: PanelContainer = $Panel
+
+var current_locale: String = "en"
 
 func _ready() -> void:
-	EventBus.match_concluded.connect(_on_match_concluded)
+	modulate.a = 1.0
+	if panel:
+		panel.modulate.a = 1.0
+
+	# Apply current locale
+	_apply_current_locale()
+
+	# Connect to match conclusion
+	if EventBus.has_signal("match_concluded"):
+		EventBus.match_concluded.connect(_on_match_concluded)
+	if EventBus.has_signal("locale_changed"):
+		EventBus.locale_changed.connect(_on_locale_changed)
+
 	if return_btn:
-		return_btn.pressed.connect(func(): visible = false)
-	visible = false
+		_connect_button_safely(return_btn, _on_return_pressed)
+
+
+func _connect_button_safely(btn: Button, callback: Callable) -> void:
+	if btn == null or not is_instance_valid(btn):
+		return
+	for conn in btn.pressed.get_connections():
+		btn.pressed.disconnect(conn.callable)
+	btn.pressed.connect(callback)
+
+
+func _apply_current_locale() -> void:
+	var loc = get_node_or_null("/root/Localization")
+	if loc and loc.has_method("get_current_locale"):
+		current_locale = loc.get_current_locale()
+
+
+func _on_locale_changed(new_locale: String, _is_rtl: bool) -> void:
+	current_locale = new_locale
+
+
+func _tr(key: String, fallback: String) -> String:
+	var loc = get_node_or_null("/root/Localization")
+	if loc and loc.has_method("t"):
+		var result = loc.t(key)
+		if result and not result.begins_with("["):
+			return result
+	return fallback
+
 
 func _on_match_concluded(recap: Dictionary) -> void:
 	visible = true
-	_render_recap(recap)
+	_populate(recap)
 
-func _render_recap(recap: Dictionary) -> void:
-	var outcome_key = recap.get("outcome_key", "outcome.city_saved")
-	var grade = recap.get("outcome_grade", "major_success")
-	var duration = recap.get("duration_seconds", 0)
-	var total = recap.get("total_echoes", 0)
 
-	outcome_title.text = Localization.tr_key("recap.title")
-	outcome_desc.text = Localization.tr_key(outcome_key)
-	
-	match grade:
-		"perfect": outcome_desc.modulate = Color.GOLD
-		"major_success": outcome_desc.modulate = Color("#00E5FF")
-		"partial_success": outcome_desc.modulate = Color.ORANGE
-		_: outcome_desc.modulate = Color.RED
+func _populate(recap: Dictionary) -> void:
+	var outcome = recap.get("outcome", "harmony")
+	var total = recap.get("branchesResolved", 0)
+	var duration = recap.get("durationSeconds", 0)
 
-	stats_label.text = Localization.tr_key("recap.branch_count", { "count": total }) + " | " + Localization.tr_key("recap.time_elapsed", { "seconds": duration })
-	if return_btn:
-		return_btn.text = Localization.tr_key("recap.back_to_menu")
+	if outcome_title:
+		match outcome:
+			"perfect_harmony":
+				outcome_title.text = _tr("outcome.perfect_restoration", "✨ Perfect Harmony ✨")
+				outcome_title.modulate = Color(1, 0.95, 0.4, 1)
+			"good":
+				outcome_title.text = _tr("outcome.city_saved", "✓ Timeline Stabilized")
+				outcome_title.modulate = Color(0.5, 1, 0.5, 1)
+			"partial":
+				outcome_title.text = "⚠ Partial Recovery"
+				outcome_title.modulate = Color(1, 0.85, 0.3, 1)
+			"failure":
+				outcome_title.text = _tr("outcome.temporal_erasure", "✗ Catastrophe")
+				outcome_title.modulate = Color(1, 0.4, 0.4, 1)
+			_:
+				outcome_title.text = "Match Complete"
 
-	for child in tree_container.get_children():
-		child.queue_free()
+	if outcome_desc:
+		outcome_desc.text = recap.get("description", "Echoes have been resolved across timelines.")
 
-	var nodes = recap.get("nodes", [])
-	for node_data in nodes:
-		var item_panel = PanelContainer.new()
-		var hbox = HBoxContainer.new()
-		var tl = node_data.get("source_timeline", "past")
-		var tl_type = Types.string_to_timeline(tl)
-		
-		var icon_lbl = Label.new()
-		icon_lbl.text = Types.get_timeline_symbol(tl_type)
-		icon_lbl.modulate = Types.get_timeline_color(tl_type)
-		hbox.add_child(icon_lbl)
+	if stats_label:
+		stats_label.text = _tr("recap.branch_count", "Branches resolved: {count}").replace("{count}", str(total)) + "  •  " + _tr("recap.time_elapsed", "Time: {seconds}s").replace("{seconds}", str(duration))
 
-		var time_lbl = Label.new()
-		time_lbl.text = "[" + str(node_data.get("timestamp_relative_sec", 0)) + "s] "
-		time_lbl.modulate = Color.GRAY
-		hbox.add_child(time_lbl)
+	# Populate tree
+	if tree_container:
+		for child in tree_container.get_children():
+			child.queue_free()
+		var branches = recap.get("branches", [])
+		for branch in branches:
+			var lbl = Label.new()
+			lbl.text = "  →  " + str(branch.get("label", "Echo"))
+			lbl.add_theme_font_size_override("font_size", 16)
+			lbl.modulate = Color(0.8, 0.85, 0.95, 1)
+			tree_container.add_child(lbl)
 
-		var desc_lbl = Label.new()
-		var loc_k = node_data.get("loc_key", "")
-		desc_lbl.text = Localization.tr_key(loc_k)
-		desc_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		hbox.add_child(desc_lbl)
 
-		item_panel.add_child(hbox)
-		tree_container.add_child(item_panel)
+func _on_return_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")

@@ -1,5 +1,4 @@
-class_name QualityProfile
-extends RefCounted
+extends Node
 
 # Quality Profile System for ECHO//LINE
 # 3 tiers with full visual & performance matrix
@@ -345,3 +344,4 @@ RAM: %d MB
 		p.particles_max,
 		gpu, cpu, mem,
 	]
+

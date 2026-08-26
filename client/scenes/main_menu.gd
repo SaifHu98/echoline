@@ -1,16 +1,19 @@
 extends Control
 
-# ECHO//LINE — Main Menu (Polished)
-# Large touch-friendly buttons with smooth animations
+# ECHO//LINE — Main Menu (Split Layout)
+# Left panel: PRIMARY actions (Play, Tutorial)
+# Right panel: SECONDARY actions (Settings, Language, Credits)
 
-@onready var play_btn: Button = $ScrollContainer/Buttons/PlayButton
-@onready var tutorial_btn: Button = $ScrollContainer/Buttons/TutorialButton
-@onready var settings_btn: Button = $ScrollContainer/Buttons/SettingsButton
-@onready var language_btn: Button = $ScrollContainer/Buttons/LanguageButton
-@onready var credits_btn: Button = $ScrollContainer/Buttons/CreditsButton
+@onready var play_btn: Button = $SplitContainer/LeftPanel/LeftScroll/LeftVBox/PlayButton
+@onready var tutorial_btn: Button = $SplitContainer/LeftPanel/LeftScroll/LeftVBox/TutorialButton
+@onready var settings_btn: Button = $SplitContainer/RightPanel/RightScroll/RightVBox/SettingsButton
+@onready var language_btn: Button = $SplitContainer/RightPanel/RightScroll/RightVBox/LanguageButton
+@onready var credits_btn: Button = $SplitContainer/RightPanel/RightScroll/RightVBox/CreditsButton
 @onready var status_label: Label = $StatusLabel
 @onready var server_indicator: ColorRect = $ServerIndicator
 @onready var title_label: Label = $Header/Title
+@onready var subtitle_label: Label = $Header/Subtitle
+@onready var arabic_subtitle_label: Label = $Header/ArabicSubtitle
 
 var settings_panel: AcceptDialog = null
 var tutorial_panel: AcceptDialog = null
@@ -33,107 +36,96 @@ func _ready() -> void:
 		bg_gradient.visible = true
 		bg_gradient.modulate.a = 1.0
 
-	# Start visible — animation will set modulate to 1.0 in parallel
 	modulate.a = 1.0
 
-	# CRITICAL: Force-connect button signals explicitly
-	# (Editor-side connections via .tscn should work, but we add runtime safety)
+	# Connect buttons safely (no double-fire)
 	_connect_button_safely(play_btn, _on_play)
 	_connect_button_safely(tutorial_btn, _on_tutorial)
 	_connect_button_safely(settings_btn, _on_settings)
 	_connect_button_safely(language_btn, _on_language)
 	_connect_button_safely(credits_btn, _on_credits)
 
-	# Connect network status events — use defensive singleton check
 	_connect_event_bus_safely()
 
-	# Detect system locale (defensive — fails to "en" if not available)
-	if OS:
-		var os_locale = OS.get_locale_language()
-		current_locale = "ar" if os_locale == "ar" else "en"
-	else:
-		current_locale = "en"
+	# Apply current locale from Localization service (which already loaded on _ready)
+	_apply_current_locale()
 
-	# Try to apply localization, but don't crash if missing
-	var localization_node = get_node_or_null("/root/Localization")
-	if localization_node and localization_node.has_method("set_locale"):
-		localization_node.set_locale(current_locale)
-	_update_localized_texts()
-
-	# Apply entrance animations (subtle — no flicker)
 	_animate_entrance()
-
-	# Try to connect to game server (non-blocking — falls back to offline mode)
 	_attempt_connect_safe()
-
 	print("[MainMenu] _ready() complete")
 
 
 func _connect_button_safely(btn: Button, callback: Callable) -> void:
 	if btn == null or not is_instance_valid(btn):
 		return
-	# Disconnect any existing connections to prevent double-fire
 	for conn in btn.pressed.get_connections():
 		btn.pressed.disconnect(conn.callable)
 	btn.pressed.connect(callback)
 
 
 func _connect_event_bus_safely() -> void:
-	# EventBus might not be ready or might be missing
 	var event_bus = get_node_or_null("/root/EventBus")
 	if event_bus == null:
-		print("[MainMenu] EventBus singleton not found — network events disabled")
 		return
-	if not event_bus.has_signal("network_connected"):
-		return
-	if not event_bus.network_connected.is_connected(_on_server_connected):
+	if event_bus.has_signal("network_connected") and not event_bus.network_connected.is_connected(_on_server_connected):
 		event_bus.network_connected.connect(_on_server_connected)
 	if event_bus.has_signal("network_error") and not event_bus.network_error.is_connected(_on_server_error):
 		event_bus.network_error.connect(_on_server_error)
+	if event_bus.has_signal("locale_changed") and not event_bus.locale_changed.is_connected(_on_locale_changed):
+		event_bus.locale_changed.connect(_on_locale_changed)
+
+
+func _apply_current_locale() -> void:
+	var loc = get_node_or_null("/root/Localization")
+	if loc and loc.has_method("get_current_locale"):
+		current_locale = loc.get_current_locale()
+	else:
+		current_locale = "en"
+	_update_localized_texts()
+
+
+func _on_locale_changed(new_locale: String, _is_rtl: bool) -> void:
+	current_locale = new_locale
+	_update_localized_texts()
 
 
 func _attempt_connect_safe() -> void:
 	if status_label:
 		status_label.text = "Connecting to server..."
-
-	# Try to connect, but wrap in try/catch equivalent (Godot uses if-checks)
-	if Engine.has_singleton("NetworkClient") or has_node("/root/NetworkClient"):
-		NetworkClient.connect_to_server("")
+	if has_node("/root/NetworkClient"):
+		var nc = get_node("/root/NetworkClient")
+		if nc and nc.has_method("connect_to_server"):
+			nc.connect_to_server("")
 	else:
-		print("[MainMenu] NetworkClient singleton not found — offline mode")
 		if status_label:
-			status_label.text = "⚠ Offline mode — Limited features"
+			status_label.text = "⚠ Offline mode"
 		if server_indicator:
 			server_indicator.color = Color(1.0, 0.7, 0.2, 1)
 		return
-
-	# Schedule a status check after 5 seconds
 	var timer = get_tree().create_timer(5.0)
 	if timer:
 		timer.timeout.connect(_check_connection_status)
 
 
 func _animate_entrance() -> void:
-	# Already at modulate.a = 1.0, but animate a slight fade-in from 0.7 for polish
 	var t = create_tween()
 	if t:
-		t.tween_property(self, "modulate:a", 1.0, 0.4).set_trans(Tween.TRANS_SINE)
+		t.tween_property(self, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_SINE)
 
-	# Stagger button entrance (subtle scale-up, no flicker)
 	var buttons = [play_btn, tutorial_btn, settings_btn, language_btn, credits_btn]
 	for i in range(buttons.size()):
 		var btn = buttons[i]
 		if btn and is_instance_valid(btn):
-			btn.modulate.a = 1.0  # ensure visible
+			btn.modulate.a = 1.0
 			btn.scale = Vector2(0.95, 0.95)
 			var bt = create_tween()
 			bt.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_BACK).set_delay(0.1 + i * 0.06)
 
 
 func _check_connection_status() -> void:
-	# Defensive check — NetworkClient may not have these methods in dev builds
-	if has_node("/root/NetworkClient") and NetworkClient.has_method("is_socket_connected"):
-		if NetworkClient.is_socket_connected():
+	if has_node("/root/NetworkClient"):
+		var nc2 = get_node("/root/NetworkClient")
+		if nc2 and nc2.has_method("is_socket_connected") and nc2.is_socket_connected():
 			_on_server_connected()
 			return
 	_on_server_error("Offline mode")
@@ -163,18 +155,32 @@ func _flash_indicator(color: Color) -> void:
 
 
 func _update_localized_texts() -> void:
+	var loc = get_node_or_null("/root/Localization")
+	if loc == null or not loc.has_method("t"):
+		# Fallback: plain English text
+		if play_btn: play_btn.text = "▶  PLAY"
+		if tutorial_btn: tutorial_btn.text = "📖  HOW TO PLAY"
+		if settings_btn: settings_btn.text = "⚙  SETTINGS"
+		if language_btn: language_btn.text = "🌐  العربية"
+		if credits_btn: credits_btn.text = "⭐  CREDITS"
+		return
+
 	if current_locale == "ar":
-		if play_btn: play_btn.text = "▶  ابدأ اللعب"
+		if play_btn: play_btn.text = "▶  " + str(loc.t("menu.play"))
 		if tutorial_btn: tutorial_btn.text = "📖  كيفية اللعب"
-		if settings_btn: settings_btn.text = "⚙  الإعدادات"
+		if settings_btn: settings_btn.text = "⚙  " + str(loc.t("menu.settings"))
 		if language_btn: language_btn.text = "🌐  English"
 		if credits_btn: credits_btn.text = "⭐  الفضل"
+		if subtitle_label: subtitle_label.visible = false
+		if arabic_subtitle_label: arabic_subtitle_label.visible = true
 	else:
 		if play_btn: play_btn.text = "▶  PLAY"
 		if tutorial_btn: tutorial_btn.text = "📖  HOW TO PLAY"
 		if settings_btn: settings_btn.text = "⚙  SETTINGS"
 		if language_btn: language_btn.text = "🌐  العربية"
 		if credits_btn: credits_btn.text = "⭐  CREDITS"
+		if subtitle_label: subtitle_label.visible = true
+		if arabic_subtitle_label: arabic_subtitle_label.visible = false
 
 
 func _animate_button_press(btn: Button) -> void:
@@ -185,30 +191,23 @@ func _animate_button_press(btn: Button) -> void:
 	t.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.2).set_delay(0.1).set_trans(Tween.TRANS_BACK)
 
 
+# === INSTANT transition (no fade tween delay) ===
 func _on_play() -> void:
 	print("[MainMenu] _on_play() called")
 	if play_btn:
 		_animate_button_press(play_btn)
-	# Verify target scene exists
 	const PLAY_SCENE := "res://scenes/main.tscn"
 	if not ResourceLoader.exists(PLAY_SCENE):
 		push_error("[MainMenu] Play scene not found: %s" % PLAY_SCENE)
-		if status_label:
-			status_label.text = "⚠ Game scene missing!"
 		return
-	# Fade out first, then change scene (prevents gray flash)
-	var fade = create_tween()
-	if fade:
-		fade.tween_property(self, "modulate:a", 0.0, 0.3)
-		fade.tween_callback(func():
-			var err = get_tree().change_scene_to_file(PLAY_SCENE)
-			if err != OK:
-				push_error("[MainMenu] change_scene_to_file failed: %d" % err)
-				# Restore modulate so user can try again
-				modulate.a = 1.0
-		)
-	else:
-		get_tree().change_scene_to_file(PLAY_SCENE)
+	# Use SceneTreeTimer for short 0.1s delay (enough for press animation feedback)
+	# then change scene IMMEDIATELY (no fade tween — fade tween caused 0.3s gray delay)
+	get_tree().create_timer(0.15).timeout.connect(func():
+		var err = get_tree().change_scene_to_file(PLAY_SCENE)
+		if err != OK:
+			push_error("[MainMenu] change_scene_to_file failed: %d" % err)
+			modulate.a = 1.0
+	)
 
 
 func _on_tutorial() -> void:
@@ -229,10 +228,11 @@ func _on_language() -> void:
 	print("[MainMenu] _on_language() called")
 	if language_btn:
 		_animate_button_press(language_btn)
-	current_locale = "ar" if current_locale == "en" else "en"
-	if has_node("/root/Localization"):
-		Localization.set_locale(current_locale)
-	_update_localized_texts()
+	# Toggle locale
+	var new_locale = "en" if current_locale == "ar" else "ar"
+	var loc = get_node_or_null("/root/Localization")
+	if loc and loc.has_method("set_locale"):
+		loc.set_locale(new_locale)
 
 
 func _on_credits() -> void:
@@ -243,11 +243,10 @@ func _on_credits() -> void:
 
 
 func _show_tutorial() -> void:
-	# Clean up old panel before showing new one
 	if tutorial_panel and is_instance_valid(tutorial_panel):
 		tutorial_panel.queue_free()
 	tutorial_panel = AcceptDialog.new()
-	tutorial_panel.title = "📖  How to Play"
+	tutorial_panel.title = "�  How to Play"
 	tutorial_panel.dialog_text = """ECHO//LINE is a cooperative cross-timeline puzzle game.
 
 🎯 OBJECTIVE
@@ -266,14 +265,12 @@ Collect Memory Shards from resolved Echoes.
 Place them in Timeline Anchors together.
 
 💬 COMMUNICATION
-Use quick messages (auto-translated) to coordinate
-across languages with players worldwide.
+Use quick messages to coordinate with players worldwide.
 
 ✨ TIPS
 • Listen to your teammates
 • Some consequences are delayed
 • Multiple solutions exist
-• Quick messages translate automatically
 
 Good luck, time traveler!"""
 	tutorial_panel.popup_centered()
@@ -281,7 +278,6 @@ Good luck, time traveler!"""
 
 
 func _show_simple_settings() -> void:
-	# Clean up old panel before showing new one
 	if settings_panel and is_instance_valid(settings_panel):
 		settings_panel.queue_free()
 	settings_panel = AcceptDialog.new()
@@ -312,7 +308,6 @@ Full settings panel coming in next build."""
 
 
 func _show_credits() -> void:
-	# Clean up old panel before showing new one
 	if credits_panel and is_instance_valid(credits_panel):
 		credits_panel.queue_free()
 	credits_panel = AcceptDialog.new()

@@ -28,14 +28,14 @@ var first_app_launch: bool = true
 
 # === Training ===
 var training_started_at: float = 0.0
-var training_completed: bool = false
+var training_finished_flag: bool = false
 var training_duration_sec: float = 0.0
 var training_steps_completed: int = 0
 var training_steps_total: int = 0
 
 # === First Echo understanding ===
 var first_echo_seen_at: float = 0.0
-var first_echo_understood: bool = false
+var first_echo_understood_flag: bool = false
 var first_echo_understanding_time: float = 0.0
 var echoes_observed: int = 0
 
@@ -43,7 +43,7 @@ var echoes_observed: int = 0
 var current_scenario_started_at: float = 0.0
 var scenarios_attempted: int = 0
 var scenarios_completed: int = 0
-var current_scenario_completed: bool = false
+var current_scenario_completed_flag: bool = false
 var current_scenario_duration_sec: float = 0.0
 
 # === Hints ===
@@ -77,7 +77,7 @@ func training_started(total_steps: int) -> void:
 	training_started_at = Time.get_ticks_msec() / 1000.0
 	training_steps_total = total_steps
 	training_steps_completed = 0
-	training_completed = false
+	training_finished_flag = false
 
 
 func training_step_completed(step_index: int) -> void:
@@ -89,7 +89,7 @@ func training_finished(success: bool) -> void:
 		training_duration_sec = (Time.get_ticks_msec() / 1000.0) - training_started_at
 	else:
 		training_duration_sec = 0
-	training_completed = success
+	training_finished_flag = success
 	training_completed.emit(success, training_duration_sec)
 	save_to_disk()
 
@@ -101,16 +101,16 @@ func first_echo_seen(echo_id: String) -> void:
 
 
 func first_echo_understood_now() -> void:
-	if first_echo_seen_at > 0 and not first_echo_understood:
+	if first_echo_seen_at > 0 and not first_echo_understood_flag:
 		first_echo_understanding_time = (Time.get_ticks_msec() / 1000.0) - first_echo_seen_at
-		first_echo_understood = true
+		first_echo_understood_flag = true
 		first_echo_understood.emit(first_echo_understanding_time)
 		save_to_disk()
 
 
 func scenario_started(scenario_id: String) -> void:
 	current_scenario_started_at = Time.get_ticks_msec() / 1000.0
-	current_scenario_completed = false
+	current_scenario_completed_flag = false
 	current_scenario_duration_sec = 0
 	scenarios_attempted += 1
 	hints_per_scenario[scenario_id] = 0
@@ -119,7 +119,7 @@ func scenario_started(scenario_id: String) -> void:
 func scenario_finished(success: bool, scenario_id: String) -> void:
 	if current_scenario_started_at > 0:
 		current_scenario_duration_sec = (Time.get_ticks_msec() / 1000.0) - current_scenario_started_at
-	current_scenario_completed = success
+	current_scenario_completed_flag = success
 	if success:
 		scenarios_completed += 1
 	scenario_completed.emit(success, current_scenario_duration_sec)
@@ -160,7 +160,7 @@ func get_summary() -> Dictionary:
 		"session_id": session_id,
 		"session_duration_sec": total_time,
 		"training": {
-			"completed": training_completed,
+			"completed": training_finished_flag,
 			"duration_sec": training_duration_sec,
 			"steps_completed": training_steps_completed,
 			"steps_total": training_steps_total,
@@ -193,7 +193,7 @@ func get_summary() -> Dictionary:
 func get_kpis() -> Dictionary:
 	# مقاييس قابلة للمقارنة عبر الإصدارات
 	return {
-		"training_completion_rate": 1.0 if training_completed else 0.0,
+		"training_completion_rate": 1.0 if training_finished_flag else 0.0,
 		"first_echo_understanding_sec": first_echo_understanding_time,
 		"scenario_completion_rate": float(scenarios_completed) / float(max(scenarios_attempted, 1)),
 		"avg_hints_per_match": float(hints_requested) / float(max(matches_joined, 1)),
@@ -217,10 +217,10 @@ func load_from_disk() -> void:
 	var parsed = JSON.parse_string(f.get_as_text())
 	if parsed is Dictionary:
 		var t = parsed.get("training", {})
-		training_completed = t.get("completed", false)
+		training_finished_flag = t.get("completed", false)
 		training_duration_sec = t.get("duration_sec", 0.0)
 		var fe = parsed.get("first_echo", {})
-		first_echo_understood = fe.get("understood", false)
+		first_echo_understood_flag = fe.get("understood", false)
 		first_echo_understanding_time = fe.get("understanding_time_sec", 0.0)
 		var s = parsed.get("scenarios", {})
 		scenarios_attempted = s.get("attempted", 0)
@@ -231,3 +231,8 @@ func load_from_disk() -> void:
 		matches_joined = md.get("matches_joined", 0)
 		matches_left = md.get("matches_left", 0)
 		left_reasons = md.get("reasons", {})
+
+
+
+
+

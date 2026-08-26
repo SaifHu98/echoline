@@ -66,6 +66,8 @@ func _process(delta: float) -> void:
 # === Connection management ===
 func connect_to_server(url: String = "") -> void:
 	server_url = url if not url.is_empty() else DEFAULT_SERVER_URL
+	if is_socket_connected():
+		return
 	if ws != null:
 		ws.close()
 	ws = WebSocketPeer.new()
@@ -74,8 +76,8 @@ func connect_to_server(url: String = "") -> void:
 		push_error("WebSocket connection failed: " + str(err))
 		EventBus.network_error.emit("Could not connect")
 		return
-	# Send Socket.IO connect packet (engine.io handshake)
-	_send_socket_io_packet("0{\"sid\":\"\",\"upgrades\":[],\"pingInterval\":25000,\"pingTimeout\":60000}")
+	last_ping_time = Time.get_ticks_msec()
+	# Don't pre-send engine.io handshake; WebSocketPeer handles transport upgrade
 
 
 func disconnect_from_server() -> void:
@@ -163,7 +165,12 @@ func _handle_socket_io_message(payload: String) -> void:
 	# Event
 	if parsed is Array and parsed.size() >= 2:
 		var event_name = str(parsed[0])
-		var event_data = parsed[1] if parsed[1] is Dictionary else {}
+		var event_data: Dictionary = {}
+		if parsed[1] is Dictionary:
+			event_data = parsed[1]
+		elif parsed[1] is Array:
+			# Some events come as raw arrays; wrap in dict
+			event_data = {"data": parsed[1]}
 		_dispatch_event(event_name, event_data)
 
 
@@ -174,7 +181,13 @@ func _dispatch_event(event_name: String, data: Dictionary) -> void:
 			reconnect_attempts = 0
 			EventBus.network_connected.emit()
 		"lobby:update":
-			EventBus.lobby_updated.emit(data)
+			# data may be Array (players list) or Dictionary (wrapped)
+			if data is Array:
+				EventBus.lobby_updated.emit(data)
+			elif data is Dictionary:
+				EventBus.lobby_updated.emit(data.get("players", []))
+			else:
+				EventBus.lobby_updated.emit([])
 		"match:started":
 			EventBus.match_started.emit(data.get("matchId", ""), data)
 		"match:state":
@@ -296,9 +309,13 @@ func set_admin_url(url: String) -> void:
 	admin_url = url
 
 func get_player_uid() -> String:
+	if player_uid == "":
+		player_uid = "p_" + str(Time.get_unix_time_from_system()).replace(".", "_")
 	return player_uid
 
 func get_player_name() -> String:
+	if player_name == "":
+		player_name = "Player" + str(randi() % 1000)
 	return player_name
 
 func get_player_language() -> String:

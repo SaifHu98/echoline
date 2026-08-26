@@ -25,6 +25,13 @@ var _transition_lock: bool = false
 const NEXT_SCENE_PATH := "res://scenes/main_menu.tscn"
 
 func _ready() -> void:
+	# Apply current locale
+	_apply_current_locale()
+
+	# Subscribe to locale changes
+	if EventBus and EventBus.has_signal("locale_changed"):
+		EventBus.locale_changed.connect(_on_locale_changed)
+
 	# Ensure background is visible from frame 1 (prevents black flash)
 	if background:
 		background.color = Color(0.02, 0.03, 0.06, 1.0)
@@ -178,3 +185,25 @@ func _input(event: InputEvent) -> void:
 func _exit_tree() -> void:
 	# Cleanup on forced exit
 	is_transitioning = false
+
+
+func _tr(key: String, fallback: String) -> String:
+	var loc = get_node_or_null("/root/Localization")
+	if loc and loc.has_method("t"):
+		var result = loc.t(key)
+		if result and not result.begins_with("["):
+			return result
+	return fallback
+
+
+func _apply_current_locale() -> void:
+	if title_label:
+		title_label.text = _tr("app.title", "ECHO//LINE")
+	if subtitle_label:
+		subtitle_label.text = _tr("app.subtitle", "Echoes Across Time")
+	if arabic_label:
+		arabic_label.text = "أَصْدَاء"
+
+
+func _on_locale_changed(_new_locale: String, _is_rtl: bool) -> void:
+	_apply_current_locale()
