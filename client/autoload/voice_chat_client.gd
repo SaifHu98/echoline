@@ -1,4 +1,3 @@
-class_name VoiceChatClient
 extends Node
 
 signal voice_state_changed(state: String)
@@ -41,6 +40,9 @@ func _ready() -> void:
 	_ping_timer.autostart = false
 	_ping_timer.timeout.connect(_send_ping)
 	add_child(_ping_timer)
+	# Auto-bind to NetworkClient singleton if not set via export
+	if network_client == null:
+		network_client = get_node_or_null("/root/NetworkClient")
 
 func _exit_tree() -> void:
 	leave_room()
@@ -97,7 +99,7 @@ func set_muted(muted: bool) -> void:
 	if state != VoiceState.DEAFENED:
 		_set_state(VoiceState.MUTED if muted else VoiceState.CONNECTED)
 	if network_client and network_client.has_method("emit"):
-		network_client.emit("voice_state", _current_room_id, _current_peer_id, { muted: _muted, deafened: _deafened })
+		network_client.emit("voice_state", _current_room_id, _current_peer_id, {"muted": _muted, "deafened": _deafened})
 
 func set_deafened(deafened: bool) -> void:
 	_deafened = deafened
@@ -108,7 +110,7 @@ func set_deafened(deafened: bool) -> void:
 	else:
 		_set_state(VoiceState.CONNECTED)
 	if network_client and network_client.has_method("emit"):
-		network_client.emit("voice_state", _current_room_id, _current_peer_id, { muted: _muted, deafened: _deafened })
+		network_client.emit("voice_state", _current_room_id, _current_peer_id, {"muted": _muted, "deafened": _deafened})
 
 func get_state_name() -> String:
 	return VoiceState.keys()[state]
@@ -167,7 +169,7 @@ func handle_server_peer_joined(peer_id: String, peers: Array) -> void:
 	voice_peer_joined.emit(peer_id, _peers)
 	if _pc != null and _pc.has_method("create_offer"):
 		var offer: Dictionary = _pc.create_offer()
-		_relay_signal(peer_id, { type: "offer", sdp: offer })
+		_relay_signal(peer_id, {"type": "offer", "sdp": offer})
 
 func handle_server_peer_left(peer_id: String) -> void:
 	_peers = _peers.filter(func(p): return p.peer_id != peer_id)
@@ -210,7 +212,7 @@ func _create_peer_connection() -> void:
 	_audio_player = AudioStreamGenerator.new()
 
 func _on_local_ice_candidate(mid: String, index: int, candidate: String) -> void:
-	_relay_signal("*", { type: "ice-candidate", mid: mid, index: index, candidate: candidate })
+	_relay_signal("*", {"type": "ice-candidate", "mid": mid, "index": index, "candidate": candidate})
 
 func _handle_offer(from_peer: String, sdp: String) -> void:
 	if _pc == null:
@@ -218,7 +220,7 @@ func _handle_offer(from_peer: String, sdp: String) -> void:
 	_pc.set_remote_description("offer", sdp)
 	var answer: Dictionary = _pc.create_answer()
 	_pc.set_local_description("answer", answer.sdp)
-	_relay_signal(from_peer, { type: "answer", sdp: answer })
+	_relay_signal(from_peer, {"type": "answer", "sdp": answer})
 
 func _handle_answer(from_peer: String, sdp: String) -> void:
 	if _pc == null:
@@ -239,3 +241,4 @@ func _relay_signal(target_peer: String, payload: Dictionary) -> void:
 	if not network_client.has_method("emit"):
 		return
 	network_client.emit("voice_signal", _current_room_id, _current_peer_id, target_peer, payload)
+

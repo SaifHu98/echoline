@@ -179,7 +179,3 @@ func _on_quick_chat_pressed() -> void:
 func _on_ping_pressed() -> void:
 	NetworkClient.send_ping("location", 0.5, 0.5)
 	EventBus.subtitle_requested.emit("📍 Ping sent", 1.5)
-
-
-func _on_locale_changed(_loc: String, _is_rtl: bool) -> void:
-	update_timeline_badge()

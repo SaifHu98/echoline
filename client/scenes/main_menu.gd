@@ -1,6 +1,6 @@
 extends Control
 
-# ECHO//LINE — Main Menu (Split Layout)
+# ECHO//LINE — Main Menu (Split Layout + Logo)
 # Left panel: PRIMARY actions (Play, Tutorial)
 # Right panel: SECONDARY actions (Settings, Language, Credits)
 
@@ -11,9 +11,11 @@ extends Control
 @onready var credits_btn: Button = $SplitContainer/RightPanel/RightScroll/RightVBox/CreditsButton
 @onready var status_label: Label = $StatusLabel
 @onready var server_indicator: ColorRect = $ServerIndicator
-@onready var title_label: Label = $Header/Title
-@onready var subtitle_label: Label = $Header/Subtitle
-@onready var arabic_subtitle_label: Label = $Header/ArabicSubtitle
+@onready var title_label: Label = $Header/HeaderHBox/TitleVBox/Title
+@onready var subtitle_label: Label = $Header/HeaderHBox/TitleVBox/Subtitle
+@onready var arabic_subtitle_label: Label = $Header/HeaderHBox/TitleVBox/ArabicSubtitle
+@onready var left_header: Label = $SplitContainer/LeftPanel/LeftHeader
+@onready var right_header: Label = $SplitContainer/RightPanel/RightHeader
 
 var settings_panel: AcceptDialog = null
 var tutorial_panel: AcceptDialog = null
@@ -23,7 +25,6 @@ var current_locale: String = "en"
 func _ready() -> void:
 	print("[MainMenu] _ready() called")
 
-	# CRITICAL: Background must be visible from frame 1
 	var bg := get_node_or_null("Background")
 	if bg:
 		bg.visible = true
@@ -38,7 +39,6 @@ func _ready() -> void:
 
 	modulate.a = 1.0
 
-	# Connect buttons safely (no double-fire)
 	_connect_button_safely(play_btn, _on_play)
 	_connect_button_safely(tutorial_btn, _on_tutorial)
 	_connect_button_safely(settings_btn, _on_settings)
@@ -46,10 +46,7 @@ func _ready() -> void:
 	_connect_button_safely(credits_btn, _on_credits)
 
 	_connect_event_bus_safely()
-
-	# Apply current locale from Localization service (which already loaded on _ready)
 	_apply_current_locale()
-
 	_animate_entrance()
 	_attempt_connect_safe()
 	print("[MainMenu] _ready() complete")
@@ -108,9 +105,13 @@ func _attempt_connect_safe() -> void:
 
 
 func _animate_entrance() -> void:
-	var t = create_tween()
-	if t:
-		t.tween_property(self, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_SINE)
+	var logo = get_node_or_null("Header/HeaderHBox/Logo")
+	if logo:
+		logo.modulate.a = 0.0
+		logo.scale = Vector2(0.85, 0.85)
+		var t = create_tween().set_parallel(true)
+		t.tween_property(logo, "modulate:a", 1.0, 0.6)
+		t.tween_property(logo, "scale", Vector2(1.0, 1.0), 0.6).set_trans(Tween.TRANS_BACK)
 
 	var buttons = [play_btn, tutorial_btn, settings_btn, language_btn, credits_btn]
 	for i in range(buttons.size()):
@@ -119,7 +120,7 @@ func _animate_entrance() -> void:
 			btn.modulate.a = 1.0
 			btn.scale = Vector2(0.95, 0.95)
 			var bt = create_tween()
-			bt.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_BACK).set_delay(0.1 + i * 0.06)
+			bt.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_BACK).set_delay(0.2 + i * 0.06)
 
 
 func _check_connection_status() -> void:
@@ -154,33 +155,36 @@ func _flash_indicator(color: Color) -> void:
 	t.tween_property(server_indicator, "modulate:a", 1.0, 1.0).set_trans(Tween.TRANS_SINE)
 
 
-func _update_localized_texts() -> void:
+func _tr(key: String, fallback: String) -> String:
 	var loc = get_node_or_null("/root/Localization")
-	if loc == null or not loc.has_method("t"):
-		# Fallback: plain English text
-		if play_btn: play_btn.text = "▶  PLAY"
-		if tutorial_btn: tutorial_btn.text = "📖  HOW TO PLAY"
-		if settings_btn: settings_btn.text = "⚙  SETTINGS"
-		if language_btn: language_btn.text = "🌐  العربية"
-		if credits_btn: credits_btn.text = "⭐  CREDITS"
-		return
+	if loc and loc.has_method("t"):
+		var result = loc.t(key)
+		if result and not result.begins_with("["):
+			return result
+	return fallback
 
+
+func _update_localized_texts() -> void:
 	if current_locale == "ar":
-		if play_btn: play_btn.text = "▶  " + str(loc.t("menu.play"))
-		if tutorial_btn: tutorial_btn.text = "📖  كيفية اللعب"
-		if settings_btn: settings_btn.text = "⚙  " + str(loc.t("menu.settings"))
-		if language_btn: language_btn.text = "🌐  English"
-		if credits_btn: credits_btn.text = "⭐  الفضل"
 		if subtitle_label: subtitle_label.visible = false
 		if arabic_subtitle_label: arabic_subtitle_label.visible = true
+		if title_label: title_label.text = "أصداء"
 	else:
-		if play_btn: play_btn.text = "▶  PLAY"
-		if tutorial_btn: tutorial_btn.text = "📖  HOW TO PLAY"
-		if settings_btn: settings_btn.text = "⚙  SETTINGS"
-		if language_btn: language_btn.text = "🌐  العربية"
-		if credits_btn: credits_btn.text = "⭐  CREDITS"
 		if subtitle_label: subtitle_label.visible = true
 		if arabic_subtitle_label: arabic_subtitle_label.visible = false
+		if title_label: title_label.text = "ECHO//LINE"
+
+	if left_header:
+		left_header.text = _tr("menu.section_play", "🎮 PLAY") if current_locale == "en" else "🎮 ابدأ"
+	if right_header:
+		right_header.text = _tr("menu.section_options", "⚙ OPTIONS") if current_locale == "en" else "⚙ خيارات"
+
+	if play_btn: play_btn.text = "▶  " + _tr("menu.play", "PLAY")
+	if tutorial_btn: tutorial_btn.text = "📖  " + _tr("menu.tutorial", "HOW TO PLAY")
+	if settings_btn: settings_btn.text = "⚙  " + _tr("menu.settings", "SETTINGS")
+	if language_btn:
+		language_btn.text = "🌐  " + ("English" if current_locale == "ar" else "العربية")
+	if credits_btn: credits_btn.text = "⭐  " + _tr("menu.credits", "CREDITS")
 
 
 func _animate_button_press(btn: Button) -> void:
@@ -191,7 +195,8 @@ func _animate_button_press(btn: Button) -> void:
 	t.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.2).set_delay(0.1).set_trans(Tween.TRANS_BACK)
 
 
-# === INSTANT transition (no fade tween delay) ===
+# === Button handlers ===
+
 func _on_play() -> void:
 	print("[MainMenu] _on_play() called")
 	if play_btn:
@@ -200,8 +205,6 @@ func _on_play() -> void:
 	if not ResourceLoader.exists(PLAY_SCENE):
 		push_error("[MainMenu] Play scene not found: %s" % PLAY_SCENE)
 		return
-	# Use SceneTreeTimer for short 0.1s delay (enough for press animation feedback)
-	# then change scene IMMEDIATELY (no fade tween — fade tween caused 0.3s gray delay)
 	get_tree().create_timer(0.15).timeout.connect(func():
 		var err = get_tree().change_scene_to_file(PLAY_SCENE)
 		if err != OK:
@@ -228,7 +231,6 @@ func _on_language() -> void:
 	print("[MainMenu] _on_language() called")
 	if language_btn:
 		_animate_button_press(language_btn)
-	# Toggle locale
 	var new_locale = "en" if current_locale == "ar" else "ar"
 	var loc = get_node_or_null("/root/Localization")
 	if loc and loc.has_method("set_locale"):
@@ -246,7 +248,7 @@ func _show_tutorial() -> void:
 	if tutorial_panel and is_instance_valid(tutorial_panel):
 		tutorial_panel.queue_free()
 	tutorial_panel = AcceptDialog.new()
-	tutorial_panel.title = "�  How to Play"
+	tutorial_panel.title = "📖  How to Play"
 	tutorial_panel.dialog_text = """ECHO//LINE is a cooperative cross-timeline puzzle game.
 
 🎯 OBJECTIVE

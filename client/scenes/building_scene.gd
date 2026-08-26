@@ -6,8 +6,8 @@ signal build_progress(anchor_id: String, progress: float)
 signal build_completed(anchor_id: String, effects: Dictionary)
 signal build_canceled(anchor_id: String)
 
-const ShardInventoryBarScript := preload("res://client/ui/hud/shard_inventory_bar.gd")
-const AnchorBlueprintPanelScript := preload("res://client/ui/hud/anchor_blueprint_panel.gd")
+const ShardInventoryBarScript := preload("res://ui/hud/shard_inventory_bar.gd")
+const AnchorBlueprintPanelScript := preload("res://ui/hud/anchor_blueprint_panel.gd")
 
 @export var network_client: Node
 @export var player_index: int = 0

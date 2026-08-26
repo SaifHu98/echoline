@@ -107,15 +107,16 @@ func _send_event(event_name: String, payload: Dictionary, ack_callback: Callable
 		if ack_callback.is_valid():
 			ack_callback.call({"success": false, "error": "Not connected"})
 		return
-	var request_id = -1
 	var data_str = ""
 	if ack_callback.is_valid():
 		ack_counter += 1
-		request_id = ack_counter
+		var request_id = ack_counter
 		ack_callbacks[request_id] = ack_callback
-		var ack_id_str = str(request_id)
-		data_str = ack_id_str + JSON.stringify([event_name, payload])
-		# Socket.IO v4 format: 42<id>["event", payload]
+		# Socket.IO v4 ACK format: 42<id>["event", payload]
+		# We attach request_id INSIDE the array: [event_name, payload, request_id]
+		# So server can ACK with [request_id, response]
+		var inner = [event_name, payload, request_id]
+		data_str = JSON.stringify(inner)
 		_send_socket_io_packet("42" + data_str)
 	else:
 		data_str = JSON.stringify([event_name, payload])
@@ -150,8 +151,11 @@ func _handle_socket_io_message(payload: String) -> void:
 	if parsed.size() >= 2:
 		data = parsed[1]
 
-	# ACK
+	# ACK: Socket.IO v4 sends [ack_id, response_data...]
+	# payload structure: type_code "3" + ACK_ID + data
+	# But with request_id, parsed = [ack_id, data]
 	if type_code == "3":
+		# Format: parsed[0] is ACK type, parsed[1] is [ack_id, response]
 		if data is Array and data.size() >= 2:
 			var ack_id = int(data[0])
 			var ack_data = data[1]
@@ -159,22 +163,35 @@ func _handle_socket_io_message(payload: String) -> void:
 				var cb = ack_callbacks[ack_id]
 				ack_callbacks.erase(ack_id)
 				if cb.is_valid():
-					cb.call(ack_data if ack_data is Dictionary else {"data": ack_data})
+					# ack_data may be: object (e.g., {success: true, room: {...}})
+					# or array (e.g., [success, room_data])
+					if ack_data is Dictionary:
+						cb.call(ack_data)
+					elif ack_data is Array and ack_data.size() > 0:
+						# Convert [success, room] → {success: ..., room: ...}
+						var dict = {"success": ack_data[0]}
+						for i in range(1, ack_data.size()):
+							dict["arg" + str(i)] = ack_data[i]
+						cb.call(dict)
+					else:
+						cb.call({"success": false, "error": "Empty ack", "data": ack_data})
 		return
 
-	# Event
+	# Event: Socket.IO v4 event = [event_name, data]
+	# If request_id present: parsed = [event_name, data, request_id]
 	if parsed is Array and parsed.size() >= 2:
 		var event_name = str(parsed[0])
-		var event_data: Dictionary = {}
+		var event_data: Variant = null
 		if parsed[1] is Dictionary:
 			event_data = parsed[1]
 		elif parsed[1] is Array:
-			# Some events come as raw arrays; wrap in dict
-			event_data = {"data": parsed[1]}
+			event_data = parsed[1]
+		else:
+			event_data = {}
 		_dispatch_event(event_name, event_data)
 
 
-func _dispatch_event(event_name: String, data: Dictionary) -> void:
+func _dispatch_event(event_name: String, data: Variant) -> void:
 	match event_name:
 		"connect":
 			is_connected = true
@@ -237,6 +254,29 @@ func join_room_with_code(code: String, display_name: String, language: String, c
 	}, callback)
 
 
+func list_rooms(language: String, callback: Callable = Callable()) -> void:
+	_send_event("lobby:list_rooms", {"language": language}, callback)
+
+
+func http_list_rooms(language: String, callback: Callable = Callable()) -> void:
+	# HTTP fallback via REST API
+	var http := HTTPRequest.new()
+	add_child(http)
+	var url = server_url.replace("wss://", "https://").replace("ws://", "http://").split("?")[0] + "/api/rooms?lang=" + language
+	http.request_completed.connect(func(result, code, _headers, body):
+		if code != 200:
+			callback.call({"success": false, "error": "HTTP " + str(code), "rooms": []})
+			return
+		var text = body.get_string_from_utf8()
+		var json = JSON.parse_string(text)
+		if json is Dictionary and json.has("data"):
+			callback.call(json)
+		else:
+			callback.call({"success": false, "error": "Invalid response", "rooms": []})
+	)
+	http.request(url)
+
+
 func select_timeline(timeline: String, callback: Callable = Callable()) -> void:
 	my_timeline = timeline
 	_send_event("lobby:select_timeline", { "timeline": timeline }, callback)
@@ -290,7 +330,7 @@ func request_state(callback: Callable = Callable()) -> void:
 func http_get(path: String, callback: Callable = Callable()) -> void:
 	var http = HTTPRequest.new()
 	add_child(http)
-	http.request_completed.connect(func(result, code, headers, body):
+	http.request_completed.connect(func(result, code, _headers, body):
 		if code != 200:
 			callback.call({"success": false, "error": "HTTP " + str(code)})
 			return

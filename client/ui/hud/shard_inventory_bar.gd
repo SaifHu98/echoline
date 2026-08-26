@@ -3,7 +3,7 @@ extends Panel
 
 signal shard_selected(shard_id: String)
 
-const ShardSlotButtonScript := preload("res://client/ui/hud/shard_slot_button.gd")
+const ShardSlotButtonScript := preload("res://ui/hud/shard_slot_button.gd")
 
 @export var catalog: Dictionary = {}
 @export var max_visible_shards: int = 8

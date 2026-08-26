@@ -2,8 +2,7 @@
  * ECHO//LINE — Authoritative Game Server
  * --------------------------------------
  * Hosts real-time multiplayer matches across timelines.
- * Runs the echo engine, validates actions, and broadcasts authoritative state.
- * Designed for deployment on Render.com free tier.
+ * v2.0 — EchoEngine حتمي، idempotency، snapshots، reconciliation.
  */
 
 'use strict';
@@ -49,10 +48,13 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '64kb' }));
 
-// Health endpoint for Render
+// ----- HTTP endpoints -----
+let roomManager, adminBridge;
+const scenarios = new Map();
+
 app.get('/', (req, res) => res.json({
   name: 'ECHO//LINE Game Server',
-  version: '1.0.0',
+  version: '2.0.0',
   status: 'ok',
   uptime: Math.floor(process.uptime()),
   rooms: roomManager ? roomManager.roomCount() : 0,
@@ -62,14 +64,11 @@ app.get('/', (req, res) => res.json({
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Stats endpoint (for monitoring)
 app.get('/stats', (req, res) => {
   if (!roomManager) return res.json({ status: 'starting' });
   res.json(roomManager.stats());
 });
 
-// Public HTTP API used by Godot client (and as fallback to Socket.IO)
-// These mirror the Hostinger Admin API endpoints so the game can use either
 app.get('/api/config', async (req, res) => {
   await adminBridge.refreshIfStale();
   res.json({ success: true, data: adminBridge.getConfig() });
@@ -105,9 +104,18 @@ app.get('/api/scenarios', (req, res) => {
       description_key: data.description_key,
       supported_timelines: data.supported_timelines,
       duration_seconds: data.catastrophe?.duration_seconds || 600,
+      duration_minutes: data.duration_minutes,
+      tutorial_required: !!data.tutorial_required,
     });
   }
   res.json({ success: true, data: { scenarios: list } });
+});
+
+app.get('/api/rooms', (req, res) => {
+  if (!roomManager) return res.json({ success: true, data: { rooms: [] } });
+  const language = req.query.lang || 'en';
+  const rooms = roomManager.listPublicRooms({ language, includeFull: false, includeStarted: false });
+  res.json({ success: true, data: { rooms, count: rooms.length } });
 });
 
 app.get('/api/scenario', (req, res) => {
@@ -144,7 +152,6 @@ const io = new Server(server, {
 
 // ----- Load scenarios from disk -----
 const scenariosDir = path.join(__dirname, '..', '..', 'shared', 'scenario_definitions');
-const scenarios = new Map();
 function loadScenarios() {
   if (!fs.existsSync(scenariosDir)) {
     logger.warn({ dir: scenariosDir }, 'Scenarios dir missing');
@@ -154,8 +161,13 @@ function loadScenarios() {
     if (!file.endsWith('.json')) continue;
     try {
       const data = JSON.parse(fs.readFileSync(path.join(scenariosDir, file), 'utf-8'));
+      // Validate scenario
+      if (!data.id || !data.echo_rules || !Array.isArray(data.echo_rules)) {
+        logger.warn({ file }, 'Scenario missing required fields');
+        continue;
+      }
       scenarios.set(data.id, data);
-      logger.info({ scenario: data.id, echos: data.echo_rules?.length }, 'Loaded scenario');
+      logger.info({ scenario: data.id, echos: data.echo_rules.length }, 'Loaded scenario');
     } catch (e) {
       logger.error({ file, err: e.message }, 'Failed to load scenario');
     }
@@ -163,7 +175,7 @@ function loadScenarios() {
 }
 
 // ----- Core systems -----
-let roomManager, matchMaker, adminBridge;
+let matchMaker;
 
 function bootstrap() {
   loadScenarios();
@@ -194,14 +206,14 @@ function bootstrap() {
   // Wire socket.io handlers
   io.on('connection', (socket) => handleConnection(socket));
 
-  // Periodic maintenance (cleanup stale rooms, refresh config)
+  // Periodic maintenance (cleanup stale rooms, refresh config, tick scheduled effects)
   setInterval(() => {
     roomManager.tick();
     adminBridge.refreshIfStale();
   }, 5000);
 
   server.listen(PORT, () => {
-    logger.info({ port: PORT, env: NODE_ENV }, 'ECHO//LINE Game Server listening');
+    logger.info({ port: PORT, env: NODE_ENV }, 'ECHO//LINE Game Server v2.0 listening');
   });
 }
 
@@ -210,13 +222,24 @@ function handleConnection(socket) {
   const remote = socket.handshake.address;
   logger.debug({ socketId: socket.id, ip: remote }, 'Client connected');
 
-  let session = null; // { playerId, roomId }
+  let session = null; // { playerId, roomId, lastClientSeq }
 
   // ---- Lobby events ----
+  socket.on('lobby:list_rooms', (payload, ack) => {
+    try {
+      const rooms = roomManager.listPublicRooms({
+        language: payload?.language || 'en',
+        includeFull: false,
+        includeStarted: false
+      });
+      ack?.({ success: true, rooms, count: rooms.length });
+    } catch (e) { ackError(ack, e.message); }
+  });
+
   socket.on('lobby:create', (payload, ack) => {
     try {
-      const { playerUid, displayName, language, scenarioId, timeline } = sanitize(payload);
-      if (!playerUid || !displayName) return ackError(ack, 'Missing player info');
+      const { playerUid, displayName, language, scenarioId } = sanitize(payload);
+      if (!playerUid || !displayName) return ackError(ack, 'Missing player info', 'BAD_REQUEST');
 
       const created = roomManager.createRoom({
         hostSocketId: socket.id,
@@ -226,7 +249,7 @@ function handleConnection(socket) {
         scenarioId: scenarioId || 'clocktower_district',
       });
       const room = created.room;
-      session = { playerId: playerUid, roomId: room.id };
+      session = { playerId: playerUid, roomId: room.id, lastClientSeq: 0 };
       socket.join(room.id);
       ack({ success: true, room: room.publicState() });
       broadcastRoom(room.id);
@@ -238,8 +261,8 @@ function handleConnection(socket) {
 
   socket.on('lobby:join', (payload, ack) => {
     try {
-      const { playerUid, displayName, language, roomCode, timeline } = sanitize(payload);
-      if (!roomCode || !playerUid) return ackError(ack, 'Missing room code or player info');
+      const { playerUid, displayName, language, roomCode } = sanitize(payload);
+      if (!roomCode || !playerUid) return ackError(ack, 'Missing room code or player info', 'BAD_REQUEST');
 
       const room = roomManager.findRoomByCode(roomCode);
       if (!room) return ackError(ack, 'Room not found', 'ROOM_NOT_FOUND');
@@ -252,7 +275,7 @@ function handleConnection(socket) {
         displayName,
         language: language || 'en',
       });
-      session = { playerId: playerUid, roomId: room.id };
+      session = { playerId: playerUid, roomId: room.id, lastClientSeq: 0 };
       socket.join(room.id);
       ack({ success: true, room: room.publicState(), assignedTimeline: result.timeline });
       broadcastRoom(room.id);
@@ -280,10 +303,10 @@ function handleConnection(socket) {
 
   socket.on('lobby:select_timeline', (payload, ack) => {
     try {
-      const room = requireSessionRoom(socket, session);
+      const room = requireSessionRoom();
       const { timeline } = sanitize(payload);
       const result = room.assignTimeline(session.playerId, timeline);
-      if (!result.success) return ackError(ack, result.error);
+      if (!result.success) return ackError(ack, result.error, result.code);
       ack({ success: true, timeline });
       broadcastRoom(room.id);
     } catch (e) { ackError(ack, e.message); }
@@ -291,7 +314,7 @@ function handleConnection(socket) {
 
   socket.on('lobby:set_ready', (payload, ack) => {
     try {
-      const room = requireSessionRoom(socket, session);
+      const room = requireSessionRoom();
       const { ready } = sanitize(payload);
       room.setReady(session.playerId, !!ready);
       ack({ success: true });
@@ -301,17 +324,19 @@ function handleConnection(socket) {
 
   socket.on('lobby:start', (payload, ack) => {
     try {
-      const room = requireSessionRoom(socket, session);
-      if (!room.isHost(session.playerId)) return ackError(ack, 'Only host can start');
-      if (!room.canStart()) return ackError(ack, 'Not all players ready');
+      const room = requireSessionRoom();
+      if (!room.isHost(session.playerId)) return ackError(ack, 'Only host can start', 'NOT_HOST');
+      if (!room.canStart()) return ackError(ack, 'Not all players ready', 'NOT_READY');
       room.startMatch();
       ack({ success: true });
       broadcastRoom(room.id);
-      // After brief delay, push initial scenario state to each player
       setTimeout(() => {
         for (const p of room.players) {
           const s = io.sockets.sockets.get(p.socketId);
-          if (s) s.emit('match:started', room.playerView(p.uid));
+          if (s) {
+            s.emit('match:started', room.playerView(p.uid));
+            s.emit('match:intro', room.scenario.intro || null);
+          }
         }
       }, 600);
     } catch (e) { ackError(ack, e.message); }
@@ -319,8 +344,8 @@ function handleConnection(socket) {
 
   socket.on('lobby:fill_with_bots', (payload, ack) => {
     try {
-      const room = requireSessionRoom(socket, session);
-      if (!room.isHost(session.playerId)) return ackError(ack, 'Only host can fill bots');
+      const room = requireSessionRoom();
+      if (!room.isHost(session.playerId)) return ackError(ack, 'Only host can fill bots', 'NOT_HOST');
       room.fillWithBots();
       ack({ success: true });
       broadcastRoom(room.id);
@@ -330,81 +355,81 @@ function handleConnection(socket) {
   // ---- Match events ----
   socket.on('match:interact', (payload, ack) => {
     try {
-      const room = requireSessionRoom(socket, session);
-      if (!room.hasStarted) return ackError(ack, 'Match not started');
-      const { entityId, action } = sanitize(payload);
-      const result = room.handleInteraction(session.playerId, entityId, action);
-      if (!result.success) return ackError(ack, result.error);
-      ack({ success: true });
-      // Broadcast updated state to all players in room
-      for (const p of room.players) {
-        const s = io.sockets.sockets.get(p.socketId);
-        if (s) s.emit('match:state', room.playerView(p.uid));
+      const room = requireSessionRoom();
+      if (!room.hasStarted) return ackError(ack, 'Match not started', 'NOT_STARTED');
+      const { entityId, action, idempotencyKey, ruleId, clientSeq } = sanitize(payload);
+      const result = room.handleInteraction(session.playerId, { entityId, action, idempotencyKey, ruleId, clientSeq });
+      if (!result.success && !result.replayed) {
+        return ackError(ack, result.error, result.code, result);
       }
-      // If match ended, send conclusion
-      if (room.outcome) {
-        for (const p of room.players) {
-          const s = io.sockets.sockets.get(p.socketId);
-          if (s) s.emit('match:ended', room.outcome);
-        }
-      }
+      ack({ success: true, ...result });
+      // Send personalized state to each player
+      broadcastMatchState(room);
+      if (room.outcome) broadcastMatchEnded(room);
     } catch (e) { ackError(ack, e.message); }
   });
 
   socket.on('match:quick_message', (payload, ack) => {
     try {
-      const room = requireSessionRoom(socket, session);
+      const room = requireSessionRoom();
       const { intent, code, data } = sanitize(payload);
-      const player = room.getPlayer(session.playerId);
-      if (!player) return ackError(ack, 'Player not in room');
-      const msg = {
-        from: { uid: player.uid, name: player.displayName, timeline: player.timeline, language: player.language },
-        intent, code, data,
-        ts: Date.now(),
-        seq: room.nextSeq(),
-      };
-      room.recordEvent('quick_message', msg);
-      // Translate per recipient language on client side; just send intent + sender lang
+      const msg = room.handleQuickMessage(session.playerId, { intent, code, data });
+      if (!msg) return ackError(ack, 'Player not in room', 'NO_PLAYER');
       io.to(room.id).emit('match:chat', msg);
-      ack?.({ success: true, seq: msg.seq });
+      ack?.({ success: true, id: msg.id, seq: msg.seq });
     } catch (e) { ackError(ack, e.message); }
   });
 
   socket.on('match:ping', (payload, ack) => {
     try {
-      const room = requireSessionRoom(socket, session);
+      const room = requireSessionRoom();
       const { type, x, y, targetId } = sanitize(payload);
-      const player = room.getPlayer(session.playerId);
-      if (!player) return ackError(ack, 'Player not in room');
-      const ping = {
-        from: player.uid,
-        fromName: player.displayName,
-        fromTimeline: player.timeline,
-        type: type || 'location',
-        x, y, targetId,
-        seq: room.nextSeq(),
-        ts: Date.now(),
-      };
+      const ping = room.handlePing(session.playerId, { type, x, y, targetId });
+      if (!ping) return ackError(ack, 'Player not in room', 'NO_PLAYER');
       io.to(room.id).emit('match:ping', ping);
-      ack?.({ success: true });
-    } catch (e) { ackError(ack, e.message); }
-  });
-
-  socket.on('match:move', (payload, ack) => {
-    try {
-      const room = requireSessionRoom(socket, session);
-      const { x, y, dir } = sanitize(payload);
-      if (typeof x !== 'number' || typeof y !== 'number') return ackError(ack, 'Invalid position');
-      room.updatePlayerPosition(session.playerId, x, y, dir);
-      // Position broadcast is frequent — throttle
       ack?.({ success: true });
     } catch (e) { ackError(ack, e.message); }
   });
 
   socket.on('match:state_request', (payload, ack) => {
     try {
-      const room = requireSessionRoom(socket, session);
+      const room = requireSessionRoom();
       ack({ success: true, state: room.playerView(session.playerId) });
+    } catch (e) { ackError(ack, e.message); }
+  });
+
+  // Reconnection — يحمل نفس الـ uid
+  socket.on('match:reconnect', (payload, ack) => {
+    try {
+      const { playerUid, lastClientSeq = 0 } = sanitize(payload);
+      const room = roomManager.findPlayerRoom(playerUid);
+      if (!room) return ackError(ack, 'No active match', 'NO_MATCH');
+      const result = room.reconnectPlayer({ uid: playerUid, newSocketId: socket.id });
+      if (!result.success) return ackError(ack, result.error, result.code);
+      session = { playerId: playerUid, roomId: room.id, lastClientSeq };
+      socket.join(room.id);
+      // ابعث الأحداث المفقودة
+      const missed = room.eventLog.filter(e => e.seq > lastClientSeq);
+      ack({
+        success: true,
+        reconnected: true,
+        view: result.view,
+        missedEvents: missed,
+        currentSeq: room.seqCounter,
+        snapshot: result.snapshot,
+      });
+      broadcastRoom(room.id);
+    } catch (e) { ackError(ack, e.message); }
+  });
+
+  // Hints تدريجية
+  socket.on('match:hint', (payload, ack) => {
+    try {
+      const room = requireSessionRoom();
+      const { ruleId } = sanitize(payload);
+      const result = room.requestHint(session.playerId, ruleId);
+      if (!result.success) return ackError(ack, result.error, 'HINT_FAIL');
+      ack({ success: true, level: result.level, hint: result.hint, maxLevel: result.maxLevel });
     } catch (e) { ackError(ack, e.message); }
   });
 
@@ -417,21 +442,20 @@ function handleConnection(socket) {
     room.markDisconnected(session.playerId, reason);
     broadcastRoom(room.id);
 
-    // After grace period, remove player
     setTimeout(() => {
       const r = roomManager.getRoom(session.roomId);
       if (!r) return;
       const p = r.getPlayer(session.playerId);
-      if (p && p.disconnected && Date.now() - p.disconnectTime > parseInt(process.env.DISCONNECT_GRACE_SECONDS || '30', 10) * 1000) {
+      if (p && p.disconnected && Date.now() - p.disconnectTime > room.disconnectGraceSeconds) {
         r.removePlayer(session.playerId);
         broadcastRoom(r.id);
         if (r.isEmpty()) roomManager.destroyRoom(r.id);
       }
-    }, (parseInt(process.env.DISCONNECT_GRACE_SECONDS || '30', 10) + 1) * 1000);
+    }, room.disconnectGraceSeconds + 1000);
   });
 
   // ---- Helpers ----
-  function requireSessionRoom(socket, session) {
+  function requireSessionRoom() {
     if (!session) throw new Error('No active session');
     const room = roomManager.getRoom(session.roomId);
     if (!room) throw new Error('Room not found');
@@ -444,8 +468,33 @@ function handleConnection(socket) {
     io.to(roomId).emit('lobby:update', room.publicState());
   }
 
-  function ackError(ack, message, code) {
-    if (typeof ack === 'function') ack({ success: false, error: message, code });
+  function broadcastMatchState(room) {
+    for (const p of room.players) {
+      const s = io.sockets.sockets.get(p.socketId);
+      if (s) s.emit('match:state', room.playerView(p.uid));
+    }
+  }
+
+  function broadcastMatchEnded(room) {
+    if (!room.outcome) return;
+    for (const p of room.players) {
+      const s = io.sockets.sockets.get(p.socketId);
+      if (s) {
+        s.emit('match:ended', {
+          ...room.outcome,
+          causalLog: room.outcome.causalLog,
+          yourPlayedEchoes: room.getPlayer(p.uid)?.playedEchoes || [],
+        });
+      }
+    }
+  }
+
+  function ackError(ack, message, code, extra) {
+    if (typeof ack === 'function') {
+      const out = { success: false, error: message, code };
+      if (extra) Object.assign(out, extra);
+      ack(out);
+    }
   }
 
   function sanitize(payload) {
@@ -453,9 +502,10 @@ function handleConnection(socket) {
     const out = {};
     for (const k of Object.keys(payload)) {
       const v = payload[k];
-      if (typeof v === 'string') out[k] = v.substring(0, 200);
+      if (typeof v === 'string') out[k] = v.substring(0, 256);
       else if (typeof v === 'number' || typeof v === 'boolean') out[k] = v;
       else if (Array.isArray(v)) out[k] = v.slice(0, 50);
+      else if (v && typeof v === 'object') out[k] = v;
     }
     return out;
   }

@@ -72,6 +72,17 @@ class RoomManager {
     return this.rooms.get(id);
   }
 
+  /**
+   * ابحث عن الغرفة التي يوجد فيها اللاعب (بغض النظر عن الاتصال).
+   * مفيد لإعادة الاتصال — لا يحتاج رمز الغرفة.
+   */
+  findPlayerRoom(uid) {
+    for (const [id, room] of this.rooms) {
+      if (room.players.find(p => p.uid === uid)) return room;
+    }
+    return null;
+  }
+
   getRoom(id) {
     return this.rooms.get(id);
   }
@@ -109,6 +120,54 @@ class RoomManager {
       uptime: Math.floor(process.uptime()),
       timestamp: Date.now(),
     };
+  }
+
+  /**
+   * List all open rooms (lobby state, before match starts).
+   * Returns minimal public info for the lobby browser UI.
+   * Excludes private rooms and rooms that are full or have started.
+   */
+  listPublicRooms(options = {}) {
+    const includeFull = options.includeFull || false;
+    const includeStarted = options.includeStarted || false;
+    const language = options.language || 'en';
+    const out = [];
+    for (const room of this.rooms.values()) {
+      if (!includeStarted && room.hasStarted) continue;
+      if (!includeFull && room.isFull()) continue;
+      const playersInfo = (room.players || []).map(p => ({
+        uid: p.uid,
+        displayName: p.displayName,
+        timeline: p.timeline || '',
+        isReady: !!p.isReady,
+        isBot: !!p.isBot,
+        disconnected: !!p.disconnected
+      }));
+      out.push({
+        id: room.id,
+        code: room.code,
+        scenarioId: room.scenario?.id || 'clocktower_district',
+        scenarioName: room.scenario?.name || 'Clocktower District',
+        language,
+        hostName: room.hostName || 'Host',
+        playerCount: playersInfo.length,
+        maxPlayers: room.maxPlayers || 4,
+        status: this._roomStatus(room),
+        isPrivate: !!room.isPrivate,
+        createdAt: room.createdAt || Date.now(),
+        players: playersInfo,
+        age_seconds: Math.floor((Date.now() - (room.createdAt || Date.now())) / 1000)
+      });
+    }
+    return out.sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  _roomStatus(room) {
+    if (room.hasStarted) return 'in_progress';
+    if (room.isFull()) return 'full';
+    const allReady = room.players && room.players.length > 0 && room.players.every(p => p.isReady);
+    if (allReady) return 'ready';
+    return 'open';
   }
 }
 
