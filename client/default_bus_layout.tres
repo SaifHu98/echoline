@@ -1,0 +1,13 @@
+[gd_resource type="AudioBusLayout" format=3 uid="uid://b2lispwm1plt8"]
+
+[sub_resource type="ResonanceAudioEffect" id="ResonanceAudioEffect_j3pel"]
+
+[resource]
+bus/1/name = &"ResonanceReverb"
+bus/1/solo = false
+bus/1/mute = false
+bus/1/bypass_fx = false
+bus/1/volume_db = 0.0
+bus/1/send = &"Master"
+bus/1/effect/0/effect = SubResource("ResonanceAudioEffect_j3pel")
+bus/1/effect/0/enabled = true

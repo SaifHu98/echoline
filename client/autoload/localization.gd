@@ -145,6 +145,9 @@ func load_all_catalogs() -> void:
 	# Always seed fallback catalogs (used in exported builds if JSON path fails)
 	catalogs["en"] = FALLBACK_EN.duplicate()
 	catalogs["ar"] = FALLBACK_AR.duplicate()
+	# Pseudo-locales get a clone of English until proper JSON files exist
+	catalogs["qps_expanded"] = FALLBACK_EN.duplicate()
+	catalogs["qps_mirrored"] = FALLBACK_EN.duplicate()
 
 	for loc in loc_paths.keys():
 		var p = loc_paths[loc]
@@ -158,6 +161,8 @@ func load_all_catalogs() -> void:
 			var parsed = JSON.parse_string(json_text)
 			if parsed is Dictionary:
 				# Merge JSON catalog over fallback (JSON takes priority)
+				if not catalogs.has(loc):
+					catalogs[loc] = FALLBACK_EN.duplicate()
 				var merged: Dictionary = catalogs[loc].duplicate()
 				for k in parsed.keys():
 					merged[k] = parsed[k]
@@ -174,12 +179,13 @@ func set_locale(new_locale: String) -> void:
 	is_rtl = RTL_LOCALES.has(current_locale)
 
 	# Set Godot engine root layout direction
-	var root = get_tree().root
-	if root:
-		if is_rtl:
-			root.layout_direction = Control.LAYOUT_DIRECTION_RTL
-		else:
-			root.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	# Control.LAYOUT_DIRECTION_LTR = 0, LAYOUT_DIRECTION_RTL = 1, LOCALE = 2
+	# Window.layout_direction is read-only in headless mode (no display);
+	# we silently skip the assignment when the engine isn't drawing a window.
+	if DisplayServer.get_name() != "headless":
+		var root = get_tree().root
+		if root:
+			root.layout_direction = 1 if is_rtl else 0
 
 	EventBus.locale_changed.emit(current_locale, is_rtl)
 	print("[Localization] Locale changed to %s (RTL=%s)" % [current_locale, is_rtl])

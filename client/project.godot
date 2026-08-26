@@ -21,6 +21,10 @@ run/main_scene="res://scenes/intro.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
+[audio]
+
+buses/default_bus_layout="uid://b2lispwm1plt8"
+
 [autoload]
 
 EventBus="*res://autoload/event_bus.gd"
@@ -35,6 +39,10 @@ VFXPool="*res://core/vfx_pool.gd"
 UXTelemetry="*res://autoload/ux_telemetry.gd"
 DarkPatternsGuard="*res://autoload/dark_patterns_guard.gd"
 IAPManager="*res://autoload/iap_manager.gd"
+DialogueManager="*uid://c3rodes2l3gxb"
+PhantomCameraManager="*uid://duq6jhf6unyis"
+GodotxLabelUp="*uid://c5ckokjmesj66"
+ResonanceLogger="*uid://bq7nrlog0001"
 
 [display]
 
@@ -44,9 +52,33 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=4
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/FoliageFlow/plugin.cfg", "res://addons/Gizmo3DScript/plugin.cfg", "res://addons/Surfaces/plugin.cfg", "res://addons/animation_combiner/plugin.cfg", "res://addons/at-icons/plugin.cfg", "res://addons/blendkit/plugin.cfg", "res://addons/cgheven/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/godot_3d_cursor/plugin.cfg", "res://addons/godot_state_charts/plugin.cfg", "res://addons/godotx_health_bar/plugin.cfg", "res://addons/godotx_label_up/plugin.cfg", "res://addons/kit_browser/plugin.cfg", "res://addons/lowpolyterrain/plugin.cfg", "res://addons/nexus_resonance/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/reactive_signal/plugin.cfg", "res://addons/road-generator/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
+
 [internationalization]
 
+locale/translations_pot_files=PackedStringArray("res://data/dialogues/ECHO_DIALOGUE_SAMPLES.dialogue", "res://data/dialogues/echo_greetings.dialogue")
 locale/test="ar"
+
+[nexus]
+
+resonance/logger/categories_enabled={
+"bake": true,
+"init": true,
+"occlusion": true,
+"pathing": true,
+"realtime_rays": true,
+"reflections": true,
+"source_volume": true,
+"validation": true
+}
+resonance/logger/output_to_debug=true
+resonance/logger/output_to_file=false
+resonance/logger/file_path="user://nexus_resonance_log.ndjson"
+resonance/logger/steam_audio_verbose=false
+resonance/editor/auto_convert_animation_audio_on_save=false
+resonance/bake/default_output_directory="res://resonance_data/"
 
 [rendering]
 

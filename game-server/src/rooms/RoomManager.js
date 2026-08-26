@@ -5,6 +5,7 @@
 
 const crypto = require('crypto');
 const Room = require('./Room');
+const { ProceduralStoryService } = require('../scenarios/ProceduralStoryService');
 
 class RoomManager {
   constructor({ logger, scenarios, maxRooms, maxPlayersPerRoom, matchDurationSeconds, disconnectGraceSeconds, adminBridge, io }) {
@@ -19,6 +20,10 @@ class RoomManager {
 
     this.rooms = new Map(); // id → Room
     this.codeIndex = new Map(); // code → roomId
+    // Procedural story generator: gives every room a unique, deterministic
+    // narrative + missions + layout. Stored per-room so reconnects can
+    // re-fetch the manifest.
+    this.storyService = new ProceduralStoryService({ logger });
   }
 
   generateRoomCode() {
@@ -33,7 +38,7 @@ class RoomManager {
     return code;
   }
 
-  createRoom({ hostSocketId, hostUid, hostName, hostLanguage, scenarioId }) {
+  createRoom({ hostSocketId, hostUid, hostName, hostLanguage, scenarioId, difficulty = 1, locale = 'en', seedOverride = 0 }) {
     if (this.rooms.size >= this.maxRooms) {
       throw new Error('Server is at capacity');
     }
@@ -42,6 +47,15 @@ class RoomManager {
 
     const id = 'r_' + crypto.randomBytes(8).toString('hex');
     const code = this.generateRoomCode();
+    // Generate the procedural story manifest BEFORE creating the Room so the
+    // Room can stash it for replays.
+    const storyManifest = this.storyService.generate({
+      timeline: scenario.timeline || 'present',
+      difficulty,
+      playerCount: this.maxPlayersPerRoom,
+      locale,
+      seedOverride,
+    });
     const room = new Room({
       id, code,
       scenario,
@@ -51,6 +65,10 @@ class RoomManager {
       disconnectGraceSeconds: this.disconnectGraceSeconds,
       logger: this.logger,
     });
+    // Stash the procedural story manifest on the room so it can be sent to
+    // every connecting player.
+    room.storyManifest = storyManifest;
+    this.storyService.storeForRoom(id, storyManifest);
 
     room.addPlayer({
       socketId: hostSocketId,
@@ -62,8 +80,15 @@ class RoomManager {
 
     this.rooms.set(id, room);
     this.codeIndex.set(code, id);
-    this.logger.info({ roomId: id, code, host: hostName }, 'Room created');
-    return { room, roomId: id };
+    this.logger.info({ roomId: id, code, host: hostName, seed: storyManifest.seed, short_id: storyManifest.short_id }, 'Room created');
+    return { room, roomId: id, storyManifest };
+  }
+
+  /**
+   * Retrieve the procedural story manifest for a room (re-fetch on reconnect).
+   */
+  getStoryManifest(roomId) {
+    return this.storyService.loadForRoom(roomId);
   }
 
   findRoomByCode(code) {

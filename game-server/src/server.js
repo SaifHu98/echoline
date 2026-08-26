@@ -238,7 +238,7 @@ function handleConnection(socket) {
 
   socket.on('lobby:create', (payload, ack) => {
     try {
-      const { playerUid, displayName, language, scenarioId } = sanitize(payload);
+      const { playerUid, displayName, language, scenarioId, difficulty, seed } = sanitize(payload);
       if (!playerUid || !displayName) return ackError(ack, 'Missing player info', 'BAD_REQUEST');
 
       const created = roomManager.createRoom({
@@ -247,16 +247,30 @@ function handleConnection(socket) {
         hostName: displayName,
         hostLanguage: language || 'en',
         scenarioId: scenarioId || 'clocktower_district',
+        difficulty: difficulty || 1,
+        locale: language || 'en',
+        seedOverride: seed || 0,
       });
       const room = created.room;
       session = { playerId: playerUid, roomId: room.id, lastClientSeq: 0 };
       socket.join(room.id);
-      ack({ success: true, room: room.publicState() });
+      ack({ success: true, room: room.publicState(), storyManifest: created.storyManifest });
       broadcastRoom(room.id);
     } catch (e) {
       logger.error({ err: e.message }, 'lobby:create error');
       ackError(ack, e.message);
     }
+  });
+
+  // New event: fetch the procedural story manifest for a room (used on
+  // reconnect / late-join so the player sees the same story as everyone else).
+  socket.on('lobby:get_story', (payload, ack) => {
+    try {
+      const { roomId } = sanitize(payload);
+      const manifest = roomManager.getStoryManifest(roomId);
+      if (!manifest) return ackError(ack, 'Story manifest not found', 'NOT_FOUND');
+      ack?.({ success: true, manifest });
+    } catch (e) { ackError(ack, e.message); }
   });
 
   socket.on('lobby:join', (payload, ack) => {

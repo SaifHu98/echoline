@@ -97,12 +97,17 @@ const SCHEMAS = {
     displayName: { type: 'string', max: 32, pattern: /^[\p{L}\p{N}\s._-]+$/u },
     language: { type: 'enum', values: ['en', 'ar', 'qps_mirrored', 'qps_expanded'] },
     scenarioId: { type: 'id' },
+    difficulty: { type: 'int', min: 1, max: 5, optional: true },
+    seed: { type: 'int', optional: true },
   },
   'lobby:join': {
     playerUid: { type: 'id' },
     displayName: { type: 'string', max: 32 },
     language: { type: 'enum', values: ['en', 'ar', 'qps_mirrored', 'qps_expanded'] },
     roomCode: { type: 'string', max: 8, pattern: /^[A-Z0-9]+$/ },
+  },
+  'lobby:get_story': {
+    roomId: { type: 'id' },
   },
   'lobby:leave': {},
   'lobby:select_timeline': {

@@ -10,11 +10,12 @@ var active_timeline: String = "past"
 var harmony_level: float = 0.0 # Gradually blends other timeline stems as players cooperate
 
 func _ready() -> void:
-	EventBus.echo_propagated.connect(_on_echo_propagated)
+	if EventBus.has_signal("echo_propagated"):
+		EventBus.echo_propagated.connect(_on_echo_propagated)
 
 func play_sfx(cue_name: String, caption_loc_key: String = "") -> void:
 	# In full Godot build, routes to AudioStreamPlayer pool with pitch variation
-	if Accessibility.subtitles_enabled and caption_loc_key != "":
+	if Accessibility != null and Accessibility.subtitles_enabled and caption_loc_key != "":
 		var text = Localization.tr_key(caption_loc_key)
 		EventBus.subtitle_requested.emit("[♪ " + text + "]", 2.5)
 
@@ -25,4 +26,5 @@ func play_echo(timeline: String) -> void:
 
 func _on_echo_propagated(echo_id: String, loc_key: String, audio_cue: String, visual_ripple: String, deltas: Array) -> void:
 	play_sfx(audio_cue, loc_key)
-	harmony_level = clampf(harmony_level + 0.15, 0.0, 1.0)
+	harmony_level = clamp(harmony_level + 0.15, 0.0, 1.0)
+

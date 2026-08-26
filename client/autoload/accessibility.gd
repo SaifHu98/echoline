@@ -27,3 +27,4 @@ func set_colorblind_mode(enabled: bool) -> void:
 func set_screen_shake(enabled: bool) -> void:
 	screen_shake_enabled = enabled
 
+

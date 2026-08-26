@@ -184,3 +184,4 @@ func load_from_disk() -> void:
 			if m.has(ch): muted[ch] = m[ch]
 		voice_chat_enabled = parsed.get("voice_chat_enabled", false)
 	_apply_all()
+
