@@ -196,5 +196,7 @@
   "codex.vaults.title": "The Subterranean Vaults",
   "codex.vaults.body": "Deep below the surface lie ancient geothermal cooling channels that prevent spacetime crystal overheating.",
   "codex.harmonics.title": "Principles of Temporal Harmonics",
-  "codex.harmonics.body": "An action performed in the Past cascades instantaneously into the Present and Future, creating reverberations that can either mend or shatter reality."
+  "codex.harmonics.body": "An action performed in the Past cascades instantaneously into the Present and Future, creating reverberations that can either mend or shatter reality.",
+  "menu.tutorial": "HOW TO PLAY",
+  "hud.shards": "Shards: {count}"
 }
