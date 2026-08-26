@@ -1,60 +1,129 @@
-[gd_scene load_steps=8 format=3 uid="uid://c8b9d4e5f6a1"]
+[gd_scene load_steps=23 format=3 uid="uid://c8b9d4e5f6a1"]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://ui/lobby/lobby_view.gd" id="2_lobby"]
 [ext_resource type="Script" path="res://ui/hud/hud.gd" id="3_hud"]
-[ext_resource type="Script" path="res://ui/hud/smart_ping_wheel.gd" id="4_ping"]
-[ext_resource type="Script" path="res://ui/hud/quick_chat.gd" id="5_chat"]
-[ext_resource type="Script" path="res://ui/recap/causal_recap_view.gd" id="6_recap"]
-[ext_resource type="Script" path="res://ui/settings/settings_view.gd" id="7_settings"]
+[ext_resource type="Script" path="res://ui/hud/advanced_hud.gd" id="4_advanced_hud"]
+[ext_resource type="Script" path="res://gameplay/player_controller.gd" id="5_player"]
+[ext_resource type="Script" path="res://gameplay/character_factory.gd" id="6_chars"]
+[ext_resource type="Script" path="res://gameplay/world_generator.gd" id="7_world"]
 [ext_resource type="Script" path="res://gameplay/timelines/timeline_manager.gd" id="8_timeline"]
+[ext_resource type="Script" path="res://gameplay/sky_system.gd" id="9_sky"]
+[ext_resource type="Script" path="res://gameplay/vfx_manager.gd" id="10_vfx"]
+[ext_resource type="Script" path="res://gameplay/dynamic_audio.gd" id="11_audio"]
+[ext_resource type="Script" path="res://gameplay/post_processing.gd" id="12_post"]
+[ext_resource type="Script" path="res://gameplay/environment_builder.gd" id="13_env"]
+[ext_resource type="Script" path="res://gameplay/cinematic_camera.gd" id="14_cinematic"]
+[ext_resource type="Script" path="res://ui/controls/virtual_joystick.gd" id="15_joystick"]
 
-[node name="Main" type="Node3D"]
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+ambient_light_source = 3
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 1.5
+glow_strength = 1.2
+glow_bloom = 0.5
+glow_hdr_threshold = 0.8
+glow_hdr_scale = 2.0
+glow_luminance_cap = 8.0
+fog_enabled = true
+fog_density = 0.005
+fog_light_color = Color(0.7, 0.8, 0.9, 1)
+fog_sun_scatter = 0.4
+ssao_enabled = true
+ssao_intensity = 1.2
+ssao_radius = 1.5
+ssao_power = 1.5
+ssr_enabled = true
+ssr_max_steps = 64
+ssr_fade_in = 0.3
+ssr_fade_out = 2.0
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
+radius = 0.3
+height = 1.6
+
+[sub_resource type="BoxShape3D" id="BoxShape_interact"]
+
+[node name="Main" type="Node"]
 script = ExtResource("1_main")
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 0, 5, 8)
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 0, 10, 0)
 shadow_enabled = true
+shadow_bias = 0.02
+light_energy = 1.5
 
-[node name="World" type="Node3D" parent="."]
+[node name="World3D" type="Node3D" parent="."]
 
-[node name="TimelineManager" type="Node3D" parent="World"]
+[node name="WorldGenerator" type="Node3D" parent="World3D"]
+script = ExtResource("7_world")
+
+[node name="SkySystem" type="Node3D" parent="World3D"]
+script = ExtResource("9_sky")
+
+[node name="EnvironmentBuilder" type="Node3D" parent="World3D"]
+script = ExtResource("13_env")
+
+[node name="TimelineManager" type="Node3D" parent="World3D"]
 script = ExtResource("8_timeline")
 
-[node name="GroundMesh" type="CSGBox3D" parent="World"]
-size = Vector3(30, 0.5, 30)
+[node name="CharacterFactory" type="Node3D" parent="World3D"]
+script = ExtResource("6_chars")
 
-[node name="ClocktowerMesh" type="CSGBox3D" parent="World"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, -10)
-size = Vector3(4, 12, 4)
+[node name="Props" type="Node3D" parent="World3D"]
 
-[node name="CanalWater" type="CSGBox3D" parent="World/TimelineManager"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.1, 0)
-size = Vector3(3, 0.2, 20)
+[node name="NPCs" type="Node3D" parent="World3D"]
+
+[node name="Bots" type="Node3D" parent="World3D"]
+
+[node name="VFXManager" type="Node3D" parent="World3D"]
+script = ExtResource("10_vfx")
+
+[node name="Player" type="CharacterBody3D" parent="World3D"]
+script = ExtResource("5_player")
 visible = false
 
-[node name="CourtyardTree" type="CSGCylinder3D" parent="World/TimelineManager"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, 0)
-radius = 1.5
-height = 4.0
-visible = false
+[node name="CollisionShape3D" type="CollisionShape3D" parent="World3D/Player"]
+shape = SubResource("CapsuleShape_player")
 
-[node name="CanopyBridge" type="CSGBox3D" parent="World/TimelineManager"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 4, -5)
-size = Vector3(2, 0.3, 10)
-visible = false
+[node name="Model" type="Node3D" parent="World3D/Player"]
 
-[node name="HydroTurbine" type="CSGCylinder3D" parent="World/TimelineManager"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1, -8)
-radius = 1.0
-height = 2.0
+[node name="CameraRig" type="Node3D" parent="World3D/Player"]
 
-[node name="GateStabilizer" type="CSGBox3D" parent="World/TimelineManager"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-size = Vector3(2, 2, 2)
+[node name="SpringArm3D" type="SpringArm3D" parent="World3D/Player/CameraRig"]
+spring_length = 8.0
+margin = 0.5
+
+[node name="Camera3D" type="Camera3D" parent="World3D/Player/CameraRig/SpringArm3D"]
+current = true
+
+[node name="FootstepAudio" type="AudioStreamPlayer3D" parent="World3D/Player"]
+
+[node name="EchoEmitter" type="Node3D" parent="World3D/Player"]
+
+[node name="InteractRay" type="RayCast3D" parent="World3D/Player"]
+target_position = Vector3(0, 0, -3)
+collision_mask = 1
+
+[node name="InteractArea" type="Area3D" parent="World3D/Player"]
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="World3D/Player/InteractArea"]
+shape = SubResource("BoxShape_interact")
+
+[node name="CinematicCamera" type="Camera3D" parent="World3D"]
+script = ExtResource("14_cinematic")
+
+[node name="AudioSystem" type="Node" parent="."]
+script = ExtResource("11_audio")
+
+[node name="PostProcessing" type="Node" parent="."]
+script = ExtResource("12_post")
 
 [node name="UI" type="CanvasLayer" parent="."]
 
@@ -67,6 +136,16 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_lobby")
 
+[node name="BackButton" type="Button" parent="UI/LobbyView"]
+custom_minimum_size = Vector2(180, 64)
+layout_mode = 1
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 200.0
+offset_bottom = 84.0
+theme_override_font_sizes/font_size = 26
+text = "← BACK"
+
 [node name="Panel" type="PanelContainer" parent="UI/LobbyView"]
 layout_mode = 1
 anchors_preset = 8
@@ -74,58 +153,96 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -200.0
-offset_right = 300.0
-offset_bottom = 200.0
+offset_left = -360.0
+offset_top = -320.0
+offset_right = 360.0
+offset_bottom = 320.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="VBox" type="VBoxContainer" parent="UI/LobbyView/Panel"]
 layout_mode = 2
+theme_override_constants/separation = 18
 
-[node name="JoinRow" type="HBoxContainer" parent="UI/LobbyView/Panel/VBox"]
+[node name="TitleLabel" type="Label" parent="UI/LobbyView/Panel/VBox"]
 layout_mode = 2
+text = "⌬  LOBBY"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 40
+theme_override_colors/font_color = Color(0, 0.95, 1, 1)
 
-[node name="RoomCodeInput" type="LineEdit" parent="UI/LobbyView/Panel/VBox/JoinRow"]
+[node name="HeaderRow" type="VBoxContainer" parent="UI/LobbyView/Panel/VBox"]
 layout_mode = 2
-size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="RoomCodeInput" type="LineEdit" parent="UI/LobbyView/Panel/VBox/HeaderRow"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
 placeholder_text = "ENTER 4-CHAR ROOM CODE"
+alignment = 1
+theme_override_font_sizes/font_size = 26
 
-[node name="JoinButton" type="Button" parent="UI/LobbyView/Panel/VBox/JoinRow"]
+[node name="JoinButton" type="Button" parent="UI/LobbyView/Panel/VBox/HeaderRow"]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-text = "Join Lobby"
+theme_override_font_sizes/font_size = 30
+text = "JOIN ROOM"
 
-[node name="CreateButton" type="Button" parent="UI/LobbyView/Panel/VBox/JoinRow"]
+[node name="CreateButton" type="Button" parent="UI/LobbyView/Panel/VBox/HeaderRow"]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-text = "Create Lobby"
+theme_override_font_sizes/font_size = 30
+text = "CREATE NEW ROOM"
 
 [node name="StatusLabel" type="Label" parent="UI/LobbyView/Panel/VBox"]
 layout_mode = 2
-text = "Select a timeline role and prepare to link."
+text = "Enter a room code or create a new one"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.6, 0.85, 0.7, 1)
 
-[node name="CardsRow" type="HBoxContainer" parent="UI/LobbyView/Panel/VBox"]
+[node name="CardsRow" type="VBoxContainer" parent="UI/LobbyView/Panel/VBox"]
 layout_mode = 2
-size_flags_vertical = 3
+theme_override_constants/separation = 12
 
 [node name="PastCard" type="Button" parent="UI/LobbyView/Panel/VBox/CardsRow"]
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
-size_flags_horizontal = 3
-text = "◆ The Past"
+theme_override_font_sizes/font_size = 26
+text = "◆  THE PAST
+Memory & Heritage"
 
 [node name="PresentCard" type="Button" parent="UI/LobbyView/Panel/VBox/CardsRow"]
+custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
-size_flags_horizontal = 3
-text = "▲ The Present"
+theme_override_font_sizes/font_size = 26
+text = "▲  THE PRESENT
+Reality & Action"
 
 [node name="FutureCard" type="Button" parent="UI/LobbyView/Panel/VBox/CardsRow"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "●  THE FUTURE
+Possibility & Hope"
+
+[node name="ActionRow" type="HBoxContainer" parent="UI/LobbyView/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ReadyButton" type="Button" parent="UI/LobbyView/Panel/VBox/ActionRow"]
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "● The Future"
+theme_override_font_sizes/font_size = 34
+text = "READY"
 
-[node name="ReadyButton" type="Button" parent="UI/LobbyView/Panel/VBox"]
+[node name="LeaveButton" type="Button" parent="UI/LobbyView/Panel/VBox/ActionRow"]
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
-text = "Ready"
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "LEAVE"
 
 [node name="GameHUD" type="Control" parent="UI"]
 visible = false
@@ -137,58 +254,109 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("3_hud")
 
-[node name="TopBar" type="HBoxContainer" parent="UI/GameHUD"]
+[node name="HUDTopBar" type="PanelContainer" parent="UI/GameHUD"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = 60.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 96.0
 grow_horizontal = 2
 
-[node name="TimelineBadge" type="Label" parent="UI/GameHUD/TopBar"]
+[node name="TopBar" type="HBoxContainer" parent="UI/GameHUD/HUDTopBar"]
 layout_mode = 2
-text = "◆ The Past"
+theme_override_constants/separation = 16
 
-[node name="StabilityBar" type="ProgressBar" parent="UI/GameHUD/TopBar"]
+[node name="TimelineBadge" type="Label" parent="UI/GameHUD/HUDTopBar/TopBar"]
+custom_minimum_size = Vector2(180, 64)
+layout_mode = 2
+text = "◆ PAST"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="StabilityBar" type="ProgressBar" parent="UI/GameHUD/HUDTopBar/TopBar"]
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_horizontal = 3
 value = 100.0
+show_percentage = false
 
-[node name="TimerLabel" type="Label" parent="UI/GameHUD/TopBar"]
+[node name="TimerLabel" type="Label" parent="UI/GameHUD/HUDTopBar/TopBar"]
+custom_minimum_size = Vector2(180, 64)
 layout_mode = 2
-text = "Time Remaining: 600s"
+text = "10:00"
+horizontal_alignment = 2
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
-[node name="StageLabel" type="Label" parent="UI/GameHUD/TopBar"]
+[node name="StageLabel" type="Label" parent="UI/GameHUD/HUDTopBar/TopBar"]
+custom_minimum_size = Vector2(160, 64)
 layout_mode = 2
-text = "Stable"
+text = "STABLE"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.5, 1, 0.5, 1)
 
-[node name="BottomBar" type="HBoxContainer" parent="UI/GameHUD"]
+[node name="MenuButton" type="Button" parent="UI/GameHUD"]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 0
+offset_left = 20.0
+offset_top = 116.0
+offset_right = 80.0
+offset_bottom = 176.0
+text = "☰"
+
+[node name="MessageFeed" type="VBoxContainer" parent="UI/GameHUD"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 20.0
+offset_top = 116.0
+offset_right = 480.0
+offset_bottom = 460.0
+theme_override_constants/separation = 6
+
+[node name="HUDBottomBar" type="PanelContainer" parent="UI/GameHUD"]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = -70.0
-offset_right = -20.0
-offset_bottom = -20.0
+offset_left = 16.0
+offset_top = -116.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
 
-[node name="InteractButton" type="Button" parent="UI/GameHUD/BottomBar"]
+[node name="BottomBar" type="HBoxContainer" parent="UI/GameHUD/HUDBottomBar"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="InteractButton" type="Button" parent="UI/GameHUD/HUDBottomBar/BottomBar"]
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Interact"
+theme_override_font_sizes/font_size = 30
+text = "🔧  INTERACT"
 
-[node name="PingButton" type="Button" parent="UI/GameHUD/BottomBar"]
+[node name="PingButton" type="Button" parent="UI/GameHUD/HUDBottomBar/BottomBar"]
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
-text = "Smart Ping"
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 30
+text = "📍  PING"
 
-[node name="QuickChatButton" type="Button" parent="UI/GameHUD/BottomBar"]
+[node name="QuickChatButton" type="Button" parent="UI/GameHUD/HUDBottomBar/BottomBar"]
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
-text = "Quick Messages"
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 30
+text = "💬  CHAT"
 
 [node name="SubtitleContainer" type="CenterContainer" parent="UI/GameHUD"]
 layout_mode = 1
@@ -196,171 +364,228 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -120.0
-offset_bottom = -80.0
-grow_horizontal = 2
-grow_vertical = 0
+offset_top = -200.0
+offset_bottom = -130.0
 
 [node name="SubtitleLabel" type="Label" parent="UI/GameHUD/SubtitleContainer"]
 visible = false
 layout_mode = 2
 text = "[♪ Sound Caption]"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
 
-[node name="MessageFeed" type="Control" parent="UI/GameHUD"]
-layout_mode = 1
-anchors_preset = 0
-offset_left = 20.0
-offset_top = 80.0
-offset_right = 350.0
-offset_bottom = 300.0
-
-[node name="FeedContainer" type="VBoxContainer" parent="UI/GameHUD/MessageFeed"]
-layout_mode = 1
+[node name="AdvancedHUD" type="Control" parent="UI"]
+visible = false
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("4_advanced_hud")
 
-[node name="SmartPingWheel" type="Control" parent="UI/GameHUD"]
-visible = false
+[node name="LeftPanel" type="VBoxContainer" parent="UI/AdvancedHUD"]
+layout_mode = 1
+offset_left = 16.0
+offset_top = 116.0
+offset_right = 320.0
+offset_bottom = 360.0
+theme_override_constants/separation = 12
+
+[node name="QuestTracker" type="PanelContainer" parent="UI/AdvancedHUD/LeftPanel"]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/AdvancedHUD/LeftPanel/QuestTracker"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="QuestTitle" type="Label" parent="UI/AdvancedHUD/LeftPanel/QuestTracker/VBox"]
+layout_mode = 2
+text = "📜  QUESTS"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 0.84, 0.4, 1)
+
+[node name="QuestList" type="VBoxContainer" parent="UI/AdvancedHUD/LeftPanel/QuestTracker/VBox"]
+layout_mode = 2
+
+[node name="RightPanel" type="VBoxContainer" parent="UI/AdvancedHUD"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 116.0
+offset_right = -16.0
+offset_bottom = 340.0
+grow_horizontal = 0
+theme_override_constants/separation = 8
+
+[node name="Minimap" type="PanelContainer" parent="UI/AdvancedHUD/RightPanel"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+
+[node name="MinimapBG" type="ColorRect" parent="UI/AdvancedHUD/RightPanel/Minimap"]
+custom_minimum_size = Vector2(180, 180)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
+offset_left = -90.0
+offset_top = -90.0
+offset_right = 90.0
+offset_bottom = 90.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("4_ping")
+color = Color(0.08, 0.12, 0.18, 1)
 
-[node name="QuickChatMenu" type="PanelContainer" parent="UI/GameHUD"]
-visible = false
+[node name="PlayerDot" type="ColorRect" parent="UI/AdvancedHUD/RightPanel/Minimap"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 0
+offset_left = 85.0
+offset_top = 85.0
+offset_right = 95.0
+offset_bottom = 95.0
+color = Color(0, 1, 0.6, 1)
+
+[node name="BottomRight" type="VBoxContainer" parent="UI/AdvancedHUD"]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -320.0
-offset_top = -320.0
-offset_right = -20.0
-offset_bottom = -80.0
+offset_left = -440.0
+offset_top = -140.0
+offset_right = -16.0
+offset_bottom = -130.0
 grow_horizontal = 0
 grow_vertical = 0
-script = ExtResource("5_chat")
 
-[node name="CausalRecapView" type="Control" parent="UI"]
-visible = false
-layout_mode = 3
-anchors_preset = 15
+[node name="Inventory" type="HBoxContainer" parent="UI/AdvancedHUD/BottomRight"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Slot0" type="ColorRect" parent="UI/AdvancedHUD/BottomRight/Inventory"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+color = Color(0.15, 0.15, 0.2, 0.7)
+
+[node name="Slot1" type="ColorRect" parent="UI/AdvancedHUD/BottomRight/Inventory"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+color = Color(0.15, 0.15, 0.2, 0.7)
+
+[node name="Slot2" type="ColorRect" parent="UI/AdvancedHUD/BottomRight/Inventory"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+color = Color(0.15, 0.15, 0.2, 0.7)
+
+[node name="Slot3" type="ColorRect" parent="UI/AdvancedHUD/BottomRight/Inventory"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+color = Color(0.15, 0.15, 0.2, 0.7)
+
+[node name="Slot4" type="ColorRect" parent="UI/AdvancedHUD/BottomRight/Inventory"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+color = Color(0.15, 0.15, 0.2, 0.7)
+
+[node name="Slot5" type="ColorRect" parent="UI/AdvancedHUD/BottomRight/Inventory"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+color = Color(0.15, 0.15, 0.2, 0.7)
+
+[node name="Slot6" type="ColorRect" parent="UI/AdvancedHUD/BottomRight/Inventory"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+color = Color(0.15, 0.15, 0.2, 0.7)
+
+[node name="Slot7" type="ColorRect" parent="UI/AdvancedHUD/BottomRight/Inventory"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+color = Color(0.15, 0.15, 0.2, 0.7)
+
+[node name="BottomBar" type="VBoxContainer" parent="UI/AdvancedHUD"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("6_recap")
-
-[node name="Panel" type="PanelContainer" parent="UI/CausalRecapView"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -350.0
-offset_top = -250.0
-offset_right = 350.0
-offset_bottom = 250.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VBox" type="VBoxContainer" parent="UI/CausalRecapView/Panel"]
-layout_mode = 2
-
-[node name="OutcomeTitle" type="Label" parent="UI/CausalRecapView/Panel/VBox"]
-layout_mode = 2
-text = "Causal Timeline Recap"
-
-[node name="OutcomeDesc" type="Label" parent="UI/CausalRecapView/Panel/VBox"]
-layout_mode = 2
-text = "Timeline Restored: Perfect Harmony!"
-
-[node name="StatsLabel" type="Label" parent="UI/CausalRecapView/Panel/VBox"]
-layout_mode = 2
-text = "Echo Chains Resolved: 5 | Time: 180s"
-
-[node name="Scroll" type="ScrollContainer" parent="UI/CausalRecapView/Panel/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="TreeContainer" type="VBoxContainer" parent="UI/CausalRecapView/Panel/VBox/Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ReturnButton" type="Button" parent="UI/CausalRecapView/Panel/VBox"]
-layout_mode = 2
-text = "Return to Menu"
-
-[node name="SettingsView" type="Control" parent="UI"]
-visible = false
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("7_settings")
-
-[node name="Panel" type="PanelContainer" parent="UI/SettingsView"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -250.0
+offset_left = 16.0
 offset_top = -180.0
-offset_right = 250.0
-offset_bottom = 180.0
+offset_right = -16.0
+offset_bottom = -130.0
 grow_horizontal = 2
-grow_vertical = 2
+grow_vertical = 0
 
-[node name="VBox" type="VBoxContainer" parent="UI/SettingsView/Panel"]
+[node name="HintLabel" type="Label" parent="UI/AdvancedHUD/BottomBar"]
+layout_mode = 2
+text = "💡 Hint"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 0.95, 0.7, 1)
+visible = false
+
+[node name="ActionBar" type="HBoxContainer" parent="UI/AdvancedHUD/BottomBar"]
 layout_mode = 2
 
-[node name="LangRow" type="HBoxContainer" parent="UI/SettingsView/Panel/VBox"]
-layout_mode = 2
+[node name="InteractionPrompt" type="PanelContainer" parent="UI/AdvancedHUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -260.0
+offset_right = 180.0
+offset_bottom = -210.0
+grow_horizontal = 2
+grow_vertical = 0
 
-[node name="Label" type="Label" parent="UI/SettingsView/Panel/VBox/LangRow"]
+[node name="PromptLabel" type="Label" parent="UI/AdvancedHUD/InteractionPrompt"]
 layout_mode = 2
-text = "Language / اللغة: "
+text = "[E] Interact"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
 
-[node name="OptionButton" type="OptionButton" parent="UI/SettingsView/Panel/VBox/LangRow"]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="Joystick" type="Control" parent="UI"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 0
+offset_left = 40.0
+offset_top = 480.0
+offset_right = 240.0
+offset_bottom = 680.0
+script = ExtResource("15_joystick")
 
-[node name="ContrastCheck" type="CheckBox" parent="UI/SettingsView/Panel/VBox"]
-layout_mode = 2
-text = "High Contrast Mode"
+[node name="Background" type="ColorRect" parent="UI/Joystick"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 1, 1, 0.15)
 
-[node name="MotionCheck" type="CheckBox" parent="UI/SettingsView/Panel/VBox"]
-layout_mode = 2
-text = "Reduced Motion"
+[node name="Knob" type="ColorRect" parent="UI/Joystick"]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 0
+offset_left = 60.0
+offset_top = 60.0
+offset_right = 140.0
+offset_bottom = 140.0
+color = Color(0, 0.95, 1, 0.7)
 
-[node name="ScaleRow" type="HBoxContainer" parent="UI/SettingsView/Panel/VBox"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="UI/SettingsView/Panel/VBox/ScaleRow"]
-layout_mode = 2
-text = "Text Scale: "
-
-[node name="Slider" type="HSlider" parent="UI/SettingsView/Panel/VBox/ScaleRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = 80.0
-max_value = 160.0
-value = 100.0
-
-[node name="CloseButton" type="Button" parent="UI/SettingsView/Panel/VBox"]
-layout_mode = 2
-text = "Close"
+[connection signal="pressed" from="UI/LobbyView/BackButton" to="UI/LobbyView" method="_on_back_pressed"]
+[connection signal="pressed" from="UI/LobbyView/Panel/VBox/HeaderRow/JoinButton" to="UI/LobbyView" method="_on_join_pressed"]
+[connection signal="pressed" from="UI/LobbyView/Panel/VBox/HeaderRow/CreateButton" to="UI/LobbyView" method="_on_create_pressed"]
+[connection signal="pressed" from="UI/LobbyView/Panel/VBox/CardsRow/PastCard" to="UI/LobbyView" method="_on_past_pressed"]
+[connection signal="pressed" from="UI/LobbyView/Panel/VBox/CardsRow/PresentCard" to="UI/LobbyView" method="_on_present_pressed"]
+[connection signal="pressed" from="UI/LobbyView/Panel/VBox/CardsRow/FutureCard" to="UI/LobbyView" method="_on_future_pressed"]
+[connection signal="pressed" from="UI/LobbyView/Panel/VBox/ActionRow/ReadyButton" to="UI/LobbyView" method="_on_ready_pressed"]
+[connection signal="pressed" from="UI/LobbyView/Panel/VBox/ActionRow/LeaveButton" to="UI/LobbyView" method="_on_leave_pressed"]
+[connection signal="pressed" from="UI/GameHUD/MenuButton" to="." method="_on_leave_button_pressed"]
+[connection signal="pressed" from="UI/GameHUD/HUDBottomBar/BottomBar/InteractButton" to="UI/GameHUD" method="_on_interact_pressed"]
+[connection signal="pressed" from="UI/GameHUD/HUDBottomBar/BottomBar/PingButton" to="UI/GameHUD" method="_on_ping_pressed"]
+[connection signal="pressed" from="UI/GameHUD/HUDBottomBar/BottomBar/QuickChatButton" to="UI/GameHUD" method="_on_quick_chat_pressed"]

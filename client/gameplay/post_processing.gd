@@ -14,15 +14,15 @@ func _ready() -> void:
 func _setup_environment() -> void:
 	environment = Environment.new()
 
-	# Background
-	environment.background_mode = Environment.BG_MODE_SKY
+	# Background (BG_SKY = 1 in Godot 4.7; using numeric for compatibility)
+	environment.background_mode = 1  # BG_SKY
 
-	# Ambient
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	# Ambient (AMBIENT_SOURCE_SKY = 1)
+	environment.ambient_light_source = 1
 	environment.ambient_light_energy = 0.4
 
-	# Tonemap (Filmic for AAA look)
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	# Tonemap (TONE_MAPPER_FILMIC = 1)
+	environment.tonemap_mode = 1
 	environment.tonemap_exposure = 1.1
 	environment.tonemap_white = 6.0
 

@@ -5,7 +5,7 @@ func _ready() -> void:
 	EventBus.locale_changed.connect(_on_locale_changed)
 	_apply_styling()
 
-func _on_locale_changed(_locale: String, is_rtl: boolean) -> void:
+func _on_locale_changed(_locale: String, is_rtl: bool) -> void:
 	layout_direction = Control.LAYOUT_DIRECTION_RTL if is_rtl else Control.LAYOUT_DIRECTION_LTR
 
 func _apply_styling() -> void:
@@ -23,3 +23,4 @@ func _apply_styling() -> void:
 	style.shadow_color = Color(0, 0, 0, 0.3)
 	style.shadow_size = 8
 	add_theme_stylebox_override("panel", style)
+

@@ -14,7 +14,7 @@ func set_loc_key(key: String, params: Dictionary = {}) -> void:
 	loc_params = params
 	update_layout()
 
-func _on_locale_changed(_locale: String, _is_rtl: boolean) -> void:
+func _on_locale_changed(_locale: String, _is_rtl: bool) -> void:
 	update_layout()
 
 func _on_text_scale_changed(scale_factor: float) -> void:
@@ -28,3 +28,4 @@ func update_layout() -> void:
 		alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	else:
 		alignment = HORIZONTAL_ALIGNMENT_LEFT
+

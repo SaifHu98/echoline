@@ -5,7 +5,7 @@ extends Node
 const RTL_LOCALES = ["ar", "qps_mirrored", "fa", "ur", "he"]
 
 var current_locale: String = "en"
-var is_rtl: boolean = false
+var is_rtl: bool = false
 var catalogs: Dictionary = {}
 
 func _ready() -> void:
@@ -16,6 +16,10 @@ func _ready() -> void:
 		set_locale("ar")
 	else:
 		set_locale("en")
+
+
+func t(key: String, params: Dictionary = {}) -> String:
+	return tr_key(key, params)
 
 func load_all_catalogs() -> void:
 	var loc_paths = {
@@ -72,3 +76,4 @@ func tr_key(key: String, params: Dictionary = {}) -> String:
 		raw_str = raw_str.replace("{" + placeholder + "}", val_str)
 
 	return raw_str
+

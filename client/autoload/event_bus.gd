@@ -5,8 +5,8 @@ extends Node
 # Network & Room Lifecycle
 signal network_connected()
 signal network_disconnected()
-signal room_joined(room_code: String, assigned_timeline: String, is_reconnect: boolean)
-signal lobby_updated(roster: Array)
+signal room_joined(room_code: String, assigned_timeline: String, is_reconnect: bool)
+signal lobby_updated(roster: Variant)
 signal match_started(match_id: String, initial_state: Dictionary)
 signal match_state_updated(state: Dictionary)
 signal match_concluded(recap: Dictionary)
@@ -27,8 +27,9 @@ signal quick_message_received(sender_timeline: String, intent_id: String, args: 
 signal ping_received(sender_timeline: String, ping_id: String, world_pos: Vector2)
 
 # UI & Accessibility
-signal locale_changed(new_locale: String, is_rtl: boolean)
-signal contrast_mode_changed(high_contrast: boolean)
-signal motion_mode_changed(reduced_motion: boolean)
+signal locale_changed(new_locale: String, is_rtl: bool)
+signal contrast_mode_changed(high_contrast: bool)
+signal motion_mode_changed(reduced_motion: bool)
 signal text_scale_changed(scale_factor: float)
 signal subtitle_requested(text: String, duration_sec: float)
+

@@ -21,10 +21,10 @@ enum ShadowTier {
 var current_fps: int = TargetFPS.FPS_60_BALANCED_SMOOTH
 var resolution_scale: float = 1.0 # 0.5 to 1.0
 var shadow_quality: int = ShadowTier.MEDIUM_1024
-var bloom_enabled: boolean = true
-var ssao_enabled: boolean = false # Disabled by default on mobile for performance
+var bloom_enabled: bool = true
+var ssao_enabled: bool = false # Disabled by default on mobile for performance
 var msaa_level: int = 1 # 0: Off, 1: 2X, 2: 4X
-var battery_saver_active: boolean = false
+var battery_saver_active: bool = false
 
 func _ready() -> void:
 	load_saved_settings()
@@ -36,7 +36,7 @@ func set_target_fps(target: int) -> void:
 	graphics_profile_changed.emit(current_fps, _get_tier_name())
 
 func set_resolution_scale(scale_val: float) -> void:
-	resolution_scale = clampf(scale_val, 0.5, 1.0)
+	resolution_scale = clamp(scale_val, 0.5, 1.0)
 	var root = get_tree().root
 	if root:
 		root.scaling_3d_scale = resolution_scale
@@ -48,7 +48,7 @@ func set_shadow_quality(tier: int) -> void:
 	else:
 		RenderingServer.directional_shadow_atlas_set_size(shadow_quality, true)
 
-func set_bloom(enabled: boolean) -> void:
+func set_bloom(enabled: bool) -> void:
 	bloom_enabled = enabled
 
 func set_msaa(level: int) -> void:
@@ -64,7 +64,7 @@ func set_msaa(level: int) -> void:
 		2:
 			RenderingServer.viewport_set_msaa_3d(root.get_viewport_rid(), RenderingServer.VIEWPORT_MSAA_4X)
 
-func set_battery_saver_mode(enabled: boolean) -> void:
+func set_battery_saver_mode(enabled: bool) -> void:
 	battery_saver_active = enabled
 	if battery_saver_active:
 		set_target_fps(TargetFPS.FPS_30_BATTERY_SAVER)
@@ -117,3 +117,4 @@ func load_saved_settings() -> void:
 			bloom_enabled = parsed.get("bloom_enabled", true)
 			msaa_level = parsed.get("msaa_level", 1)
 			battery_saver_active = parsed.get("battery_saver_active", false)
+

@@ -6,7 +6,7 @@ signal purchase_completed(item_id: String, grant_contents: Dictionary)
 signal purchase_failed(error_message: String)
 
 var payment_plugin = null
-var is_billing_ready: boolean = false
+var is_billing_ready: bool = false
 
 func _ready() -> void:
 	if Engine.has_singleton("GodotGooglePlayBilling"):
@@ -52,7 +52,7 @@ func _on_google_purchase_error(code: int, message: String) -> void:
 func _verify_receipt_on_server(receipt: Dictionary) -> void:
 	var http_request = HTTPRequest.new()
 	add_child(http_request)
-	http_request.request_completed.connect(func(_result, response_code, _headers, body):
+	http_request.request_completed.connect(func(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray):
 		http_request.queue_free()
 		if response_code == 200:
 			var json = JSON.parse_string(body.get_string_from_utf8())
@@ -65,3 +65,4 @@ func _verify_receipt_on_server(receipt: Dictionary) -> void:
 	)
 	var payload = JSON.stringify(receipt)
 	http_request.request("http://localhost:7778/api/billing/google-play/verify", ["Content-Type: application/json"], HTTPClient.METHOD_POST, payload)
+

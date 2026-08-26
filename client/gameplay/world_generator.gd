@@ -304,7 +304,6 @@ func _make_flower(pos: Vector3) -> Node3D:
 	petal_mat.emission_enabled = true
 	petal_mat.emission = petal_mat.albedo_color
 	petal_mat.emission_energy_multiplier = 0.4
-	petals = petal
 	flower.add_child(petal)
 	return flower
 
@@ -762,3 +761,10 @@ func _get_water_material() -> StandardMaterial3D:
 	mat.emission_enabled = true
 	mat.emission_energy_multiplier = 0.5
 	return mat
+
+
+func _generate_lighting_decoration() -> void:
+	# Stub: decorative lights are added via _generate_structures() (lanterns, etc.)
+	# This function is a hook for future lighting decoration (e.g., fairy lights,
+	# floating orbs per timeline). Kept as no-op so world_generator can compile.
+	pass

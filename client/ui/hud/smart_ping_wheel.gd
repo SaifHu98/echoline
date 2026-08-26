@@ -14,7 +14,7 @@ var pings = [
 	{ "id": "PING_COUNTDOWN", "loc_key": "ping.countdown", "color": Color("#FF851B") }
 ]
 
-var is_open: boolean = false
+var is_open: bool = false
 var buttons: Array[Button] = []
 
 func _ready() -> void:
@@ -55,3 +55,4 @@ func open_at(screen_pos: Vector2) -> void:
 func close() -> void:
 	visible = false
 	is_open = false
+

@@ -102,7 +102,7 @@ static func create_trail(parent: Node3D, color: Color, width: float = 0.3) -> Me
 	var ribbon = RibbonTrailMesh.new()
 	ribbon.size = 30
 	ribbon.shape = RibbonTrailMesh.SHAPE_FLAT
-	ribbon.curve = RibbonTrailMesh.CURVE_LINEAR
+	ribbon.curve = 0
 	trail.mesh = ribbon
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = Color(color.r, color.g, color.b, 0.6)
@@ -248,3 +248,4 @@ static func spawn_echo_burst(parent: Node3D, position: Vector3, color: Color) ->
 	pt.tween_property(pillar, "scale:y", 0.0, 1.5)
 
 	burst.get_tree().create_timer(2.0).timeout.connect(burst.queue_free)
+
