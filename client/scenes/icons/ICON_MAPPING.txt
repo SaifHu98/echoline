@@ -1,0 +1,51 @@
+# ECHO//LINE — Custom Node Icons (@icons by VoXy)
+# This file defines custom icons for each node type to make the scene tree
+# more readable in the Godot editor.
+# Install: AssetStore → Search "@icons" by VoXy
+
+# Then create these icon files in client/scenes/icons/:
+# (Each .svg is a 16x16 simplified icon)
+
+# === Icon Mapping ===
+
+[node_icon_mapping]
+Player = "res://scenes/icons/player.svg"
+NPC = "res://scenes/icons/npc.svg"
+Bot = "res://scenes/icons/bot.svg"
+Echo = "res://scenes/icons/echo.svg"
+Shard = "res://scenes/icons/shard.svg"
+Anchor = "res://scenes/icons/anchor.svg"
+TimelineGate = "res://scenes/icons/gate.svg"
+ClockTower = "res://scenes/icons/clocktower.svg"
+Catastrophe = "res://scenes/icons/catastrophe.svg"
+PastBuilding = "res://scenes/icons/past_building.svg"
+PresentBuilding = "res://scenes/icons/present_building.svg"
+FutureBuilding = "res://scenes/icons/future_building.svg"
+VoiceChat = "res://scenes/icons/voice.svg"
+Localization = "res://scenes/icons/localization.svg"
+Network = "res://scenes/icons/network.svg"
+Shop = "res://scenes/icons/shop.svg"
+Settings = "res://scenes/icons/settings.svg"
+Achievement = "res://scenes/icons/achievement.svg"
+Quest = "res://scenes/icons/quest.svg"
+Dialogue = "res://scenes/icons/dialogue.svg"
+Lobby = "res://scenes/icons/lobby.svg"
+
+# === Usage ===
+# After installing @icons plugin, the scene tree will show these icons
+# next to each node based on its name/type. This dramatically improves
+# scene readability for large projects like ECHO//LINE.
+
+# Example scene snippet:
+#
+# [node name="ClocktowerInstance" parent="." instance=ExtResource("clocktower.tscn")]
+# → Will show clocktower.svg icon in scene tree
+
+# [node name="PlayerAvatar" parent="."]
+# → Will show player.svg icon
+
+# [node name="PastGarden" parent="."]
+# → Will show past_building.svg icon
+
+# This makes debugging MUCH faster — you can spot the right node
+# immediately instead of reading names.
