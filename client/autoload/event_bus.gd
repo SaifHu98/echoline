@@ -5,6 +5,7 @@ extends Node
 # Network & Room Lifecycle
 signal network_connected()
 signal network_disconnected()
+signal network_status_changed(state: String, detail: String)
 signal room_joined(room_code: String, assigned_timeline: String, is_reconnect: bool)
 signal lobby_updated(roster: Variant)
 signal match_started(match_id: String, initial_state: Dictionary)
