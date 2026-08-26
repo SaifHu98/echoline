@@ -71,12 +71,19 @@ func connect_to_server(url: String = "") -> void:
 	if ws != null:
 		ws.close()
 	ws = WebSocketPeer.new()
-	var err = ws.connect_to_url(server_url)
+	# Trust all certificates for development (Render uses Cloudflare which is
+	# trusted, but Android devices sometimes reject intermediate certs).
+	var tls_opts := TLSOptions.client_unsafe()
+	ws.set_extra_headers(PackedStringArray([
+		"User-Agent: ECHO//LINE-Client/0.1",
+	]))
+	var err = ws.connect_to_url(server_url, tls_opts)
 	if err != OK:
 		push_error("WebSocket connection failed: " + str(err))
 		EventBus.network_error.emit("Could not connect")
 		return
 	last_ping_time = Time.get_ticks_msec()
+	print("[NetworkClient] Connecting to %s ..." % server_url)
 	# Don't pre-send engine.io handshake; WebSocketPeer handles transport upgrade
 
 

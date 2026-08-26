@@ -60,7 +60,8 @@ func _ready() -> void:
 		progress_bar.modulate.a = 0.0
 	if skip_btn:
 		skip_btn.modulate.a = 0.0
-		skip_btn.pressed.connect(_skip_intro)
+		if not skip_btn.pressed.is_connected(_skip_intro):
+			skip_btn.pressed.connect(_skip_intro)
 
 	# Start intro sequence
 	_start_sequence()

@@ -55,9 +55,11 @@ func _ready() -> void:
 func _connect_button_safely(btn: Button, callback: Callable) -> void:
 	if btn == null or not is_instance_valid(btn):
 		return
-	for conn in btn.pressed.get_connections():
-		btn.pressed.disconnect(conn.callable)
-	btn.pressed.connect(callback)
+	# Only disconnect existing connections on the script-side (not the
+	# scene-side ones from main_menu.tscn), to avoid silent failures.
+	# Try to connect; if it's already connected to the same callback, skip.
+	if not btn.pressed.is_connected(callback):
+		btn.pressed.connect(callback)
 
 
 func _connect_event_bus_safely() -> void:
@@ -92,12 +94,21 @@ func _attempt_connect_safe() -> void:
 	if has_node("/root/NetworkClient"):
 		var nc = get_node("/root/NetworkClient")
 		if nc and nc.has_method("connect_to_server"):
+			print("[MainMenu] NetworkClient found, connecting...")
 			nc.connect_to_server("")
+		else:
+			push_warning("[MainMenu] NetworkClient missing connect_to_server()")
+			_show_offline_state()
 	else:
-		if status_label:
-			status_label.text = "⚠ Offline mode"
-		if server_indicator:
-			server_indicator.color = Color(1.0, 0.7, 0.2, 1)
+		_show_offline_state()
+
+
+func _show_offline_state() -> void:
+	if status_label:
+		status_label.text = "⚠ Offline mode"
+	if server_indicator:
+		server_indicator.color = Color(1.0, 0.7, 0.2, 1)
+	print("[MainMenu] Offline mode (no NetworkClient autoload)")
 		return
 	var timer = get_tree().create_timer(5.0)
 	if timer:
