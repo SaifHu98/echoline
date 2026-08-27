@@ -22,6 +22,7 @@ signal dialogue_started(label: String)
 
 var is_ready: bool = false
 var _current_label: String = ""
+var _dialogue_manager = null  # Resolved DialogueManager autoload, lazy
 
 
 func _ready() -> void:
@@ -29,17 +30,27 @@ func _ready() -> void:
 	if not is_ready:
 		push_warning("[DialogueService] Dialogue Manager not enabled — dialogue lines print to console only")
 		return
-	if not DialogueManager.dialogue_ended.is_connected(_on_dialogue_ended):
-		DialogueManager.dialogue_ended.connect(_on_dialogue_ended)
-	if not DialogueManager.got_dialogue.is_connected(_on_got_dialogue):
-		DialogueManager.got_dialogue.connect(_on_got_dialogue)
+	# Resolve DialogueManager dynamically to avoid parse-time dependency on the global class
+	var dm = get_node_or_null("/root/DialogueManager")
+	if dm == null:
+		dm = Engine.get_main_loop().root.get_node_or_null("/root/DialogueManager")
+	if dm == null:
+		push_warning("[DialogueService] DialogueManager autoload not in scene tree — dialogue disabled")
+		is_ready = false
+		return
+	if dm.has_signal("dialogue_ended") and not dm.dialogue_ended.is_connected(_on_dialogue_ended):
+		dm.dialogue_ended.connect(_on_dialogue_ended)
+	if dm.has_signal("got_dialogue") and not dm.got_dialogue.is_connected(_on_got_dialogue):
+		dm.got_dialogue.connect(_on_got_dialogue)
+	# Store the resolved singleton for later calls
+	_dialogue_manager = dm
 	print("[DialogueService] Dialogue Manager API available")
 
 
 # === Public play API ===
 
 func play(label: String) -> void:
-	if not is_ready:
+	if not is_ready or _dialogue_manager == null:
 		print("[DialogueService] (no DialogueManager) %s" % label)
 		dialogue_finished.emit(label)
 		return
@@ -55,18 +66,18 @@ func play(label: String) -> void:
 	if resource == null:
 		push_error("[DialogueService] Could not load dialogue resource: " + ECHO_GREETINGS)
 		return
-	DialogueManager.show_dialogue_balloon_scene(null, resource, label)
+	_dialogue_manager.show_dialogue_balloon_scene(null, resource, label)
 
 
 func play_with_balloon(label: String, balloon_scene: PackedScene) -> void:
-	if not is_ready:
+	if not is_ready or _dialogue_manager == null:
 		dialogue_finished.emit(label)
 		return
 	var resource: Resource = load(ECHO_GREETINGS)
 	if resource == null:
 		push_error("[DialogueService] Could not load dialogue resource: " + ECHO_GREETINGS)
 		return
-	DialogueManager.show_dialogue_balloon_scene(balloon_scene, resource, label)
+	_dialogue_manager.show_dialogue_balloon_scene(balloon_scene, resource, label)
 
 
 func play_raw(title: String, lines: Array) -> void:

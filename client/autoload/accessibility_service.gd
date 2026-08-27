@@ -60,8 +60,8 @@ const SAVE_PATH := "user://accessibility_settings.json"
 
 
 func _ready() -> void:
-	# Load on startup
-	load_from_disk()
+	# Defer disk I/O so startup is not blocked on file read
+	call_deferred("load_from_disk")
 
 
 # ============================================================
@@ -72,49 +72,49 @@ func set_high_contrast(enabled: bool) -> void:
 	high_contrast = enabled
 	contrast_mode_changed.emit(enabled)
 	_apply_to_scene()
-	save_to_disk()
+	_schedule_save()
 
 
 func set_reduced_motion(reduced: bool) -> void:
 	reduced_motion = reduced
 	motion_mode_changed.emit(reduced)
-	save_to_disk()
+	_schedule_save()
 
 
 func set_text_scale(scale: float) -> void:
 	text_scale = clamp(scale, MIN_TEXT_SCALE, MAX_TEXT_SCALE)
 	text_scale_changed.emit(text_scale)
-	save_to_disk()
+	_schedule_save()
 
 
 func set_colorblind_mode(mode: int) -> void:
 	colorblind_mode = mode
 	colorblind_mode_changed.emit(mode)
-	save_to_disk()
+	_schedule_save()
 
 
 func set_subtitles_enabled(enabled: bool) -> void:
 	subtitles_enabled = enabled
 	subtitle_prefs_changed.emit(enabled, subtitle_size)
-	save_to_disk()
+	_schedule_save()
 
 
 func set_subtitle_size(size: float) -> void:
 	subtitle_size = clamp(size, 0.8, 2.0)
 	subtitle_prefs_changed.emit(subtitles_enabled, subtitle_size)
-	save_to_disk()
+	_schedule_save()
 
 
 func set_screen_shake(enabled: bool) -> void:
 	screen_shake_enabled = enabled
 	screen_shake_changed.emit(enabled)
-	save_to_disk()
+	_schedule_save()
 
 
 func set_haptic(enabled: bool) -> void:
 	haptic_enabled = enabled
 	haptic_changed.emit(enabled)
-	save_to_disk()
+	_schedule_save()
 
 
 func set_voice_chat_allowed(allowed: bool) -> void:
@@ -124,7 +124,7 @@ func set_voice_chat_allowed(allowed: bool) -> void:
 		push_warning("Voice chat requires age verification")
 		return
 	voice_chat_allowed = allowed
-	save_to_disk()
+	_schedule_save()
 
 
 func _age_under_18() -> bool:
@@ -140,20 +140,20 @@ func set_audio_levels(music: float, sfx: float, voice: float, ui: float) -> void
 	ui_volume = clamp(ui, 0.0, 1.0)
 	audio_levels_changed.emit(music_volume, sfx_volume, voice_volume, ui_volume)
 	_apply_audio()
-	save_to_disk()
+	_schedule_save()
 
 
 func set_master_volume(vol: float) -> void:
 	master_volume = clamp(vol, 0.0, 1.0)
 	_apply_audio()
-	save_to_disk()
+	_schedule_save()
 
 
 func set_locale(loc: String, rtl: bool = false) -> void:
 	locale = loc
 	is_rtl = rtl
 	locale_changed.emit(loc, rtl)
-	save_to_disk()
+	_schedule_save()
 
 
 # ============================================================
@@ -271,6 +271,29 @@ static func ensure_touch_target(control: Control, min_size: int = MIN_TOUCH_TARG
 # ============================================================
 # Persistence
 # ============================================================
+
+# Debounce save_to_disk to avoid disk I/O on every setter call.
+# Coalesce writes to happen at most once every SAVE_DEBOUNCE_SEC seconds.
+const SAVE_DEBOUNCE_SEC := 2.0
+var _save_pending: bool = false
+var _save_timer: Timer = null
+
+func _schedule_save() -> void:
+	if _save_timer == null:
+		_save_timer = Timer.new()
+		_save_timer.wait_time = SAVE_DEBOUNCE_SEC
+		_save_timer.one_shot = true
+		_save_timer.timeout.connect(_flush_save)
+		add_child(_save_timer)
+	_save_pending = true
+	_save_timer.start()
+
+
+func _flush_save() -> void:
+	if _save_pending:
+		_save_pending = false
+		_schedule_save()
+
 
 func save_to_disk() -> void:
 	var data = {

@@ -54,7 +54,8 @@ func _ready() -> void:
 	http.timeout = REQUEST_TIMEOUT_SEC
 	poll_http = HTTPRequest.new()
 	add_child(poll_http)
-	poll_http.timeout = 30.0
+	poll_http.timeout = 10.0  # P2-3: was 30.0 - reduce wait on Render cold start
+	set_process(false)  # P2-4: only run _process when connected
 
 
 func _process(delta: float) -> void:
@@ -84,6 +85,7 @@ func connect_to_server(url: String = "") -> void:
 		return
 	connection_state = "connecting"
 	last_error = ""
+	set_process(true)  # P2-4: activate polling loop
 	EventBus.network_status_changed.emit(connection_state, last_error)
 	_handshake()
 
@@ -94,6 +96,7 @@ func disconnect_from_server() -> void:
 	sid = ""
 	ack_callbacks.clear()
 	pending_sends.clear()
+	set_process(false)  # P2-4: deactivate polling loop
 	if poll_http and poll_http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		poll_http.cancel_request()
 	EventBus.network_status_changed.emit(connection_state, last_error)

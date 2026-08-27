@@ -39,13 +39,30 @@ const SFX_PATHS := {
 # Fallback synthesized sounds (when .ogg files missing)
 var _synth_cache: Dictionary = {}
 
+# AudioStreamPlayer pool to avoid GC pressure from per-call allocations.
+const POOL_SIZE: int = 8
+var _player_pool: Array[AudioStreamPlayer] = []
+var _stream_cache: Dictionary = {}  # path -> AudioStream (lazy load)
+
+
 func _ready() -> void:
-	print("[SFXManager] Loaded. Missing sounds will use synthesized fallbacks.")
-	# Preload any existing sound files
-	for key in SFX_PATHS:
-		if ResourceLoader.exists(SFX_PATHS[key]):
-			# Preload to cache
-			pass
+	print("[SFXManager] Loaded with %d-player pool. Missing sounds will use synthesized fallbacks." % POOL_SIZE)
+	# Preallocate pool
+	for i in POOL_SIZE:
+		var p := AudioStreamPlayer.new()
+		p.name = "SFXPool_%d" % i
+		add_child(p)
+		_player_pool.append(p)
+
+
+func _get_available_player() -> AudioStreamPlayer:
+	for p in _player_pool:
+		if not p.playing:
+			return p
+	# All busy — recycle the oldest (first in array)
+	var recycled: AudioStreamPlayer = _player_pool[0]
+	recycled.stop()
+	return recycled
 
 
 func play(sfx_name: String, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
@@ -58,29 +75,23 @@ func play(sfx_name: String, volume_db: float = 0.0, pitch_scale: float = 1.0) ->
 
 
 func _play_file(path: String, volume_db: float, pitch_scale: float) -> void:
-	# Real file playback using AudioStreamPlayer
-	var player := AudioStreamPlayer.new()
-	player.stream = load(path)
+	# Lazy-load stream and cache
+	if not _stream_cache.has(path):
+		_stream_cache[path] = load(path)
+	var stream: AudioStream = _stream_cache[path]
+	if stream == null:
+		return
+	var player: AudioStreamPlayer = _get_available_player()
+	player.stream = stream
 	player.volume_db = volume_db
 	player.pitch_scale = pitch_scale
-	add_child(player)
 	player.play()
-	player.finished.connect(player.queue_free)
 
 
 func _play_synthesized(sfx_name: String, volume_db: float) -> void:
-	# Generate a procedural beep when .ogg file missing
-	# (Helps during early development before buying Sound FX pack)
-	var stream := AudioStreamGenerator.new()
-	stream.mix_rate = 22050.0
-	stream.buffer_length = 0.1
-	var player := AudioStreamPlayer.new()
-	player.stream = stream
-	player.volume_db = volume_db
-	add_child(player)
-	player.play()
-	print("[SFXManager] Synthesized fallback for: %s" % sfx_name)
-	player.finished.connect(player.queue_free)
+	# Generate a procedural beep when .ogg file missing.
+	# Silent fallback (AudioStreamGenerator with empty buffer) — print only.
+	print("[SFXManager] Synthesized fallback (silent) for: %s" % sfx_name)
 
 
 # === Predefined SFX Triggers in ECHO//LINE ===

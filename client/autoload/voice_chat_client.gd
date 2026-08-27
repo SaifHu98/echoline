@@ -29,20 +29,29 @@ var _deafened: bool = false
 var _pc: Object = null
 var _audio_capture: Object = null
 var _audio_player: Object = null
-var _ping_timer: Timer
+var _ping_timer: Timer = null  # Lazy-initialized in join_room()
+var _initialized: bool = false
 var _reconnect_attempt: int = 0
 var _signal_outbox: Array = []
 var _signal_inbox: Array = []
 
 func _ready() -> void:
-	_ping_timer = Timer.new()
-	_ping_timer.wait_time = PING_INTERVAL_MS / 1000.0
-	_ping_timer.autostart = false
-	_ping_timer.timeout.connect(_send_ping)
-	add_child(_ping_timer)
+	# Lazy init: only create timer + bind NetworkClient when joining a room.
+	# Saves CPU on Android startup where WebRTC is not used by default.
 	# Auto-bind to NetworkClient singleton if not set via export
 	if network_client == null:
 		network_client = get_node_or_null("/root/NetworkClient")
+
+func _ensure_initialized() -> void:
+	if _initialized:
+		return
+	_initialized = true
+	if _ping_timer == null:
+		_ping_timer = Timer.new()
+		_ping_timer.wait_time = PING_INTERVAL_MS / 1000.0
+		_ping_timer.autostart = false
+		_ping_timer.timeout.connect(_send_ping)
+		add_child(_ping_timer)
 
 func _exit_tree() -> void:
 	leave_room()
@@ -67,6 +76,7 @@ func check_age_eligibility(age_years: int) -> bool:
 	return true
 
 func join_room(room_id: String, peer_id: String) -> void:
+	_ensure_initialized()
 	if not is_supported():
 		_set_state(VoiceState.ERROR)
 		voice_error.emit("webrtc_not_supported")

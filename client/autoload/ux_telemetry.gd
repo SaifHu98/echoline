@@ -60,7 +60,8 @@ var left_reasons: Dictionary = {}  # reason → count
 func _ready() -> void:
 	session_id = _generate_session_id()
 	session_start_time = Time.get_ticks_msec() / 1000.0
-	load_from_disk()
+	# Defer disk I/O so startup is not blocked on file read
+	call_deferred("load_from_disk")
 
 
 func _generate_session_id() -> String:

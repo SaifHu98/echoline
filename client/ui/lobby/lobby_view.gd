@@ -32,6 +32,7 @@ var my_player_uid: String = ""
 var is_host: bool = false
 var current_locale: String = "en"
 var available_rooms: Array = []
+var _locale_fetch_timer: Timer = null
 
 signal timeline_picked(timeline: String)
 signal ready_state_changed(ready: bool)
@@ -42,7 +43,7 @@ func _ready() -> void:
 	print("[LobbyView] _ready() called")
 	modulate.a = 1.0
 
-	_apply_current_locale()
+	_apply_current_locale()  # sets current_locale from Localization
 	_connect_event_bus_safely()
 
 	if EventBus.has_signal("lobby_updated"):
@@ -71,14 +72,13 @@ func _ready() -> void:
 
 	_style_timeline_cards()
 	# P0-1: lazily create the rooms panel + refresh button if not in scene.
-	_ensure_rooms_panel()
-	if refresh_btn:
-		_connect_button_safely(refresh_btn, _on_refresh_rooms_pressed)
+	# Defer so UI renders first, then dynamic nodes (smoother startup)
+	call_deferred("_ensure_rooms_panel")
 	_show_input_state()
-	_update_localized_texts()
+	_update_localized_texts()  # applies current_locale to UI labels
 
-	# Initial fetch of available rooms
-	_fetch_available_rooms()
+	# Initial fetch of available rooms (deferred so UI shows first)
+	call_deferred("_fetch_available_rooms")
 
 
 func _connect_button_safely(btn: Button, callback: Callable) -> void:
@@ -119,7 +119,16 @@ func _on_server_error_event(reason: String) -> void:
 func _on_locale_changed(new_locale: String, _is_rtl: bool) -> void:
 	current_locale = new_locale
 	_update_localized_texts()
-	_fetch_available_rooms()
+	# P3: Debounce the room fetch to avoid HTTP spam on rapid locale toggles
+	if _locale_fetch_timer:
+		_locale_fetch_timer.stop()
+	else:
+		_locale_fetch_timer = Timer.new()
+		_locale_fetch_timer.one_shot = true
+		_locale_fetch_timer.wait_time = 1.0
+		_locale_fetch_timer.timeout.connect(_fetch_available_rooms)
+		add_child(_locale_fetch_timer)
+	_locale_fetch_timer.start()
 
 
 func _tr(key: String, fallback: String) -> String:

@@ -18,10 +18,13 @@ var is_ready: bool = false
 var context: Node = null
 
 # Reactive signals exposed to the rest of the game.
-var player_state: ReactiveSignal
-var connection_state: ReactiveSignal
-var match_phase: ReactiveSignal
-var locale: ReactiveSignal
+# Typed as Variant to avoid parse-time dependency on the global class name.
+# ReactiveSignal is registered as a global class when the plugin is enabled,
+# but at runtime on Android we may load addons in a different order.
+var player_state = null
+var connection_state = null
+var match_phase = null
+var locale = null
 
 
 func _ready() -> void:
