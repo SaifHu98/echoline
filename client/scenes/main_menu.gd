@@ -21,6 +21,15 @@ var settings_panel: AcceptDialog = null
 var tutorial_panel: AcceptDialog = null
 var credits_panel: AcceptDialog = null
 var current_locale: String = "en"
+# P3-AUDIT: single timer instance for offline-state checks so we
+# don't accumulate orphan timers across reconnect cycles.
+var _offline_check_timer: Timer = null
+# P3-AUDIT: store the active indicator tween so we can kill it before
+# starting a new one (otherwise .set_loops() leaks tweens on each call).
+var _indicator_tween: Tween = null
+# P3-AUDIT: prevent re-entrant play button presses during the
+# 0.15s pre-transition animation.
+var _is_playing: bool = false
 
 func _ready() -> void:
 	print("[MainMenu] _ready() called")
@@ -127,9 +136,14 @@ func _show_offline_state() -> void:
 	if server_indicator:
 		server_indicator.color = Color(1.0, 0.7, 0.2, 1)
 	print("[MainMenu] Offline mode (no NetworkClient autoload)")
-	var timer = get_tree().create_timer(5.0)
-	if timer:
-		timer.timeout.connect(_check_connection_status)
+	# P3-AUDIT: reuse a single Timer instance to avoid orphan timers
+	if _offline_check_timer == null:
+		_offline_check_timer = Timer.new()
+		_offline_check_timer.wait_time = 5.0
+		_offline_check_timer.one_shot = true
+		_offline_check_timer.timeout.connect(_check_connection_status)
+		add_child(_offline_check_timer)
+	_offline_check_timer.start()
 
 
 func _animate_entrance() -> void:
@@ -178,9 +192,13 @@ func _flash_indicator(color: Color) -> void:
 	if not server_indicator:
 		return
 	server_indicator.color = color
-	var t = create_tween().set_loops()
-	t.tween_property(server_indicator, "modulate:a", 0.5, 1.0).set_trans(Tween.TRANS_SINE)
-	t.tween_property(server_indicator, "modulate:a", 1.0, 1.0).set_trans(Tween.TRANS_SINE)
+	# P3-AUDIT: kill any in-flight tween first to avoid accumulating
+	# infinite-loop tweens across reconnect cycles.
+	if _indicator_tween and _indicator_tween.is_valid():
+		_indicator_tween.kill()
+	_indicator_tween = create_tween().set_loops()
+	_indicator_tween.tween_property(server_indicator, "modulate:a", 0.5, 1.0).set_trans(Tween.TRANS_SINE)
+	_indicator_tween.tween_property(server_indicator, "modulate:a", 1.0, 1.0).set_trans(Tween.TRANS_SINE)
 
 
 func _tr(key: String, fallback: String) -> String:
@@ -226,18 +244,23 @@ func _animate_button_press(btn: Button) -> void:
 # === Button handlers ===
 
 func _on_play() -> void:
+	if _is_playing:
+		return
 	print("[MainMenu] _on_play() called")
+	_is_playing = true
 	if play_btn:
 		_animate_button_press(play_btn)
 	const PLAY_SCENE := "res://scenes/main.tscn"
 	if not ResourceLoader.exists(PLAY_SCENE):
 		push_error("[MainMenu] Play scene not found: %s" % PLAY_SCENE)
+		_is_playing = false
 		return
 	get_tree().create_timer(0.15).timeout.connect(func():
 		var err = get_tree().change_scene_to_file(PLAY_SCENE)
 		if err != OK:
 			push_error("[MainMenu] change_scene_to_file failed: %d" % err)
 			modulate.a = 1.0
+			_is_playing = false
 	)
 
 
@@ -373,6 +396,6 @@ Made with ❤️ in Iraq"""
 
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_ESCAPE:
-			get_tree().quit()
+	# P3-AUDIT: only handle ESC key — defer every other event to its target.
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		get_tree().quit()

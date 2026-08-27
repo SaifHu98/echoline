@@ -150,11 +150,9 @@ func _spawn_bots(count: int) -> void:
 	var current_timeline = NetworkClient.my_timeline if NetworkClient.my_timeline != "" else "present"
 	var color = timeline_colors.get(current_timeline, Color.GRAY)
 
+	# Use class_name BotController instead of redundant load()
 	for i in range(count):
-		var BotScene = load("res://gameplay/bot_controller.gd")
-		if not BotScene:
-			break
-		var bot = BotScene.new()
+		var bot = BotController.new()
 		bot.bot_name = bot_names[i % bot_names.size()]
 		bot.personality = personalities[i % personalities.size()]
 		bot.timeline_color = color

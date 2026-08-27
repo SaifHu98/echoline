@@ -16,7 +16,7 @@ extends Control
 @onready var progress_bar: ProgressBar = $Root/ProgressBar
 @onready var background: ColorRect = $Background
 
-var intro_duration: float = 5.5
+var intro_duration: float = 2.8  # P3-AUDIT: was 5.5s, too long for player retention
 var elapsed_time: float = 0.0
 var can_skip: bool = false
 var is_transitioning: bool = false
@@ -69,6 +69,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if is_transitioning:
+		set_process(false)  # P3-AUDIT: stop processing once we start the fade-out
 		return
 	elapsed_time += delta
 
@@ -147,6 +148,11 @@ func _transition_to_menu() -> void:
 		return
 	_transition_lock = true
 	is_transitioning = true
+	# P3-AUDIT: stop polling for input and per-frame ticks once the
+	# fade-out begins; we no longer need them and disabling saves CPU
+	# during the 0.4s fade.
+	set_process_input(false)
+	set_process(false)
 
 	print("[Intro] Transitioning to Main Menu...")
 
@@ -155,6 +161,8 @@ func _transition_to_menu() -> void:
 		push_error("[Intro] Scene not found: %s" % NEXT_SCENE_PATH)
 		_transition_lock = false
 		is_transitioning = false
+		set_process(true)
+		set_process_input(true)
 		return
 
 	# Method 1: Use SceneTreeTimer to ensure fade-out completes before transition

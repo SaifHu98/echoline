@@ -53,12 +53,14 @@ func _ready() -> void:
 
 
 func _ensure_audio_buses() -> void:
-	if AudioServer.get_bus_count() < CHANNELS.size() + 1:
-		# إنشاء buses إن لم تكن موجودة
-		for ch in CHANNELS:
-			if AudioServer.get_bus_index(CHANNEL_BUSES[ch]) < 0:
-				AudioServer.add_bus(AudioServer.get_bus_count())
-				AudioServer.set_bus_name(AudioServer.get_bus_count() - 1, CHANNEL_BUSES[ch])
+	# P3-AUDIT: check each bus individually instead of relying on a single
+	# total count check. The default_bus_layout.tres may already add a
+	# ResonanceReverb bus, so the total count is variable. Each channel
+	# bus is added only if it's missing.
+	for ch in CHANNELS:
+		if AudioServer.get_bus_index(CHANNEL_BUSES[ch]) < 0:
+			AudioServer.add_bus(AudioServer.get_bus_count())
+			AudioServer.set_bus_name(AudioServer.get_bus_count() - 1, CHANNEL_BUSES[ch])
 
 
 func _on_accessibility_audio_changed(music: float, sfx: float, voice: float, ui: float) -> void:

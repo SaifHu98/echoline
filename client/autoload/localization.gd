@@ -118,6 +118,13 @@ const FALLBACK_AR := {
 }
 
 func _ready() -> void:
+	# P3-AUDIT: defer the disk reads and locale detection until next frame
+	# so the autoload returns immediately and the main scene can render
+	# the splash/intro without blocking on JSON parsing.
+	call_deferred("_initialize_async")
+
+
+func _initialize_async() -> void:
 	load_all_catalogs()
 	# Detect system locale. P3-1: prefer the full locale tag and treat the
 	# RTL variants explicitly so we don't default to English on Arabic

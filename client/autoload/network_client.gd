@@ -124,12 +124,15 @@ func _handshake() -> void:
 	EventBus.network_status_changed.emit(connection_state, last_error)
 	var url := "%s/socket.io/?EIO=4&transport=polling" % server_base
 	http.request(url, PackedStringArray(["User-Agent: ECHO-LINE-Client/0.1"]), HTTPClient.METHOD_GET)
-	var result: int = await http.request_completed
+	# P3-CRIT: request_completed signal emits (result, response_code, headers, body).
+	# Use Array to receive them, NOT a single int.
+	var completed_args: Array = await http.request_completed
+	var result: int = completed_args[0]
 	if result != HTTPRequest.RESULT_SUCCESS:
 		_fail_handshake("HTTP %d" % result)
 		return
-	var code: int = http.get_response_code()
-	var body: PackedByteArray = http.get_body()
+	var code: int = completed_args[1]
+	var body: PackedByteArray = completed_args[3]
 	if code != 200:
 		_fail_handshake("HTTP code %d" % code)
 		return
@@ -229,7 +232,8 @@ func _do_post_event(envelope: Dictionary) -> void:
 		"Content-Type: text/plain;charset=UTF-8",
 	])
 	http.request(url, headers, HTTPClient.METHOD_POST, body.get_string_from_utf8())
-	var result: int = await http.request_completed
+	var completed_args2: Array = await http.request_completed
+	var result: int = completed_args2[0]
 	poll_pending = false
 	if result != HTTPRequest.RESULT_SUCCESS:
 		# Re-queue the envelope so we retry next poll cycle.
@@ -252,16 +256,17 @@ func _do_long_poll() -> void:
 	poll_http.request(url, PackedStringArray([
 		"User-Agent: ECHO-LINE-Client/0.1",
 	]), HTTPClient.METHOD_GET)
-	var result: int = await poll_http.request_completed
+	var completed_args3: Array = await poll_http.request_completed
+	var result: int = completed_args3[0]
 	poll_pending = false
 	if result != HTTPRequest.RESULT_SUCCESS:
 		if is_connected:
 			EventBus.network_error.emit("Poll failed")
 		return
-	var code: int = poll_http.get_response_code()
+	var code: int = completed_args3[1]
 	if code != 200:
 		return
-	var body: PackedByteArray = poll_http.get_body()
+	var body: PackedByteArray = completed_args3[3]
 	var text: String = body.get_string_from_utf8()
 	if text.is_empty():
 		return
@@ -518,13 +523,14 @@ func http_list_rooms(language: String = "en",
 	http.request(url, PackedStringArray([
 		"User-Agent: ECHO-LINE-Client/0.1",
 	]), HTTPClient.METHOD_GET)
-	var result: int = await http.request_completed
+	var completed_args4: Array = await http.request_completed
+	var result: int = completed_args4[0]
 	if result != HTTPRequest.RESULT_SUCCESS:
 		if callback.is_valid():
 			callback.call({"success": false, "error": "HTTP %d" % result, "rooms": []})
 		return
-	var code: int = http.get_response_code()
-	var body: PackedByteArray = http.get_body()
+	var code: int = completed_args4[1]
+	var body: PackedByteArray = completed_args4[3]
 	if code != 200:
 		if callback.is_valid():
 			callback.call({"success": false, "error": "HTTP code %d" % code, "rooms": []})

@@ -95,7 +95,8 @@ const BANNED_PATTERNS = {
 # === Auditing ===
 
 func _ready() -> void:
-	_load_audit_log()
+	# P3-AUDIT: defer disk I/O so startup is not blocked
+	call_deferred("_load_audit_log")
 
 
 func audit_purchase_flow(cart_items: Array, total: float, displayed_total: float) -> bool:
