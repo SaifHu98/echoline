@@ -48,7 +48,9 @@ func _ready() -> void:
 	_connect_event_bus_safely()
 	_apply_current_locale()
 	_animate_entrance()
-	_attempt_connect_safe()
+	# P0-4: Defer connection so EventBus / NetworkClient are fully ready
+	# before we try to fire network_status_changed.
+	call_deferred("_attempt_connect_safe")
 	print("[MainMenu] _ready() complete")
 
 
@@ -72,6 +74,22 @@ func _connect_event_bus_safely() -> void:
 		event_bus.network_error.connect(_on_server_error)
 	if event_bus.has_signal("locale_changed") and not event_bus.locale_changed.is_connected(_on_locale_changed):
 		event_bus.locale_changed.connect(_on_locale_changed)
+	# P2-12: react to live network status changes (connecting/connected/error).
+	if event_bus.has_signal("network_status_changed") and not event_bus.network_status_changed.is_connected(_on_network_status_changed):
+		event_bus.network_status_changed.connect(_on_network_status_changed)
+
+
+func _on_network_status_changed(state: String, detail: String) -> void:
+	match state:
+		"connecting", "handshaking":
+			if status_label:
+				status_label.text = "Connecting to server..."
+		"connected":
+			_on_server_connected()
+		"error":
+			_on_server_error(detail if detail != "" else "Connection error")
+		"disconnected":
+			_on_server_error("Disconnected")
 
 
 func _apply_current_locale() -> void:

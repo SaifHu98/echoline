@@ -11,10 +11,21 @@ var is_billing_ready: bool = false
 func _ready() -> void:
 	if Engine.has_singleton("GodotGooglePlayBilling"):
 		payment_plugin = Engine.get_singleton("GodotGooglePlayBilling")
-		payment_plugin.connected.connect(_on_billing_connected)
-		payment_plugin.purchase_success.connect(_on_google_purchase_success)
-		payment_plugin.purchase_error.connect(_on_google_purchase_error)
-		payment_plugin.start_connection()
+		# P1-5: Guard against the singleton being registered but null (some
+		# builds expose the name without an instance). Without this check the
+		# subsequent `connect` calls would crash on the first purchase.
+		if payment_plugin != null:
+			if payment_plugin.has_signal("connected"):
+				payment_plugin.connected.connect(_on_billing_connected)
+			if payment_plugin.has_signal("purchase_success"):
+				payment_plugin.purchase_success.connect(_on_google_purchase_success)
+			if payment_plugin.has_signal("purchase_error"):
+				payment_plugin.purchase_error.connect(_on_google_purchase_error)
+			if payment_plugin.has_method("start_connection"):
+				payment_plugin.start_connection()
+		else:
+			# Plugin name registered but no instance; treat as mock.
+			is_billing_ready = true
 	else:
 		# Development mock billing active
 		is_billing_ready = true

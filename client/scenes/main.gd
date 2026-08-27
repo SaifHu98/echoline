@@ -54,10 +54,9 @@ func _ready() -> void:
 		achievement_system.name = "AchievementSystem"
 		add_child(achievement_system)
 
-	# Generate initial world
-	_generate_world()
-
-	# Show lobby
+	# P1-1: DO NOT generate the world here — it's expensive (terrain + vegetation +
+	# structures + lighting). The world is only needed once a match starts
+	# (_start_match). Showing the lobby only requires the UI overlay.
 	_show_lobby()
 
 

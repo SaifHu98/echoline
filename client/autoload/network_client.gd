@@ -33,8 +33,8 @@ var player_language: String = "en"
 var my_timeline: String = "past"
 var session_token: String = ""
 var reconnect_attempts: int = 0
-var max_reconnect_attempts: int = 5
-var ack_callbacks: Dictionary = {}
+var max_reconnect_attempts: int = 12  # P3-4: doubled so we survive Render cold starts
+var ack_callbacks: Dictionary = {}  # request_id → callback
 var ack_counter: int = 0
 var last_ping_time_ms: int = 0
 var poll_pending: bool = false
@@ -493,11 +493,51 @@ func join_room(code: String, display_name: String, language: String,
 	}, callback)
 
 
+# Alias expected by lobby_view.gd (P0-2 audit).
+func join_room_with_code(code: String, display_name: String, language: String,
+		callback: Callable = Callable()) -> void:
+	join_room(code, display_name, language, callback)
+
+
 func list_rooms(language: String = "en",
 		callback: Callable = Callable()) -> void:
 	_send_event("lobby:list_rooms", {
 		"language": language,
 	}, callback)
+
+
+# REST fallback for room list (P0-3 audit). Works even when Socket.IO
+# polling hasn't completed the handshake yet. Returns {success, rooms,
+# count} matching the Socket.IO shape so callers don't need to branch.
+func http_list_rooms(language: String = "en",
+		callback: Callable = Callable()) -> void:
+	var url := "%s/api/rooms?lang=%s" % [server_base, language]
+	http.request(url, PackedStringArray([
+		"User-Agent: ECHO-LINE-Client/0.1",
+	]), HTTPClient.METHOD_GET)
+	var result: int = await http.request_completed
+	if result != HTTPRequest.RESULT_SUCCESS:
+		if callback.is_valid():
+			callback.call({"success": false, "error": "HTTP %d" % result, "rooms": []})
+		return
+	var code: int = http.get_response_code()
+	var body: PackedByteArray = http.get_body()
+	if code != 200:
+		if callback.is_valid():
+			callback.call({"success": false, "error": "HTTP code %d" % code, "rooms": []})
+		return
+	var text: String = body.get_string_from_utf8()
+	var parsed: Variant = JSON.parse_string(text)
+	if not (parsed is Dictionary):
+		if callback.is_valid():
+			callback.call({"success": false, "error": "Bad JSON", "rooms": []})
+		return
+	# Server returns: {success, data: {rooms, count}} OR {success, rooms, count}
+	var data = parsed.get("data", parsed)
+	var rooms: Array = data.get("rooms", []) if data is Dictionary else []
+	var count: int = data.get("count", rooms.size()) if data is Dictionary else 0
+	if callback.is_valid():
+		callback.call({"success": true, "rooms": rooms, "count": count})
 
 
 func select_timeline(timeline: String,

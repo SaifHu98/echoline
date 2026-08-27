@@ -7,6 +7,10 @@ const RTL_LOCALES = ["ar", "qps_mirrored", "fa", "ur", "he"]
 var current_locale: String = "en"
 var is_rtl: bool = false
 var catalogs: Dictionary = {}
+# P2-8: cached active catalogs to avoid repeated dictionary lookups in
+# _tr() / tr_key() — every label update goes through these.
+var _active_catalog: Dictionary = {}
+var _fallback_catalog: Dictionary = {}
 
 # Embedded fallback strings (used when JSON catalogs fail to load in exported builds)
 const FALLBACK_EN := {
@@ -115,9 +119,11 @@ const FALLBACK_AR := {
 
 func _ready() -> void:
 	load_all_catalogs()
-	# Detect system locale or default to English/Arabic
-	var os_locale = OS.get_locale_language()
-	if os_locale == "ar":
+	# Detect system locale. P3-1: prefer the full locale tag and treat the
+	# RTL variants explicitly so we don't default to English on Arabic
+	# devices that report variants like "ar_IQ" or "ku".
+	var lang := OS.get_locale_language()
+	if lang in ["ar", "fa", "ur", "he", "ku", "yi"]:
 		set_locale("ar")
 	else:
 		set_locale("en")
@@ -177,6 +183,9 @@ func set_locale(new_locale: String) -> void:
 
 	current_locale = new_locale
 	is_rtl = RTL_LOCALES.has(current_locale)
+	# P2-8: refresh the cached lookup tables.
+	_active_catalog = catalogs.get(current_locale, {})
+	_fallback_catalog = catalogs.get("en", {})
 
 	# Set Godot engine root layout direction
 	# Control.LAYOUT_DIRECTION_LTR = 0, LAYOUT_DIRECTION_RTL = 1, LOCALE = 2
@@ -192,17 +201,17 @@ func set_locale(new_locale: String) -> void:
 
 
 func tr_key(key: String, params: Dictionary = {}) -> String:
+	# P2-8: use cached active catalog instead of two dict.has/[] chains
+	# per call. The cached references are refreshed in set_locale().
 	var raw_str: String = ""
-	if catalogs.has(current_locale) and catalogs[current_locale].has(key):
-		raw_str = catalogs[current_locale][key]
-	elif catalogs.has("en") and catalogs["en"].has(key):
-		raw_str = catalogs["en"][key]
+	if _active_catalog.has(key):
+		raw_str = _active_catalog[key]
+	elif _fallback_catalog.has(key):
+		raw_str = _fallback_catalog[key]
+	elif FALLBACK_EN.has(key):
+		raw_str = FALLBACK_EN[key]
 	else:
-		# Final fallback before returning "[key]"
-		if FALLBACK_EN.has(key):
-			raw_str = FALLBACK_EN[key]
-		else:
-			return "[" + key + "]"
+		return "[" + key + "]"
 
 	# Interpolate variables safely with BiDi isolation
 	for placeholder in params.keys():

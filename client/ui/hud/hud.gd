@@ -41,9 +41,8 @@ func _ready() -> void:
 func _connect_button_safely(btn: Button, callback: Callable) -> void:
 	if btn == null or not is_instance_valid(btn):
 		return
-	for conn in btn.pressed.get_connections():
-		btn.pressed.disconnect(conn.callable)
-	btn.pressed.connect(callback)
+	if not btn.pressed.is_connected(callback):
+		btn.pressed.connect(callback)
 
 
 func _apply_localized_texts() -> void:

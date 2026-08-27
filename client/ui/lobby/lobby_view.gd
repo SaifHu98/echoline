@@ -4,9 +4,9 @@ extends Control
 # Timeline Selection & Matchmaking Lobby — Polished v3
 # Features: Room browser, Create/Join flow, Timeline picker, Language support
 
-@onready var room_code_input: LineEdit = $Panel/VBox/HeaderRow/RightSide/JoinRow/RoomCodeInput
-@onready var join_btn: Button = $Panel/VBox/HeaderRow/RightSide/JoinRow/JoinButton
-@onready var create_btn: Button = $Panel/VBox/HeaderRow/RightSide/JoinRow/CreateButton
+@onready var room_code_input: LineEdit = $Panel/VBox/HeaderRow/RoomCodeInput
+@onready var join_btn: Button = $Panel/VBox/HeaderRow/JoinButton
+@onready var create_btn: Button = $Panel/VBox/HeaderRow/CreateButton
 @onready var status_label: Label = $Panel/VBox/StatusLabel
 @onready var past_card: Button = $Panel/VBox/CardsRow/PastCard
 @onready var present_card: Button = $Panel/VBox/CardsRow/PresentCard
@@ -14,15 +14,17 @@ extends Control
 @onready var ready_btn: Button = $Panel/VBox/ActionRow/ReadyButton
 @onready var leave_btn: Button = $Panel/VBox/ActionRow/LeaveButton
 @onready var back_btn: Button = $BackButton
-@onready var join_row: VBoxContainer = $Panel/VBox/HeaderRow/RightSide/JoinRow
+@onready var join_row: VBoxContainer = $Panel/VBox/HeaderRow
 @onready var cards_row: VBoxContainer = $Panel/VBox/CardsRow
 @onready var action_row: HBoxContainer = $Panel/VBox/ActionRow
-@onready var rooms_scroll: ScrollContainer = $Panel/VBox/RoomsPanel/RoomsScroll
-@onready var rooms_container: VBoxContainer = $Panel/VBox/RoomsPanel/RoomsScroll/RoomsContainer
-@onready var rooms_panel: Panel = $Panel/VBox/RoomsPanel
-@onready var refresh_btn: Button = $Panel/VBox/RoomsPanel/RefreshButton
-@onready var join_section: VBoxContainer = $Panel/VBox/JoinSection
-@onready var lobby_status_label: Label = $Panel/VBox/LobbyStatusLabel
+# Rooms browser nodes don't exist in the inline main.tscn — we create them
+# dynamically in _ensure_rooms_panel() so the lobby still works without them.
+var rooms_scroll: ScrollContainer = null
+var rooms_container: VBoxContainer = null
+var rooms_panel: Panel = null
+var refresh_btn: Button = null
+var join_section: VBoxContainer = null
+var lobby_status_label: Label = null
 
 var is_ready: bool = false
 var selected_timeline: String = ""
@@ -41,6 +43,7 @@ func _ready() -> void:
 	modulate.a = 1.0
 
 	_apply_current_locale()
+	_connect_event_bus_safely()
 
 	if EventBus.has_signal("lobby_updated"):
 		EventBus.lobby_updated.connect(_on_lobby_updated)
@@ -55,7 +58,9 @@ func _ready() -> void:
 	_connect_button_safely(ready_btn, _on_ready_pressed)
 	_connect_button_safely(leave_btn, _on_leave_pressed)
 	_connect_button_safely(back_btn, _on_back_pressed)
-	_connect_button_safely(refresh_btn, _on_refresh_rooms_pressed)
+	# refresh_btn may not exist yet (we create it in _ensure_rooms_panel).
+	if refresh_btn:
+		_connect_button_safely(refresh_btn, _on_refresh_rooms_pressed)
 
 	if past_card:
 		_connect_button_safely(past_card, _on_past_pressed)
@@ -65,6 +70,10 @@ func _ready() -> void:
 		_connect_button_safely(future_card, _on_future_pressed)
 
 	_style_timeline_cards()
+	# P0-1: lazily create the rooms panel + refresh button if not in scene.
+	_ensure_rooms_panel()
+	if refresh_btn:
+		_connect_button_safely(refresh_btn, _on_refresh_rooms_pressed)
 	_show_input_state()
 	_update_localized_texts()
 
@@ -75,15 +84,36 @@ func _ready() -> void:
 func _connect_button_safely(btn: Button, callback: Callable) -> void:
 	if btn == null or not is_instance_valid(btn):
 		return
-	for conn in btn.pressed.get_connections():
-		btn.pressed.disconnect(conn.callable)
-	btn.pressed.connect(callback)
+	# Only connect if not already connected. Don't blindly disconnect —
+	# tscn connections may not have a `callable` property in some Godot
+	# versions, and disconnecting the wrong callable raises errors.
+	if not btn.pressed.is_connected(callback):
+		btn.pressed.connect(callback)
 
 
 func _apply_current_locale() -> void:
 	var loc = get_node_or_null("/root/Localization")
 	if loc and loc.has_method("get_current_locale"):
 		current_locale = loc.get_current_locale()
+
+
+func _connect_event_bus_safely() -> void:
+	if EventBus == null:
+		return
+	if EventBus.has_signal("network_connected") and not EventBus.network_connected.is_connected(_on_server_connected_event):
+		EventBus.network_connected.connect(_on_server_connected_event)
+	if EventBus.has_signal("network_error") and not EventBus.network_error.is_connected(_on_server_error_event):
+		EventBus.network_error.connect(_on_server_error_event)
+
+
+func _on_server_connected_event() -> void:
+	if status_label:
+		status_label.text = "✓ Connected"
+
+
+func _on_server_error_event(reason: String) -> void:
+	if status_label:
+		status_label.text = "⚠ " + reason
 
 
 func _on_locale_changed(new_locale: String, _is_rtl: bool) -> void:
@@ -392,6 +422,54 @@ func _show_input_state() -> void:
 	if join_row: join_row.visible = true
 	if cards_row: cards_row.visible = false
 	if action_row: action_row.visible = false
+
+
+# Dynamically build the room browser panel if it wasn't present in the
+# scene (P0-1 audit: main.tscn inlines the LobbyView without RoomsPanel).
+func _ensure_rooms_panel() -> void:
+	if rooms_panel and is_instance_valid(rooms_panel):
+		return
+	# Find a safe insertion point: after StatusLabel, before CardsRow.
+	var vbox = get_node_or_null("Panel/VBox")
+	if vbox == null:
+		return
+	rooms_panel = Panel.new()
+	rooms_panel.name = "RoomsPanel"
+	rooms_panel.custom_minimum_size = Vector2(0, 140)
+	# Insert as the 4th child (0=Title, 1=HeaderRow, 2=StatusLabel, 3=RoomsPanel, 4=CardsRow, 5=ActionRow).
+	var insert_idx: int = 3
+	if vbox.get_child_count() >= insert_idx:
+		vbox.add_child(rooms_panel)
+		vbox.move_child(rooms_panel, insert_idx)
+	else:
+		vbox.add_child(rooms_panel)
+	# Header inside panel.
+	var header_hbox := HBoxContainer.new()
+	header_hbox.name = "Header"
+	rooms_panel.add_child(header_hbox)
+	var title_label := Label.new()
+	title_label.text = "🌐 Open Rooms"
+	title_label.add_theme_font_size_override("font_size", 16)
+	header_hbox.add_child(title_label)
+	refresh_btn = Button.new()
+	refresh_btn.name = "RefreshButton"
+	refresh_btn.text = "🔄 REFRESH"
+	refresh_btn.add_theme_font_size_override("font_size", 14)
+	header_hbox.add_child(refresh_btn)
+	# ScrollContainer + RoomsContainer.
+	rooms_scroll = ScrollContainer.new()
+	rooms_scroll.name = "RoomsScroll"
+	rooms_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rooms_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rooms_scroll.custom_minimum_size = Vector2(0, 90)
+	rooms_panel.add_child(rooms_scroll)
+	rooms_container = VBoxContainer.new()
+	rooms_container.name = "RoomsContainer"
+	rooms_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rooms_scroll.add_child(rooms_container)
+	# Wire refresh button (safe — has_method check not needed, we just created it).
+	if not refresh_btn.pressed.is_connected(_on_refresh_rooms_pressed):
+		refresh_btn.pressed.connect(_on_refresh_rooms_pressed)
 
 
 func _show_timeline_picker_state() -> void:

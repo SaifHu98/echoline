@@ -139,9 +139,11 @@ func get_effective_level(channel: String) -> float:
 # === Apply to audio server ===
 
 func _apply_channel(channel: String) -> void:
-	if not AudioServer.get_bus_index(CHANNEL_BUSES.get(channel, "")) >= 0:
+	var bus_idx: int = AudioServer.get_bus_index(CHANNEL_BUSES.get(channel, ""))
+	# Guard: skip channels without a backing audio bus (e.g. when running in
+	# headless mode or before default_bus_layout is loaded).
+	if bus_idx < 0:
 		return
-	var bus_idx = AudioServer.get_bus_index(CHANNEL_BUSES[channel])
 	var effective = get_effective_level(channel)
 	AudioServer.set_bus_volume_db(bus_idx, linear_to_db(effective))
 	AudioServer.set_bus_mute(bus_idx, muted.get(channel, false))

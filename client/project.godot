@@ -40,10 +40,19 @@ UXTelemetry="*res://autoload/ux_telemetry.gd"
 DarkPatternsGuard="*res://autoload/dark_patterns_guard.gd"
 IAPManager="*res://autoload/iap_manager.gd"
 GraphicsManager="*res://autoload/graphics_manager.gd"
+ProceduralStoryService="*res://autoload/procedural_story_service.gd"
+ReactiveUIState="*res://autoload/reactive_ui_state.gd"
+FloatingLabelService="*res://autoload/floating_label_service.gd"
+SurfaceAudioManager="*res://autoload/surface_audio_manager.gd"
+TimelineVisualEffects="*res://autoload/timeline_visual_effects.gd"
+ResonanceAudio="*res://autoload/resonance_audio.gd"
+DialogueService="*res://autoload/dialogue_service.gd"
+SFXManager="*res://autoload/sfx_manager.gd"
+HapticsManager="*res://autoload/haptics_manager.gd"
+VoiceChatClient="*res://autoload/voice_chat_client.gd"
 DialogueManager="*uid://c3rodes2l3gxb"
 PhantomCameraManager="*uid://duq6jhf6unyis"
 GodotxLabelUp="*uid://c5ckokjmesj66"
-ResonanceLogger="*uid://bq7nrlog0001"
 
 [display]
 
@@ -55,7 +64,11 @@ window/handheld/orientation=4
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/FoliageFlow/plugin.cfg", "res://addons/Gizmo3DScript/plugin.cfg", "res://addons/Surfaces/plugin.cfg", "res://addons/at-icons/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/godot_state_charts/plugin.cfg", "res://addons/godotx_health_bar/plugin.cfg", "res://addons/godotx_label_up/plugin.cfg", "res://addons/lowpolyterrain/plugin.cfg", "res://addons/nexus_resonance/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/reactive_signal/plugin.cfg", "res://addons/road-generator/plugin.cfg", "res://addons/sky_3d/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
+enabled=PackedStringArray("res://addons/FoliageFlow/plugin.cfg", "res://addons/Gizmo3DScript/plugin.cfg", "res://addons/Surfaces/plugin.cfg", "res://addons/at-icons/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/godot_state_charts/plugin.cfg", "res://addons/godotx_health_bar/plugin.cfg", "res://addons/godotx_label_up/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/reactive_signal/plugin.cfg", "res://addons/road-generator/plugin.cfg", "res://addons/sky_3d/plugin.cfg")
+# P1-3: Disabled (not needed at runtime or unsupported on Android):
+# - lowpolyterrain (uses CSGBox3D; we use Terrain3D for the desktop editor only)
+# - nexus_resonance (Steam Audio; no Android binary; saves 2.4 MB .so)
+# - terrain_3d (no Android arm64 binary; saves ~30 MB)
 
 [internationalization]
 
