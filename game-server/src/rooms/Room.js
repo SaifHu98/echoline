@@ -38,6 +38,10 @@ class Room {
     this.startedAt = null;
     this.endedAt = null;
     this.outcome = null;
+    // Optional password lock: stored as SHA-256 hex digest of the user-supplied
+    // string. Plain text is never persisted.
+    this.passwordHash = null;
+    this.isPrivate = false;
 
     // ===== Authoritative state =====
     this.state = deepClone(scenario.timelines_initial_state || {});
@@ -739,6 +743,9 @@ class Room {
       scenarioId: this.scenario.id,
       scenarioNameKey: this.scenario.name_key,
       maxPlayers: this.maxPlayers,
+      playerCount: this.players.length,
+      isPrivate: !!this.passwordHash,
+      hasPassword: !!this.passwordHash,
       hasStarted: this.hasStarted,
       startedAt: this.startedAt,
       endedAt: this.endedAt,

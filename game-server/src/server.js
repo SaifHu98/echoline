@@ -265,7 +265,7 @@ function handleConnection(socket) {
 
   socket.on('lobby:create', (payload, ack) => {
     try {
-      const { playerUid, displayName, language, scenarioId, difficulty, seed } = sanitize(payload);
+      const { playerUid, displayName, language, scenarioId, difficulty, seed, maxPlayers, password } = sanitize(payload);
       if (!playerUid || !displayName) return ackError(ack, 'Missing player info', 'BAD_REQUEST');
 
       const created = roomManager.createRoom({
@@ -277,6 +277,8 @@ function handleConnection(socket) {
         difficulty: difficulty || 1,
         locale: language || 'en',
         seedOverride: seed || 0,
+        maxPlayers: Number.isInteger(maxPlayers) ? maxPlayers : null,
+        password: password || null,
       });
       const room = created.room;
       session = { playerId: playerUid, roomId: room.id, lastClientSeq: 0 };
@@ -302,13 +304,20 @@ function handleConnection(socket) {
 
   socket.on('lobby:join', (payload, ack) => {
     try {
-      const { playerUid, displayName, language, roomCode } = sanitize(payload);
+      const { playerUid, displayName, language, roomCode, password } = sanitize(payload);
       if (!roomCode || !playerUid) return ackError(ack, 'Missing room code or player info', 'BAD_REQUEST');
 
       const room = roomManager.findRoomByCode(roomCode);
       if (!room) return ackError(ack, 'Room not found', 'ROOM_NOT_FOUND');
       if (room.isFull()) return ackError(ack, 'Room is full', 'ROOM_FULL');
       if (room.hasStarted) return ackError(ack, 'Match already started', 'MATCH_STARTED');
+      // Password gate
+      if (room.passwordHash) {
+        const given = password ? require('crypto').createHash('sha256').update(String(password)).digest('hex') : '';
+        if (given !== room.passwordHash) {
+          return ackError(ack, 'Incorrect room password', 'WRONG_PASSWORD');
+        }
+      }
 
       const result = room.addPlayer({
         socketId: socket.id,
@@ -321,6 +330,7 @@ function handleConnection(socket) {
       ack({ success: true, room: room.publicState(), assignedTimeline: result.timeline });
       broadcastRoom(room.id);
     } catch (e) {
+      logger.error({ err: e.message }, 'lobby:join error');
       ackError(ack, e.message);
     }
   });

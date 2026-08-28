@@ -99,12 +99,15 @@ const SCHEMAS = {
     scenarioId: { type: 'id' },
     difficulty: { type: 'int', min: 1, max: 5, optional: true },
     seed: { type: 'int', optional: true },
+    maxPlayers: { type: 'int', min: 2, max: 4, optional: true },
+    password: { type: 'string', max: 32, optional: true },
   },
   'lobby:join': {
     playerUid: { type: 'id' },
     displayName: { type: 'string', max: 32 },
     language: { type: 'enum', values: ['en', 'ar', 'qps_mirrored', 'qps_expanded'] },
     roomCode: { type: 'string', max: 8, pattern: /^[A-Z0-9]+$/ },
+    password: { type: 'string', max: 32, optional: true },
   },
   'lobby:get_story': {
     roomId: { type: 'id' },

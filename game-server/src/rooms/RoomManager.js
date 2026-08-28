@@ -38,12 +38,19 @@ class RoomManager {
     return code;
   }
 
-  createRoom({ hostSocketId, hostUid, hostName, hostLanguage, scenarioId, difficulty = 1, locale = 'en', seedOverride = 0 }) {
+  createRoom({ hostSocketId, hostUid, hostName, hostLanguage, scenarioId, difficulty = 1, locale = 'en', seedOverride = 0, maxPlayers = null, password = null }) {
     if (this.rooms.size >= this.maxRooms) {
       throw new Error('Server is at capacity');
     }
     const scenario = this.scenarios.get(scenarioId) || this.scenarios.get('clocktower_district');
     if (!scenario) throw new Error('No scenarios available');
+
+    // Sanitise / clamp the room options
+    const requestedMax = Number.isInteger(maxPlayers) ? maxPlayers : this.maxPlayersPerRoom;
+    const effectiveMax = Math.max(2, Math.min(4, requestedMax));
+    const hashedPassword = password && String(password).length > 0
+      ? require('crypto').createHash('sha256').update(String(password)).digest('hex')
+      : null;
 
     const id = 'r_' + crypto.randomBytes(8).toString('hex');
     const code = this.generateRoomCode();
@@ -52,7 +59,7 @@ class RoomManager {
     const storyManifest = this.storyService.generate({
       timeline: scenario.timeline || 'present',
       difficulty,
-      playerCount: this.maxPlayersPerRoom,
+      playerCount: effectiveMax,
       locale,
       seedOverride,
     });
@@ -60,11 +67,16 @@ class RoomManager {
       id, code,
       scenario,
       hostUid,
-      maxPlayers: this.maxPlayersPerRoom,
+      maxPlayers: effectiveMax,
       matchDurationSeconds: this.matchDurationSeconds,
       disconnectGraceSeconds: this.disconnectGraceSeconds,
       logger: this.logger,
     });
+    // Lock-down the room with a hashed password (never store plain text)
+    if (hashedPassword) {
+      room.passwordHash = hashedPassword;
+      room.isPrivate = true;
+    }
     // Stash the procedural story manifest on the room so it can be sent to
     // every connecting player.
     room.storyManifest = storyManifest;
@@ -80,7 +92,11 @@ class RoomManager {
 
     this.rooms.set(id, room);
     this.codeIndex.set(code, id);
-    this.logger.info({ roomId: id, code, host: hostName, seed: storyManifest.seed, short_id: storyManifest.short_id }, 'Room created');
+    this.logger.info({
+      roomId: id, code, host: hostName,
+      seed: storyManifest.seed, short_id: storyManifest.short_id,
+      maxPlayers: effectiveMax, isPrivate: !!hashedPassword,
+    }, 'Room created');
     return { room, roomId: id, storyManifest };
   }
 
@@ -178,7 +194,8 @@ class RoomManager {
         playerCount: playersInfo.length,
         maxPlayers: room.maxPlayers || 4,
         status: this._roomStatus(room),
-        isPrivate: !!room.isPrivate,
+        isPrivate: !!room.passwordHash,
+        hasPassword: !!room.passwordHash,
         createdAt: room.createdAt || Date.now(),
         players: playersInfo,
         age_seconds: Math.floor((Date.now() - (room.createdAt || Date.now())) / 1000)

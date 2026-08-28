@@ -567,33 +567,41 @@ func _try_reconnect() -> void:
 # === Public API (called by UI) ===
 
 func create_room(display_name: String, language: String,
-		scenario_id: String = DEFAULT_SCENARIO, callback: Callable = Callable()) -> void:
+		scenario_id: String = DEFAULT_SCENARIO, callback: Callable = Callable(),
+		max_players: int = 4, password: String = "") -> void:
 	player_name = display_name
 	player_language = language
-	_send_event("lobby:create", {
+	var payload: Dictionary = {
 		"playerUid": player_uid,
 		"displayName": display_name,
 		"language": language,
 		"scenarioId": scenario_id,
-	}, callback)
+		"maxPlayers": max_players,
+	}
+	if password != null and password.length() > 0:
+		payload["password"] = password
+	_send_event("lobby:create", payload, callback)
 
 
 func join_room(code: String, display_name: String, language: String,
-		callback: Callable = Callable()) -> void:
+		callback: Callable = Callable(), password: String = "") -> void:
 	player_name = display_name
 	player_language = language
-	_send_event("lobby:join", {
+	var payload: Dictionary = {
 		"playerUid": player_uid,
 		"displayName": display_name,
 		"language": language,
 		"roomCode": code,
-	}, callback)
+	}
+	if password != null and password.length() > 0:
+		payload["password"] = password
+	_send_event("lobby:join", payload, callback)
 
 
 # Alias expected by lobby_view.gd (P0-2 audit).
 func join_room_with_code(code: String, display_name: String, language: String,
-		callback: Callable = Callable()) -> void:
-	join_room(code, display_name, language, callback)
+		callback: Callable = Callable(), password: String = "") -> void:
+	join_room(code, display_name, language, callback, password)
 
 
 func list_rooms(language: String = "en",
