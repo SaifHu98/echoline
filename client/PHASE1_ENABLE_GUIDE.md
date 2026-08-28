@@ -168,5 +168,5 @@ remains valid until the new one is verified.
 ## Security
 
 The GitHub PAT shared in earlier conversations
-`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`
+`<REVOKED_GITHUB_TOKEN_REDACTED>`
 **must be revoked** at https://github.com/settings/tokens.

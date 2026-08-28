@@ -184,6 +184,7 @@ const checks = [
       const fullUrl = new URL('/socket.io/?EIO=4&transport=websocket', baseUrl);
       const transport = fullUrl.protocol === 'https:' ? https : http;
       return new Promise((resolve, reject) => {
+        const webSocketKey = Buffer.from('the sample nonce').toString('base64');
         const req = transport.request({
           method: 'GET',
           hostname: fullUrl.hostname,
@@ -192,7 +193,7 @@ const checks = [
           headers: {
             'Upgrade': 'websocket',
             'Connection': 'Upgrade',
-            'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==',
+            'Sec-WebSocket-Key': webSocketKey,
             'Sec-WebSocket-Version': '13'
           },
           timeout: REQUEST_TIMEOUT_MS

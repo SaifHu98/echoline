@@ -30,8 +30,10 @@ Godot 4 multiplayer timeline-puzzle game with an authoritative Node.js server, s
 - Vertical-slice low-quality benchmark: FPS average 146.2, memory max 36MB, particles max 120; all budgets pass.
 - Android debug APK built and verified: package `com.ecouni.echoline`, min SDK 24, target SDK 34, arm64-v8a + x86_64, SHA-256 recorded at build handoff.
 - Localization and scenario validators: PASS.
+- Current source tree contains no GitHub token patterns; historical Git commits still contain a previously exposed token and must be revoked and purged with an agreed history rewrite before the secret-scan gate can be green.
 
 ## Active Blockers
 
 - Production release APK signing requires the protected keystore and alias/password; the local build correctly fails closed without them.
 - No Android device was connected to ADB in this environment, so install/device smoke remains a separate gate.
+- GitHub CI secret scan remains blocked by historical leaked-token commits; source documentation was redacted and no bypass was added.

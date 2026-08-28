@@ -225,5 +225,5 @@ git checkout HEAD -- client/editor_only/cgheven_lib.gd
 
 ## Security
 
-PAT leak reminder: revoke `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`
+PAT leak reminder: revoke the previously exposed GitHub token; never store tokens in documentation.
 at https://github.com/settings/tokens.

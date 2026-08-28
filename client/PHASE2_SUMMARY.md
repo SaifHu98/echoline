@@ -97,4 +97,4 @@ cgheven (HDRI/VFX), kit_browser (asset preview), reactive_signal, Gizmo3D.
 ## Security reminder
 
 Revoke the leaked PAT at https://github.com/settings/tokens:
-`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`
+`<REVOKED_GITHUB_TOKEN_REDACTED>`

@@ -95,7 +95,7 @@ jobs:
             tests/simulation.test.js \
             tests/security/security.test.js
       - name: Upload coverage
-        uses: codecov/upload-action@v4
+        uses: codecov/codecov-action@v4
         with:
           directory: game-server/coverage
           fail_ci_if_error: true
