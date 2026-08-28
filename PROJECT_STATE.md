@@ -30,6 +30,7 @@ Godot 4 multiplayer timeline-puzzle game with an authoritative Node.js server, s
 - Vertical-slice low-quality benchmark: FPS average 146.2, memory max 36MB, particles max 120; all budgets pass.
 - Android debug APK built and verified: package `com.ecouni.echoline`, min SDK 24, target SDK 34, arm64-v8a + x86_64, SHA-256 recorded at build handoff.
 - Build 16 verification artifact is `client/builds/echoline-v16.apk` (363.01 MB), SHA-256 `3a9fd586e55680e3210b33c4a499633a670c18690a5dbf44028c4601bae84dfd`, debug-signed and verified with `aapt2`/`apksigner`.
+- Build 16 is published at `https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline16`; GitHub asset size and API SHA-256 match the local artifact exactly.
 - Localization and scenario validators: PASS.
 - Current source tree contains no GitHub token patterns; historical Git commits still contain a previously exposed token and must be revoked and purged with an agreed history rewrite before the secret-scan gate can be green.
 
