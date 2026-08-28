@@ -12,26 +12,25 @@
 
 ## Latest release
 
-### ECHO//LINE v0.1.0 — Build 16
+### ECHO//LINE v0.1.0 — Build 17
 
-**Runtime hardening · full-flow verification · deterministic Android export**
+**Complete modern UI · long-form solo campaign · responsive settings**
 
-Build 16 is the first release prepared after the complete gameplay and delivery
-audit. It carries the functional improvements made after Build 15, including
-more reliable multiplayer polling, safer startup and teardown, production-style
-health checks, reproducible Android export settings, and a verified Android
-package.
+Build 17 adds the complete responsive visual shell for the main menu, lobby,
+settings, tutorial, language selection, and credits. It also introduces the
+offline-first **The Last Chime** campaign: 12 chapters and 60 localized missions
+with sequential unlocks and saved progress.
 
-➡️ **[View Build 16 release notes and download the APK](https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline16)**
+➡️ **[View Build 17 release notes and download the APK](https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline17)**
 
 | Artifact | Value |
 |---|---|
 | Package | `com.ecouni.echoline` |
-| Version metadata | `1.0.0` / version code `1` |
+| Version metadata | `0.1.0` / version code `17` |
 | Android support | min SDK 24 · target SDK 34 |
 | ABIs | `arm64-v8a` · `x86_64` |
 | APK size | 363.01 MB |
-| SHA-256 | `3a9fd586e55680e3210b33c4a499633a670c18690a5dbf44028c4601bae84dfd` |
+| SHA-256 | `83d3876bfed59da659cdc333fd10c55c689107ca65d59aad52cc5a8f410b2223` |
 | Signing | debug-signed verification package; production keystore remains a release gate |
 
 ## The game
@@ -71,6 +70,8 @@ when the network is slow or interrupted.
 - Two anchor blueprints: the cooperative `echo_triad_anchor` and the optional
   `support_wall`.
 - Nine validated scenario graphs with localized story outcomes.
+- Long-form solo campaign with 12 chapters, 60 objectives, saved progress,
+  sequential chapter unlocks, and in-match objective tracking.
 
 ### Multiplayer
 
@@ -91,6 +92,8 @@ when the network is slow or interrupted.
   password prompts, privacy badges, and automatic refresh.
 - Accessibility support for text scale, reduced motion, color-vision modes,
   audio channels, and mobile touch targets.
+- Modern responsive main menu, tutorial, credits, language, audio, graphics,
+  vibration, screen-shake, subtitle, and reset-to-default settings panels.
 
 ### Operations
 
@@ -135,7 +138,7 @@ build inputs:
 | Full discovered game-server tests | **226/226** |
 | Server tests | **18/18** |
 | PHP security tests | **23/23** |
-| Production GDScript syntax | **101/101** |
+| Production GDScript syntax | **104/104** |
 | Godot UI checks | **31/31 + 40/40** |
 | Scenario graphs | **9/9** |
 | Localization keys | **218** |
@@ -151,15 +154,15 @@ locally. This remains an operational tuning metric, not a hidden failure.
 
 ## Download and install
 
-Download the APK from the [Build 16 GitHub release](https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline16),
+Download the APK from the [Build 17 GitHub release](https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline17),
 then verify its checksum before installation:
 
 ```bash
-sha256sum echoline-v16.apk
-adb install -r echoline-v16.apk
+sha256sum echoline-v17.apk
+adb install -r echoline-v17.apk
 ```
 
-> Build 16 is a debug-signed verification package. A production-signed APK or
+> Build 17 is a debug-signed verification package. A production-signed APK or
 > AAB requires the protected release keystore and a real-device installation
 > smoke test.
 

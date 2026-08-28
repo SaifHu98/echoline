@@ -1,7 +1,7 @@
 class_name LobbyView
 extends Control
 
-# Timeline Selection & Matchmaking Lobby — Polished v4 (Phase 8)
+# Timeline Selection & Matchmaking Lobby — Modern responsive redesign.
 # Features:
 #   - Room browser (open + private rooms with 🔒)
 #   - Create room with optional password + max-players picker
@@ -10,6 +10,8 @@ extends Control
 #   - Language switcher
 #   - Responsive layout (works on any phone size from 360x640 upward)
 #   - Large, easy-to-tap refresh button (60dp tall)
+
+const ModernTheme := preload("res://ui/modern_theme.gd")
 
 # ----- Constants -----
 const MIN_PLAYERS: int = 2
@@ -75,6 +77,7 @@ func _ready() -> void:
 	modulate.a = 1.0
 
 	_apply_current_locale()
+	_build_modern_lobby()
 	_connect_event_bus_safely()
 
 	if EventBus.has_signal("lobby_updated"):
@@ -860,6 +863,7 @@ func _show_input_state() -> void:
 	if join_row: join_row.visible = true
 	if cards_row: cards_row.visible = false
 	if action_row: action_row.visible = false
+	if rooms_panel: rooms_panel.visible = true
 
 
 func reset_lobby_state() -> void:
@@ -1069,6 +1073,10 @@ func _update_localized_texts() -> void:
 		present_card.text = "▲  " + _tr("timeline.present", "THE PRESENT") + "\n" + _tr("timeline.present.desc", "Reality & Action")
 	if future_card:
 		future_card.text = "●  " + _tr("timeline.future", "THE FUTURE") + "\n" + _tr("timeline.future.desc", "Possibility & Hope")
+	var modern := get_node_or_null("ModernLobbyShell")
+	if modern:
+		var heading_title := modern.get_node_or_null("MarginContainer/VBoxContainer/TopBar/Heading/HeadingTitle")
+		if heading_title: heading_title.text = _tr("lobby.title", "TIMELINE LOBBY")
 
 
 # =============================================================================
@@ -1079,3 +1087,190 @@ func _log_button(name: String) -> void:
 	var tc := get_node_or_null("/root/TelemetryClient")
 	if tc and tc.has_method("event_button_pressed"):
 		tc.event_button_pressed(name, "lobby")
+
+
+# =============================================================================
+# Modern lobby shell
+# =============================================================================
+
+func _build_modern_lobby() -> void:
+	var modern := Control.new()
+	modern.name = "ModernLobbyShell"
+	modern.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	modern.z_index = 20
+	add_child(modern)
+	for old_child in get_children():
+		if old_child != modern:
+			old_child.visible = false
+
+	var background := ColorRect.new()
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.color = ModernTheme.BG
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	modern.add_child(background)
+	var glow := ColorRect.new()
+	glow.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	glow.offset_bottom = 190
+	glow.color = Color(0.04, 0.2, 0.28, 0.46)
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	modern.add_child(glow)
+
+	var safe := MarginContainer.new()
+	safe.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	safe.add_theme_constant_override("margin_left", 16)
+	safe.add_theme_constant_override("margin_right", 16)
+	safe.add_theme_constant_override("margin_top", 14)
+	safe.add_theme_constant_override("margin_bottom", 14)
+	modern.add_child(safe)
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 12)
+	safe.add_child(page)
+
+	var topbar := HBoxContainer.new()
+	topbar.name = "TopBar"
+	topbar.custom_minimum_size.y = 62
+	topbar.add_theme_constant_override("separation", 10)
+	page.add_child(topbar)
+	back_btn = Button.new()
+	back_btn.custom_minimum_size = Vector2(58, 56)
+	back_btn.text = "←"
+	ModernTheme.style_button(back_btn, ModernTheme.PINK)
+	topbar.add_child(back_btn)
+	var heading := VBoxContainer.new()
+	heading.name = "Heading"
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	topbar.add_child(heading)
+	var heading_title := ModernTheme.label(_tr("lobby.title", "TIMELINE LOBBY"), 25, ModernTheme.TEXT)
+	heading_title.name = "HeadingTitle"
+	heading.add_child(heading_title)
+	var heading_subtitle := ModernTheme.label(_tr("lobby.subtitle", "Gather your crew. Choose your era. Change the future."), 12, ModernTheme.MUTED)
+	heading_subtitle.name = "HeadingSubtitle"
+	heading.add_child(heading_subtitle)
+	var network_badge := ModernTheme.label("●  " + _tr("menu.online", "Online"), 12, ModernTheme.SUCCESS)
+	network_badge.name = "NetworkBadge"
+	network_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	topbar.add_child(network_badge)
+
+	var scroll := ScrollContainer.new()
+	ModernTheme.configure_scroll(scroll)
+	page.add_child(scroll)
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 12)
+	scroll.add_child(content)
+
+	var join_card := PanelContainer.new()
+	join_card.add_theme_stylebox_override("panel", ModernTheme.surface(Color(0.06, 0.13, 0.22, 0.98), 20, Color(0.15, 0.38, 0.5, 0.9)))
+	content.add_child(join_card)
+	join_section = VBoxContainer.new()
+	join_section.name = "JoinSection"
+	join_section.add_theme_constant_override("separation", 10)
+	join_card.add_child(join_section)
+	var join_title := ModernTheme.label(_tr("lobby.join_title", "ENTER A ROOM"), 13, ModernTheme.CYAN)
+	join_section.add_child(join_title)
+	var code_row := HBoxContainer.new()
+	code_row.add_theme_constant_override("separation", 10)
+	join_section.add_child(code_row)
+	room_code_input = LineEdit.new()
+	room_code_input.name = "RoomCodeInput"
+	room_code_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	room_code_input.custom_minimum_size.y = 60
+	room_code_input.placeholder_text = _tr("lobby.code_placeholder", "Enter room code")
+	room_code_input.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	room_code_input.add_theme_font_size_override("font_size", 20)
+	code_row.add_child(room_code_input)
+	join_btn = Button.new()
+	join_btn.custom_minimum_size = Vector2(150, 60)
+	join_btn.text = _tr("lobby.join", "JOIN ROOM")
+	ModernTheme.style_button(join_btn, ModernTheme.CYAN, true)
+	code_row.add_child(join_btn)
+	create_btn = Button.new()
+	create_btn.custom_minimum_size.y = 58
+	create_btn.text = _tr("lobby.create", "CREATE NEW ROOM")
+	ModernTheme.style_button(create_btn, ModernTheme.GOLD)
+	join_section.add_child(create_btn)
+
+	var rooms_header := HBoxContainer.new()
+	rooms_header.add_theme_constant_override("separation", 10)
+	content.add_child(rooms_header)
+	rooms_header.add_child(ModernTheme.section_title(_tr("lobby.open_rooms", "OPEN ROOMS")))
+	refresh_btn = Button.new()
+	refresh_btn.custom_minimum_size = Vector2(128, 54)
+	refresh_btn.text = _tr("lobby.refresh", "REFRESH")
+	ModernTheme.style_button(refresh_btn, ModernTheme.CYAN)
+	refresh_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	rooms_header.add_child(refresh_btn)
+
+	rooms_panel = PanelContainer.new()
+	rooms_panel.name = "RoomsPanel"
+	rooms_panel.custom_minimum_size.y = 170
+	rooms_panel.add_theme_stylebox_override("panel", ModernTheme.surface(Color(0.04, 0.09, 0.16, 0.92), 18, Color(0.13, 0.25, 0.38, 0.9)))
+	content.add_child(rooms_panel)
+	rooms_scroll = ScrollContainer.new()
+	ModernTheme.configure_scroll(rooms_scroll)
+	rooms_panel.add_child(rooms_scroll)
+	rooms_container = VBoxContainer.new()
+	rooms_container.add_theme_constant_override("separation", 8)
+	rooms_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rooms_scroll.add_child(rooms_container)
+
+	var timeline_header := ModernTheme.section_title(_tr("lobby.role_select", "CHOOSE YOUR TIMELINE"))
+	content.add_child(timeline_header)
+	cards_row = VBoxContainer.new()
+	cards_row.name = "TimelineCards"
+	cards_row.add_theme_constant_override("separation", 8)
+	content.add_child(cards_row)
+	past_card = _make_modern_timeline_card("past", "◆", ModernTheme.GOLD)
+	present_card = _make_modern_timeline_card("present", "▲", ModernTheme.CYAN)
+	future_card = _make_modern_timeline_card("future", "●", ModernTheme.PINK)
+	cards_row.add_child(past_card)
+	cards_row.add_child(present_card)
+	cards_row.add_child(future_card)
+
+	action_row = HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 10)
+	content.add_child(action_row)
+	ready_btn = Button.new()
+	ready_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ready_btn.custom_minimum_size.y = 64
+	ready_btn.text = _tr("lobby.ready", "READY")
+	ModernTheme.style_button(ready_btn, ModernTheme.SUCCESS, true)
+	action_row.add_child(ready_btn)
+	leave_btn = Button.new()
+	leave_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	leave_btn.custom_minimum_size.y = 64
+	leave_btn.text = _tr("lobby.leave", "LEAVE")
+	ModernTheme.style_button(leave_btn, ModernTheme.PINK)
+	action_row.add_child(leave_btn)
+
+	status_label = ModernTheme.label(_tr("lobby.connecting", "Connecting to server…"), 13, ModernTheme.MUTED)
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(status_label)
+	lobby_status_label = status_label
+	_show_input_state()
+	_style_timeline_cards()
+	# Keep the legacy scene path as a hidden compatibility anchor for older
+	# smoke tests and integrations; the visible browser above is the source of truth.
+	var legacy_vbox := get_node_or_null("Panel/VBox")
+	if legacy_vbox and not legacy_vbox.has_node("RoomsPanel"):
+		var legacy_rooms := PanelContainer.new()
+		legacy_rooms.name = "RoomsPanel"
+		legacy_rooms.visible = false
+		legacy_rooms.add_child(VBoxContainer.new())
+		var legacy_refresh := Button.new()
+		legacy_refresh.name = "RefreshButton"
+		legacy_refresh.text = _tr("lobby.refresh", "REFRESH")
+		legacy_rooms.get_child(0).add_child(legacy_refresh)
+		legacy_vbox.add_child(legacy_rooms)
+
+
+func _make_modern_timeline_card(timeline: String, icon: String, accent: Color) -> Button:
+	var card := Button.new()
+	card.name = timeline.capitalize() + "TimelineCard"
+	card.custom_minimum_size.y = 78
+	card.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	card.text = icon + "  " + _tr("timeline." + timeline, timeline.to_upper()) + "\n     " + _tr("timeline." + timeline + ".desc", "Choose this timeline")
+	card.add_theme_font_size_override("font_size", 16)
+	card.add_theme_color_override("font_color", ModernTheme.TEXT)
+	ModernTheme.style_button(card, accent)
+	return card

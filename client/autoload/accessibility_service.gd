@@ -292,7 +292,7 @@ func _schedule_save() -> void:
 func _flush_save() -> void:
 	if _save_pending:
 		_save_pending = false
-		_schedule_save()
+		save_to_disk()
 
 
 func save_to_disk() -> void:

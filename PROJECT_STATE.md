@@ -17,6 +17,8 @@ Godot 4 multiplayer timeline-puzzle game with an authoritative Node.js server, s
 - Socket.IO polling supports long-lived sessions, queued lobby actions, ACK dispatch, heartbeat, room listing, and password-protected room creation.
 - All 9 scenario causal graphs and all 218 localization keys validate successfully.
 - Optional third-party Godot addons are not required for the core build; runtime wrappers load them only when present and use documented fallbacks otherwise.
+- The visible client UI now uses a shared responsive dark/cyan/gold visual system for the main menu, lobby, tutorial, credits, language, and settings surfaces; legacy scene nodes remain only as compatibility anchors for existing integrations.
+- The offline-first `The Last Chime` solo campaign contains 12 chapters and 60 localized missions, with sequential unlocks, saved progress, and objective tracking from Echo interactions.
 - Server exposes `/healthz`, `/readyz`, and Prometheus `/metrics`; readiness is safe when the optional admin bridge is unavailable.
 
 ## Verification
@@ -24,12 +26,13 @@ Godot 4 multiplayer timeline-puzzle game with an authoritative Node.js server, s
 - `game-server`: 72/72 package tests pass; full discovered suite 226/226 pass; coverage run reports 81.13% statements.
 - `server`: 18/18 tests pass.
 - Godot UI checks: 31/31 and 40/40 pass.
-- Godot production GDScript parse: 101/101 pass; match smoke: PASS with generated world, 2 bots, HUD, and VFX.
+- Godot production GDScript parse: 104/104 pass; main menu and solo-story headless scene smoke pass; match smoke remains PASS with generated world, 2 bots, HUD, and VFX.
 - Godot full flow: PASS locally and against Render; room listing and password-protected 4-player room creation verified.
+- Solo campaign data: 12 chapters / 60 missions parsed successfully; story hub and progress services load without runtime errors.
 - Local smoke: 12/12; 50-room/200-player load: 1,000 operations, 0 errors, p99 9ms, ~3,030 ops/s.
 - Vertical-slice low-quality benchmark: FPS average 146.2, memory max 36MB, particles max 120; all budgets pass.
 - Android debug APK built and verified: package `com.ecouni.echoline`, min SDK 24, target SDK 34, arm64-v8a + x86_64, SHA-256 recorded at build handoff.
-- Build 16 verification artifact is `client/builds/echoline-v16.apk` (363.01 MB), SHA-256 `3a9fd586e55680e3210b33c4a499633a670c18690a5dbf44028c4601bae84dfd`, debug-signed and verified with `aapt2`/`apksigner`.
+- Build 17 verification artifact is `client/builds/echoline-v17.apk` (363.06 MB), SHA-256 `83d3876bfed59da659cdc333fd10c55c689107ca65d59aad52cc5a8f410b2223`, version code 17 / version name 0.1.0, debug-signed and verified with `aapt2`/`apksigner`.
 - Build 16 is published at `https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline16`; GitHub asset size and API SHA-256 match the local artifact exactly.
 - Localization and scenario validators: PASS.
 - Current source tree contains no GitHub token patterns; historical Git commits still contain a previously exposed token and must be revoked and purged with an agreed history rewrite before the secret-scan gate can be green.

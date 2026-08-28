@@ -3,6 +3,8 @@ extends Node
 # ECHO//LINE — Master Game Manager (Updated)
 # Orchestrates all systems: World, Bots, Player, VFX, Audio
 
+const ModernTheme := preload("res://ui/modern_theme.gd")
+
 @onready var world_3d: Node3D = $World3D
 @onready var world_generator: Node3D = $World3D/WorldGenerator
 @onready var sky_system: Node3D = $World3D/SkySystem
@@ -26,6 +28,7 @@ var achievement_system: Node = null
 var is_in_match: bool = false
 var spawned_props: Array[Node3D] = []
 var spawned_bots: Array[Node3D] = []
+var story_panel: PanelContainer = null
 
 
 func _ready() -> void:
@@ -57,7 +60,11 @@ func _ready() -> void:
 	# P1-1: DO NOT generate the world here — it's expensive (terrain + vegetation +
 	# structures + lighting). The world is only needed once a match starts
 	# (_start_match). Showing the lobby only requires the UI overlay.
-	_show_lobby()
+	var campaign := get_node_or_null("/root/SinglePlayerCampaign")
+	if campaign and campaign.has_method("has_active_chapter") and campaign.has_active_chapter():
+		_start_solo_story()
+	else:
+		_show_lobby()
 
 
 func _generate_world() -> void:
@@ -78,10 +85,31 @@ func _on_match_started(_match_id: String, _initial_state: Dictionary) -> void:
 
 func _on_match_concluded(_recap: Dictionary) -> void:
 	is_in_match = false
+	_cleanup_story_panel()
 	if lobby_view and lobby_view.has_method("reset_lobby_state"):
 		lobby_view.reset_lobby_state()
-	_show_lobby()
 	_cleanup_bots()
+	var campaign := get_node_or_null("/root/SinglePlayerCampaign")
+	if campaign and campaign.has_method("has_active_chapter") and campaign.has_active_chapter():
+		get_tree().change_scene_to_file("res://scenes/single_player_story.tscn")
+	else:
+		_show_lobby()
+
+
+func _start_solo_story() -> void:
+	var campaign := get_node_or_null("/root/SinglePlayerCampaign")
+	if not campaign or not campaign.has_active_chapter():
+		_show_lobby()
+		return
+	NetworkClient.my_timeline = "present"
+	var locale := "en"
+	var loc := get_node_or_null("/root/Localization")
+	if loc and loc.has_method("get_current_locale"):
+		locale = loc.get_current_locale()
+	var difficulty: int = min(5, 1 + int(campaign.active_chapter_index) / 3)
+	ProceduralStoryService.generate_locally("present", difficulty, 1, locale)
+	_start_match()
+	_build_story_panel()
 
 
 func _start_match() -> void:
@@ -201,6 +229,11 @@ func _on_echo_propagated(echo_id: String, loc_key: String, _audio: String, visua
 		elif vfx_manager:
 			# Static call
 			VFXManager.spawn_echo_burst(world_3d, (player as Node3D).global_position, color)
+	var campaign := get_node_or_null("/root/SinglePlayerCampaign")
+	if campaign and campaign.has_method("record_echo_progress"):
+		var completed_id: String = campaign.record_echo_progress()
+		if not completed_id.is_empty():
+			_refresh_story_panel()
 
 
 func _on_interact(entity_id: String, action_id: String) -> void:
@@ -229,6 +262,10 @@ func _get_timeline_color() -> Color:
 # === Navigation ===
 func _on_leave_button_pressed() -> void:
 	is_in_match = false
+	_cleanup_story_panel()
+	var campaign := get_node_or_null("/root/SinglePlayerCampaign")
+	if campaign and campaign.has_method("has_active_chapter") and campaign.has_active_chapter():
+		campaign.exit_story()
 	NetworkClient.leave_lobby()
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
@@ -236,3 +273,77 @@ func _on_leave_button_pressed() -> void:
 func _on_interact_button_pressed() -> void:
 	if player and player.has_method("interact"):
 		player.interact()
+
+
+func _tr(key: String, fallback: String) -> String:
+	var loc := get_node_or_null("/root/Localization")
+	if loc and loc.has_method("tr_key"):
+		var translated: String = loc.tr_key(key)
+		return fallback if translated == "[" + key + "]" else translated
+	return fallback
+
+
+func _localized(value: Variant) -> String:
+	var locale := "en"
+	var loc := get_node_or_null("/root/Localization")
+	if loc and loc.has_method("get_current_locale"):
+		locale = loc.get_current_locale()
+	if value is Dictionary:
+		return str(value.get(locale, value.get("en", "")))
+	return str(value)
+
+
+func _build_story_panel() -> void:
+	_cleanup_story_panel()
+	var campaign := get_node_or_null("/root/SinglePlayerCampaign")
+	if not campaign or not campaign.has_active_chapter():
+		return
+	var chapter: Dictionary = campaign.get_active_chapter()
+	var ui := get_node_or_null("UI")
+	if not ui:
+		return
+	story_panel = PanelContainer.new()
+	story_panel.name = "StoryMissionPanel"
+	story_panel.z_index = 12
+	story_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	story_panel.offset_left = 16
+	story_panel.offset_top = 112
+	story_panel.offset_right = min(390.0, get_viewport().get_visible_rect().size.x - 16.0)
+	story_panel.add_theme_stylebox_override("panel", ModernTheme.surface(Color(0.035, 0.075, 0.14, 0.94), 18, ModernTheme.GOLD.darkened(0.25)))
+	ui.add_child(story_panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	story_panel.add_child(margin)
+	var box := VBoxContainer.new()
+	box.name = "Content"
+	box.add_theme_constant_override("separation", 6)
+	margin.add_child(box)
+	box.add_child(ModernTheme.section_title(_tr("story.objectives", "CHAPTER OBJECTIVES")))
+	box.add_child(ModernTheme.label(_localized(chapter.get("title", {})), 18, ModernTheme.TEXT))
+	box.add_child(ModernTheme.label(_localized(chapter.get("subtitle", {})), 12, ModernTheme.MUTED))
+	box.add_child(HSeparator.new())
+	var missions: Array = chapter.get("missions", [])
+	for mission_index in range(missions.size()):
+		var mission = missions[mission_index]
+		if not mission is Dictionary:
+			continue
+		var done: bool = campaign.is_mission_complete(campaign.active_chapter_index, campaign.get_mission_id(mission, mission_index))
+		var item := ModernTheme.label(("✓ " if done else "○ ") + _localized(mission.get("title", {})), 13, ModernTheme.SUCCESS if done else ModernTheme.TEXT)
+		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		box.add_child(item)
+	var progress: Dictionary = campaign.get_chapter_progress(campaign.active_chapter_index)
+	box.add_child(ModernTheme.label(_tr("story.progress", "Progress: {done}/{total}").format({"done": progress.get("completed", 0), "total": progress.get("total", 0)}), 12, ModernTheme.CYAN))
+
+
+func _refresh_story_panel() -> void:
+	if story_panel and is_instance_valid(story_panel):
+		_build_story_panel()
+
+
+func _cleanup_story_panel() -> void:
+	if story_panel and is_instance_valid(story_panel):
+		story_panel.queue_free()
+	story_panel = null

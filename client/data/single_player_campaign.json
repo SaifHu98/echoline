@@ -1,0 +1,138 @@
+{
+  "campaign_id": "the_last_chime",
+  "version": 1,
+  "chapters": [
+    {
+      "id": "c01", "title": {"en": "The First Chime", "ar": "الرنين الأول"},
+      "subtitle": {"en": "A clock rings in a city that no longer exists.", "ar": "ترن ساعة في مدينة لم تعد موجودة."},
+      "missions": [
+        {"title": {"en": "Wake the silent lanterns", "ar": "أيقظ الفوانيس الصامتة"}, "task": {"en": "Follow three lantern echoes through the old market.", "ar": "اتبع ثلاثة أصداء للفوانيس عبر السوق القديم."}},
+        {"title": {"en": "Find the missing minute", "ar": "اعثر على الدقيقة المفقودة"}, "task": {"en": "Recover the minute hand from the flooded clockworks.", "ar": "استعد عقرب الدقائق من آليات الساعة الغارقة."}},
+        {"title": {"en": "Read the maker's mark", "ar": "اقرأ علامة الصانع"}, "task": {"en": "Decode the inscription beneath the bronze arch.", "ar": "فك النقش أسفل القوس البرونزي."}},
+        {"title": {"en": "Hold the first breach", "ar": "ثبّت الشق الأول"}, "task": {"en": "Stabilize the first Echo before the bell strikes twice.", "ar": "ثبّت الصدى الأول قبل أن يقرع الجرس مرتين."}},
+        {"title": {"en": "Choose what to remember", "ar": "اختر ما يستحق التذكر"}, "task": {"en": "Place the first Memory Shard in the Anchor.", "ar": "ضع شظية الذاكرة الأولى في المرساة."}}
+      ]
+    },
+    {
+      "id": "c02", "title": {"en": "Ashes of the Archive", "ar": "رماد الأرشيف"},
+      "subtitle": {"en": "The Past is burning, but one page refuses to die.", "ar": "الماضي يحترق، لكن صفحة واحدة ترفض الموت."},
+      "missions": [
+        {"title": {"en": "Cross the paper river", "ar": "اعبر نهر الأوراق"}, "task": {"en": "Map a safe route through the collapsing archive.", "ar": "ارسم طريقاً آمناً عبر الأرشيف المنهار."}},
+        {"title": {"en": "Rescue the archivist", "ar": "أنقذ أمين الأرشيف"}, "task": {"en": "Locate the archivist's voice behind the sealed stacks.", "ar": "اعثر على صوت أمين الأرشيف خلف الرفوف المغلقة."}},
+        {"title": {"en": "Restore the forbidden page", "ar": "أصلح الصفحة المحرمة"}, "task": {"en": "Reassemble five fragments without changing their order.", "ar": "أعد ترتيب خمسة أجزاء دون تغيير تسلسلها."}},
+        {"title": {"en": "Silence the ash wraiths", "ar": "أسكت أشباح الرماد"}, "task": {"en": "Break the three echoes feeding the archive fire.", "ar": "اكسر الأصداء الثلاثة التي تغذي حريق الأرشيف."}},
+        {"title": {"en": "Carry the truth forward", "ar": "احمل الحقيقة إلى الأمام"}, "task": {"en": "Deliver the restored page to the Present gate.", "ar": "سلّم الصفحة المستعادة إلى بوابة الحاضر."}}
+      ]
+    },
+    {
+      "id": "c03", "title": {"en": "The City Between Seconds", "ar": "المدينة بين الثواني"},
+      "subtitle": {"en": "The Present is repeating one perfect, terrible moment.", "ar": "الحاضر يكرر لحظة مثالية وفظيعة واحدة."},
+      "missions": [
+        {"title": {"en": "Break the loop", "ar": "اكسر الحلقة"}, "task": {"en": "Find the action that resets the central square.", "ar": "اعثر على الفعل الذي يعيد ضبط الساحة المركزية."}},
+        {"title": {"en": "Repair the transit line", "ar": "أصلح خط النقل"}, "task": {"en": "Reconnect four temporal cables across the station.", "ar": "أعد وصل أربعة كابلات زمنية في المحطة."}},
+        {"title": {"en": "Question the witness", "ar": "استجوب الشاهد"}, "task": {"en": "Compare three versions of the same memory.", "ar": "قارن ثلاث نسخ من الذاكرة نفسها."}},
+        {"title": {"en": "Stop the midnight reset", "ar": "أوقف إعادة ضبط منتصف الليل"}, "task": {"en": "Tune the clockwork resonator before the countdown ends.", "ar": "اضبط مرنان الساعة قبل انتهاء العد التنازلي."}},
+        {"title": {"en": "Open the hidden route", "ar": "افتح الطريق الخفي"}, "task": {"en": "Use the archive page to unlock the lower district.", "ar": "استخدم صفحة الأرشيف لفتح الحي السفلي."}}
+      ]
+    },
+    {
+      "id": "c04", "title": {"en": "Neon Undertow", "ar": "التيار النيون"},
+      "subtitle": {"en": "A buried machine is drinking tomorrow from the river.", "ar": "آلة مدفونة تشرب الغد من النهر."},
+      "missions": [
+        {"title": {"en": "Drain the lower vault", "ar": "صرّف الخزنة السفلية"}, "task": {"en": "Redirect water through the ancient pressure gates.", "ar": "حوّل المياه عبر بوابات الضغط القديمة."}},
+        {"title": {"en": "Find the blue signal", "ar": "اعثر على الإشارة الزرقاء"}, "task": {"en": "Trace the signal through three unstable reflections.", "ar": "تتبع الإشارة عبر ثلاثة انعكاسات غير مستقرة."}},
+        {"title": {"en": "Build a bridge of light", "ar": "ابنِ جسراً من الضوء"}, "task": {"en": "Place energy shards in the correct harmonic sequence.", "ar": "ضع شظايا الطاقة بالتسلسل التوافقي الصحيح."}},
+        {"title": {"en": "Outrun the undertow", "ar": "اهرب من التيار"}, "task": {"en": "Reach the relay before the flooded timeline closes.", "ar": "صل إلى محطة التتابع قبل انغلاق الخط المغمور."}},
+        {"title": {"en": "Recover the stolen tomorrow", "ar": "استعد الغد المسروق"}, "task": {"en": "Return the future shard to the central Anchor.", "ar": "أعد شظية المستقبل إلى المرساة المركزية."}}
+      ]
+    },
+    {
+      "id": "c05", "title": {"en": "The Three Witnesses", "ar": "الشهود الثلاثة"},
+      "subtitle": {"en": "Three strangers remember the same crime differently.", "ar": "ثلاثة غرباء يتذكرون الجريمة نفسها بشكل مختلف."},
+      "missions": [
+        {"title": {"en": "Meet the keeper", "ar": "قابل الحارس"}, "task": {"en": "Earn the keeper's trust without erasing their fear.", "ar": "اكسب ثقة الحارس دون محو خوفه."}},
+        {"title": {"en": "Follow the engineer", "ar": "اتبع المهندس"}, "task": {"en": "Reconstruct the machine from the engineer's route.", "ar": "أعد بناء الآلة من مسار المهندس."}},
+        {"title": {"en": "Hear the child", "ar": "اسمع الطفل"}, "task": {"en": "Find the one sound that survived the fracture.", "ar": "اعثر على الصوت الوحيد الذي نجا من الانشقاق."}},
+        {"title": {"en": "Compare the echoes", "ar": "قارن الأصداء"}, "task": {"en": "Resolve the contradiction between all three witnesses.", "ar": "حل التناقض بين الشهود الثلاثة."}},
+        {"title": {"en": "Name the first traitor", "ar": "سمِّ الخائن الأول"}, "task": {"en": "Choose which memory can be trusted at the Anchor.", "ar": "اختر الذاكرة التي يمكن الوثوق بها عند المرساة."}}
+      ]
+    },
+    {
+      "id": "c06", "title": {"en": "The Glass Garden", "ar": "الحديقة الزجاجية"},
+      "subtitle": {"en": "Hope grows where the Future should have ended.", "ar": "ينمو الأمل حيث كان يجب أن ينتهي المستقبل."},
+      "missions": [
+        {"title": {"en": "Plant the impossible seed", "ar": "ازرع البذرة المستحيلة"}, "task": {"en": "Find fertile soil in a world made of crystal.", "ar": "اعثر على تربة خصبة في عالم من البلور."}},
+        {"title": {"en": "Tune the glass birds", "ar": "اضبط الطيور الزجاجية"}, "task": {"en": "Match five notes to reveal the garden path.", "ar": "طابق خمس نغمات لكشف طريق الحديقة."}},
+        {"title": {"en": "Protect the bloom", "ar": "احمِ الزهرة"}, "task": {"en": "Defend the growing Echo from hungry rifts.", "ar": "دافع عن الصدى النامي ضد الشقوق الجائعة."}},
+        {"title": {"en": "Harvest a living shard", "ar": "احصد شظية حية"}, "task": {"en": "Collect the shard without breaking its memory.", "ar": "اجمع الشظية دون كسر ذاكرتها."}},
+        {"title": {"en": "Send a message home", "ar": "أرسل رسالة إلى الوطن"}, "task": {"en": "Open a stable channel back to the Present.", "ar": "افتح قناة مستقرة تعود إلى الحاضر."}}
+      ]
+    },
+    {
+      "id": "c07", "title": {"en": "The Hollow Crown", "ar": "التاج الفارغ"},
+      "subtitle": {"en": "A ruler erased their name to save the city.", "ar": "محا حاكم اسمه لينقذ المدينة."},
+      "missions": [
+        {"title": {"en": "Enter the silent court", "ar": "ادخل البلاط الصامت"}, "task": {"en": "Cross the court without waking its empty thrones.", "ar": "اعبر البلاط دون إيقاظ عروشه الفارغة."}},
+        {"title": {"en": "Gather the royal fragments", "ar": "اجمع الشظايا الملكية"}, "task": {"en": "Recover four pieces of the erased crown.", "ar": "استعد أربعة أجزاء من التاج الممحو."}},
+        {"title": {"en": "Unseal the oath", "ar": "افتح العهد"}, "task": {"en": "Translate the oath written across two timelines.", "ar": "ترجم العهد المكتوب عبر خطين زمنيين."}},
+        {"title": {"en": "Face the hollow king", "ar": "واجه الملك الفارغ"}, "task": {"en": "Solve the king's riddle without accepting his crown.", "ar": "حل لغز الملك دون قبول تاجه."}},
+        {"title": {"en": "Return the forgotten name", "ar": "أعد الاسم المنسي"}, "task": {"en": "Place the name where the royal Echo began.", "ar": "ضع الاسم حيث بدأ الصدى الملكي."}}
+      ]
+    },
+    {
+      "id": "c08", "title": {"en": "The Deep Engine", "ar": "المحرك العميق"},
+      "subtitle": {"en": "Below the district, the original clock is still turning.", "ar": "تحت الحي، ما زالت الساعة الأصلية تدور."},
+      "missions": [
+        {"title": {"en": "Descend through the vaults", "ar": "اهبط عبر الخزائن"}, "task": {"en": "Unlock three pressure doors in the correct order.", "ar": "افتح ثلاثة أبواب ضغط بالترتيب الصحيح."}},
+        {"title": {"en": "Repair the heart gear", "ar": "أصلح ترس القلب"}, "task": {"en": "Replace the gear while the engine changes eras.", "ar": "استبدل الترس بينما يبدل المحرك عصوره."}},
+        {"title": {"en": "Cool the temporal core", "ar": "برّد القلب الزمني"}, "task": {"en": "Balance water, light, and memory before overload.", "ar": "وازن الماء والضوء والذاكرة قبل الانفجار."}},
+        {"title": {"en": "Read the machine's dream", "ar": "اقرأ حلم الآلة"}, "task": {"en": "Follow the dream through a shifting puzzle room.", "ar": "اتبع الحلم عبر غرفة ألغاز متغيرة."}},
+        {"title": {"en": "Restart the world", "ar": "أعد تشغيل العالم"}, "task": {"en": "Choose a safe restart point for the fractured city.", "ar": "اختر نقطة إعادة تشغيل آمنة للمدينة المنقسمة."}}
+      ]
+    },
+    {
+      "id": "c09", "title": {"en": "The Last Cartographer", "ar": "آخر رسام للخرائط"},
+      "subtitle": {"en": "Every road now leads somewhere that never happened.", "ar": "كل طريق يقود الآن إلى مكان لم يحدث قط."},
+      "missions": [
+        {"title": {"en": "Chart the impossible roads", "ar": "ارسم الطرق المستحيلة"}, "task": {"en": "Map six landmarks that move between timelines.", "ar": "ارسم ستة معالم تتحرك بين الخطوط الزمنية."}},
+        {"title": {"en": "Find the ink of dawn", "ar": "اعثر على حبر الفجر"}, "task": {"en": "Recover the cartographer's final color.", "ar": "استعد اللون الأخير لرسام الخرائط."}},
+        {"title": {"en": "Guide the lost echoes", "ar": "وجّه الأصداء الضائعة"}, "task": {"en": "Escort three echoes to their correct histories.", "ar": "رافق ثلاثة أصداء إلى تواريخها الصحيحة."}},
+        {"title": {"en": "Draw a door", "ar": "ارسم باباً"}, "task": {"en": "Create a route between the first and last chime.", "ar": "أنشئ طريقاً بين الرنين الأول والأخير."}},
+        {"title": {"en": "Burn the false map", "ar": "أحرق الخريطة الزائفة"}, "task": {"en": "Destroy the route that leads to the empty future.", "ar": "دمّر الطريق الذي يقود إلى المستقبل الفارغ."}}
+      ]
+    },
+    {
+      "id": "c10", "title": {"en": "The Unmaking", "ar": "المحو"},
+      "subtitle": {"en": "The fracture learns to remove the people who resist it.", "ar": "يتعلم الشق محو من يقاومه."},
+      "missions": [
+        {"title": {"en": "Protect the first memory", "ar": "احمِ الذاكرة الأولى"}, "task": {"en": "Keep the founding Echo alive through three attacks.", "ar": "أبقِ الصدى المؤسس حياً عبر ثلاث هجمات."}},
+        {"title": {"en": "Recover the missing crew", "ar": "استعد الطاقم المفقود"}, "task": {"en": "Find four companions erased from the lobby ledger.", "ar": "اعثر على أربعة رفاق محوا من سجل الردهة."}},
+        {"title": {"en": "Break the erasure engine", "ar": "اكسر محرك المحو"}, "task": {"en": "Disable the engine's three causal locks.", "ar": "عطّل الأقفال السببية الثلاثة للمحرك."}},
+        {"title": {"en": "Choose a sacrifice", "ar": "اختر تضحية"}, "task": {"en": "Decide which timeline can survive the collapse.", "ar": "قرر أي خط زمني يستطيع النجاة من الانهيار."}},
+        {"title": {"en": "Speak the names", "ar": "انطق الأسماء"}, "task": {"en": "Restore every erased name to the Anchor.", "ar": "أعد كل اسم ممحو إلى المرساة."}}
+      ]
+    },
+    {
+      "id": "c11", "title": {"en": "Before the Final Chime", "ar": "قبل الرنين الأخير"},
+      "subtitle": {"en": "The maker's testament reveals why the fracture began.", "ar": "تكشف وصية الصانع سبب بدء الشق."},
+      "missions": [
+        {"title": {"en": "Assemble the testament", "ar": "اجمع الوصية"}, "task": {"en": "Bring together the pages, signals, and living shard.", "ar": "اجمع الصفحات والإشارات والشظية الحية."}},
+        {"title": {"en": "Enter the maker's memory", "ar": "ادخل ذاكرة الصانع"}, "task": {"en": "Walk through the memory that started the first Echo.", "ar": "سر داخل الذاكرة التي بدأت الصدى الأول."}},
+        {"title": {"en": "Solve the three clocks", "ar": "حل الساعات الثلاث"}, "task": {"en": "Synchronize Past, Present, and Future without force.", "ar": "زامن الماضي والحاضر والمستقبل دون إجبار."}},
+        {"title": {"en": "Refuse the perfect lie", "ar": "ارفض الكذبة المثالية"}, "task": {"en": "Identify the beautiful outcome that must not exist.", "ar": "حدد النتيجة الجميلة التي يجب ألا توجد."}},
+        {"title": {"en": "Open the final gate", "ar": "افتح البوابة الأخيرة"}, "task": {"en": "Use every lesson to unlock the central chamber.", "ar": "استخدم كل ما تعلمته لفتح القاعة المركزية."}}
+      ]
+    },
+    {
+      "id": "c12", "title": {"en": "The Last Chime", "ar": "الرنين الأخير"},
+      "subtitle": {"en": "One choice will decide what reality remembers.", "ar": "خيار واحد سيقرر ما الذي سيتذكره الواقع."},
+      "missions": [
+        {"title": {"en": "Hold all three timelines", "ar": "ثبّت الخطوط الثلاثة"}, "task": {"en": "Keep the Past, Present, and Future Anchors alive together.", "ar": "أبقِ مراسي الماضي والحاضر والمستقبل حية معاً."}},
+        {"title": {"en": "Face the original Echo", "ar": "واجه الصدى الأصلي"}, "task": {"en": "Meet the voice behind every consequence.", "ar": "قابل الصوت خلف كل نتيجة."}},
+        {"title": {"en": "Build the Echo Triad", "ar": "ابنِ ثلاثية الصدى"}, "task": {"en": "Place the final shards in the cooperative Anchor.", "ar": "ضع الشظايا الأخيرة في المرساة التعاونية."}},
+        {"title": {"en": "Make the impossible choice", "ar": "اتخذ الخيار المستحيل"}, "task": {"en": "Choose between a perfect history and a living future.", "ar": "اختر بين تاريخ مثالي ومستقبل حي."}},
+        {"title": {"en": "Listen after the silence", "ar": "أنصت بعد الصمت"}, "task": {"en": "Complete the final reflection and shape the ending.", "ar": "أكمل التأمل الأخير وشكّل النهاية."}}
+      ]
+    }
+  ]
+}

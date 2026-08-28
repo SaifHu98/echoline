@@ -1,8 +1,11 @@
 extends Control
 
-# ECHO//LINE — Main Menu (Split Layout + Logo)
-# Left panel: PRIMARY actions (Play, Tutorial)
-# Right panel: SECONDARY actions (Settings, Language, Credits)
+# ECHO//LINE — Modern responsive main menu.
+# The legacy nodes remain in main_menu.tscn for backwards-compatible smoke tests;
+# the visible shell is built here so every viewport gets the same clean layout.
+
+const ModernTheme := preload("res://ui/modern_theme.gd")
+const STORY_SCENE := "res://scenes/single_player_story.tscn"
 
 @onready var play_btn: Button = $SplitContainer/LeftPanel/LeftScroll/LeftVBox/PlayButton
 @onready var tutorial_btn: Button = $SplitContainer/LeftPanel/LeftScroll/LeftVBox/TutorialButton
@@ -30,6 +33,17 @@ var _indicator_tween: Tween = null
 # P3-AUDIT: prevent re-entrant play button presses during the
 # 0.15s pre-transition animation.
 var _is_playing: bool = false
+var modern_root: Control = null
+var modern_title: Label = null
+var modern_subtitle: Label = null
+var modern_status: Label = null
+var modern_story_btn: Button = null
+var modern_multiplayer_btn: Button = null
+var modern_tutorial_btn: Button = null
+var modern_settings_btn: Button = null
+var modern_language_btn: Button = null
+var modern_credits_btn: Button = null
+var _modern_overlay: Control = null
 
 func _ready() -> void:
 	print("[MainMenu] _ready() called")
@@ -61,6 +75,7 @@ func _ready() -> void:
 	_connect_button_safely(settings_btn, _on_settings)
 	_connect_button_safely(language_btn, _on_language)
 	_connect_button_safely(credits_btn, _on_credits)
+	_build_modern_shell()
 
 	_connect_event_bus_safely()
 	_apply_current_locale()
@@ -101,6 +116,7 @@ func _on_network_status_changed(state: String, detail: String) -> void:
 		"connecting", "handshaking":
 			if status_label:
 				status_label.text = "Connecting to server..."
+			if modern_status: modern_status.text = _tr("menu.connecting", "Connecting to the Echo network…")
 		"connected":
 			_on_server_connected()
 		"error":
@@ -185,6 +201,9 @@ func _check_connection_status() -> void:
 func _on_server_connected() -> void:
 	if status_label:
 		status_label.text = "✓ Online — Ready to Play"
+	if modern_status:
+		modern_status.text = "● " + _tr("menu.online", "Online · Ready to play")
+		modern_status.add_theme_color_override("font_color", ModernTheme.SUCCESS)
 	if server_indicator:
 		_flash_indicator(Color(0.3, 1.0, 0.4, 1))
 
@@ -192,6 +211,9 @@ func _on_server_connected() -> void:
 func _on_server_error(reason: String) -> void:
 	if status_label:
 		status_label.text = "⚠ " + reason + " — Limited features"
+	if modern_status:
+		modern_status.text = "○ " + _tr("menu.offline", "Offline mode · Solo story available")
+		modern_status.add_theme_color_override("font_color", ModernTheme.GOLD)
 	if server_indicator:
 		_flash_indicator(Color(1.0, 0.7, 0.2, 1))
 
@@ -239,6 +261,7 @@ func _update_localized_texts() -> void:
 	if language_btn:
 		language_btn.text = "🌐  " + ("English" if current_locale == "ar" else "العربية")
 	if credits_btn: credits_btn.text = "⭐  " + _tr("menu.credits", "CREDITS")
+	_update_modern_texts()
 
 
 func _animate_button_press(btn: Button) -> void:
@@ -272,6 +295,14 @@ func _on_play() -> void:
 			modulate.a = 1.0
 			_is_playing = false
 	)
+
+
+func _on_story_mode() -> void:
+	_log_button("story_mode")
+	if not ResourceLoader.exists(STORY_SCENE):
+		_show_info_dialog(&"story_panel", "Story unavailable", "The story chapter archive is missing.")
+		return
+	get_tree().change_scene_to_file(STORY_SCENE)
 
 
 func _on_tutorial() -> void:
@@ -313,6 +344,9 @@ func _on_credits() -> void:
 
 
 func _show_tutorial() -> void:
+	if modern_root:
+		_show_how_to_play_screen()
+		return
 	_show_info_dialog(&"tutorial_panel", "📖  How to Play", """ECHO//LINE is a cooperative cross-timeline puzzle game.
 
 🎯 OBJECTIVE
@@ -342,6 +376,9 @@ Good luck, time traveler!""")
 
 
 func _show_simple_settings() -> void:
+	if modern_root:
+		_show_settings_screen()
+		return
 	_show_info_dialog(&"settings_panel", "⚙  Settings", """ECHO//LINE — Settings
 
 🌐 Language
@@ -543,3 +580,432 @@ func _log_scene_entered(name: String) -> void:
 	var tc := get_node_or_null("/root/TelemetryClient")
 	if tc and tc.has_method("event_scene_changed"):
 		tc.event_scene_changed("", name)
+
+
+# =============================================================================
+# Modern responsive shell
+# =============================================================================
+
+func _build_modern_shell() -> void:
+	if modern_root and is_instance_valid(modern_root):
+		return
+	for node_name in ["Background", "BgGradient", "Header", "SplitContainer", "StatusLabel", "ServerIndicator", "Footer"]:
+		var legacy_node := get_node_or_null(node_name)
+		if legacy_node:
+			legacy_node.visible = false
+
+	modern_root = Control.new()
+	modern_root.name = "ModernShell"
+	modern_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	modern_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	modern_root.z_index = 20
+	add_child(modern_root)
+
+	var backdrop := ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = ModernTheme.BG
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	modern_root.add_child(backdrop)
+	var glow := ColorRect.new()
+	glow.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	glow.offset_bottom = 260
+	glow.color = Color(0.03, 0.16, 0.24, 0.45)
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	modern_root.add_child(glow)
+	var corner_mark := ModernTheme.label("⌬", 180, Color(0.2, 0.8, 1.0, 0.04))
+	corner_mark.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	corner_mark.position = Vector2(-170, -90)
+	corner_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	modern_root.add_child(corner_mark)
+
+	var safe := MarginContainer.new()
+	safe.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	safe.add_theme_constant_override("margin_left", 18)
+	safe.add_theme_constant_override("margin_right", 18)
+	safe.add_theme_constant_override("margin_top", 16)
+	safe.add_theme_constant_override("margin_bottom", 14)
+	modern_root.add_child(safe)
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 14)
+	safe.add_child(page)
+
+	var topbar := HBoxContainer.new()
+	topbar.custom_minimum_size.y = 68
+	topbar.add_theme_constant_override("separation", 10)
+	page.add_child(topbar)
+	var brand := VBoxContainer.new()
+	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand.add_theme_constant_override("separation", 0)
+	topbar.add_child(brand)
+	modern_title = ModernTheme.label("ECHO//LINE", 30, ModernTheme.TEXT)
+	modern_title.add_theme_color_override("font_shadow_color", Color(0.2, 0.8, 1.0, 0.35))
+	modern_title.add_theme_constant_override("shadow_offset_x", 2)
+	modern_title.add_theme_constant_override("shadow_offset_y", 2)
+	brand.add_child(modern_title)
+	modern_subtitle = ModernTheme.label("Echoes across time", 13, ModernTheme.MUTED)
+	brand.add_child(modern_subtitle)
+	var top_actions := HBoxContainer.new()
+	top_actions.add_theme_constant_override("separation", 8)
+	topbar.add_child(top_actions)
+	modern_language_btn = Button.new()
+	modern_language_btn.custom_minimum_size = Vector2(58, 56)
+	modern_language_btn.text = "ع"
+	ModernTheme.style_button(modern_language_btn, ModernTheme.GOLD)
+	modern_language_btn.pressed.connect(_on_language)
+	top_actions.add_child(modern_language_btn)
+	modern_settings_btn = Button.new()
+	modern_settings_btn.custom_minimum_size = Vector2(58, 56)
+	modern_settings_btn.text = "⚙"
+	ModernTheme.style_button(modern_settings_btn, ModernTheme.CYAN)
+	modern_settings_btn.pressed.connect(_on_settings)
+	top_actions.add_child(modern_settings_btn)
+
+	var status_panel := PanelContainer.new()
+	status_panel.custom_minimum_size.y = 34
+	status_panel.add_theme_stylebox_override("panel", ModernTheme.surface(Color(0.04, 0.1, 0.17, 0.86), 10, Color(0.12, 0.3, 0.42, 0.7)))
+	page.add_child(status_panel)
+	modern_status = ModernTheme.label("○ " + _tr("menu.offline", "Offline mode · Solo story available"), 13, ModernTheme.GOLD)
+	modern_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	modern_status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	status_panel.add_child(modern_status)
+
+	var scroll := ScrollContainer.new()
+	ModernTheme.configure_scroll(scroll)
+	page.add_child(scroll)
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 14)
+	scroll.add_child(content)
+
+	var hero := PanelContainer.new()
+	hero.custom_minimum_size.y = 154
+	hero.add_theme_stylebox_override("panel", ModernTheme.surface(Color(0.06, 0.14, 0.23, 0.96), 22, Color(0.14, 0.52, 0.67, 0.8), 1))
+	content.add_child(hero)
+	var hero_margin := MarginContainer.new()
+	hero.add_child(hero_margin)
+	hero_margin.add_theme_constant_override("margin_left", 22)
+	hero_margin.add_theme_constant_override("margin_right", 22)
+	hero_margin.add_theme_constant_override("margin_top", 18)
+	hero_margin.add_theme_constant_override("margin_bottom", 18)
+	var hero_box := VBoxContainer.new()
+	hero_margin.add_child(hero_box)
+	var eyebrow := ModernTheme.label(_tr("menu.eyebrow", "THE FRACTURE IS WAKING"), 12, ModernTheme.CYAN)
+	eyebrow.add_theme_constant_override("outline_size", 4)
+	hero_box.add_child(eyebrow)
+	var hero_title := ModernTheme.label(_tr("menu.hero_title", "Your choices echo through every timeline."), 24, ModernTheme.TEXT)
+	hero_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hero_box.add_child(hero_title)
+	var hero_copy := ModernTheme.label(_tr("menu.hero_copy", "Play alone with your Echo companions or invite friends into a living mystery."), 14, ModernTheme.MUTED)
+	hero_copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hero_box.add_child(hero_copy)
+
+	var section := ModernTheme.section_title(_tr("menu.play_section", "CHOOSE YOUR JOURNEY"))
+	content.add_child(section)
+	modern_story_btn = Button.new()
+	modern_story_btn.custom_minimum_size.y = 78
+	modern_story_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	modern_story_btn.text = "◈  " + _tr("menu.story", "STORY MODE")
+	ModernTheme.style_button(modern_story_btn, ModernTheme.GOLD, true)
+	modern_story_btn.pressed.connect(_on_story_mode)
+	content.add_child(modern_story_btn)
+	modern_multiplayer_btn = Button.new()
+	modern_multiplayer_btn.custom_minimum_size.y = 70
+	modern_multiplayer_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	modern_multiplayer_btn.text = "◉  " + _tr("menu.multiplayer", "MULTIPLAYER LOBBY")
+	ModernTheme.style_button(modern_multiplayer_btn, ModernTheme.CYAN, false)
+	modern_multiplayer_btn.pressed.connect(_on_play)
+	content.add_child(modern_multiplayer_btn)
+
+	var utility_row := HBoxContainer.new()
+	utility_row.add_theme_constant_override("separation", 10)
+	content.add_child(utility_row)
+	modern_tutorial_btn = Button.new()
+	modern_tutorial_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	modern_tutorial_btn.text = "?  " + _tr("menu.tutorial", "HOW TO PLAY")
+	ModernTheme.style_button(modern_tutorial_btn, ModernTheme.PINK)
+	modern_tutorial_btn.pressed.connect(_on_tutorial)
+	utility_row.add_child(modern_tutorial_btn)
+	modern_credits_btn = Button.new()
+	modern_credits_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	modern_credits_btn.text = "✦  " + _tr("menu.credits", "CREDITS")
+	ModernTheme.style_button(modern_credits_btn, ModernTheme.GOLD)
+	modern_credits_btn.pressed.connect(_on_credits)
+	utility_row.add_child(modern_credits_btn)
+
+	var footer := ModernTheme.label("v0.1.0 · Build 17  •  Early Access", 11, Color(0.55, 0.65, 0.78, 0.9))
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	page.add_child(footer)
+
+	_update_modern_texts()
+	_animate_modern_entrance()
+
+
+func _update_modern_texts() -> void:
+	if not modern_root or not is_instance_valid(modern_root):
+		return
+	if modern_title:
+		modern_title.text = "أصداء" if current_locale == "ar" else "ECHO//LINE"
+	if modern_subtitle:
+		modern_subtitle.text = _tr("app.subtitle", "Echoes across time")
+	if modern_story_btn:
+		modern_story_btn.text = "◈  " + _tr("menu.story", "STORY MODE")
+	if modern_multiplayer_btn:
+		modern_multiplayer_btn.text = "◉  " + _tr("menu.multiplayer", "MULTIPLAYER LOBBY")
+	if modern_tutorial_btn:
+		modern_tutorial_btn.text = "?  " + _tr("menu.tutorial", "HOW TO PLAY")
+	if modern_credits_btn:
+		modern_credits_btn.text = "✦  " + _tr("menu.credits", "CREDITS")
+	if modern_language_btn:
+		modern_language_btn.text = "EN" if current_locale == "ar" else "ع"
+
+
+func _animate_modern_entrance() -> void:
+	if not modern_root:
+		return
+	modern_root.modulate.a = 0.0
+	var tween := create_tween()
+	tween.tween_property(modern_root, "modulate:a", 1.0, 0.35).set_trans(Tween.TRANS_CUBIC)
+
+
+func _make_modal(title_text: String) -> Dictionary:
+	if _modern_overlay and is_instance_valid(_modern_overlay):
+		_modern_overlay.queue_free()
+	_modern_overlay = Control.new()
+	_modern_overlay.name = "ModernOverlay"
+	_modern_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_modern_overlay.z_index = 100
+	modern_root.add_child(_modern_overlay)
+	var dim := ColorRect.new()
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.01, 0.02, 0.05, 0.82)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_modern_overlay.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_modern_overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(max(280.0, min(720.0, get_viewport_rect().size.x - 28.0)), max(300.0, min(650.0, get_viewport_rect().size.y - 32.0)))
+	panel.add_theme_stylebox_override("panel", ModernTheme.surface(Color(0.055, 0.1, 0.18, 0.99), 24, Color(0.2, 0.55, 0.68, 0.9), 1))
+	center.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	panel.add_child(margin)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 12)
+	margin.add_child(stack)
+	var header := HBoxContainer.new()
+	stack.add_child(header)
+	var title := ModernTheme.label(title_text, 24, ModernTheme.TEXT)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	var close := Button.new()
+	close.text = "✕"
+	close.custom_minimum_size = Vector2(56, 56)
+	ModernTheme.style_button(close, ModernTheme.PINK)
+	close.pressed.connect(_close_modern_overlay)
+	header.add_child(close)
+	stack.add_child(HSeparator.new())
+	return {"stack": stack, "panel": panel}
+
+
+func _close_modern_overlay() -> void:
+	if _modern_overlay and is_instance_valid(_modern_overlay):
+		_modern_overlay.queue_free()
+	_modern_overlay = null
+
+
+func _show_how_to_play_screen() -> void:
+	var modal := _make_modal(_tr("tutorial.title", "HOW TO PLAY"))
+	var stack: VBoxContainer = modal.stack
+	var scroll := ScrollContainer.new()
+	ModernTheme.configure_scroll(scroll)
+	stack.add_child(scroll)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 14)
+	scroll.add_child(body)
+	var intro := ModernTheme.label(_tr("tutorial.intro", "Every action creates an Echo. Work together across Past, Present, and Future before stability reaches zero."), 16, ModernTheme.TEXT)
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_child(intro)
+	var steps := [
+		["01", _tr("tutorial.step1.title", "Choose a timeline"), _tr("tutorial.step1.body", "Past remembers, Present repairs, and Future predicts. Each path reveals a different clue.")],
+		["02", _tr("tutorial.step2.title", "Follow the Echo"), _tr("tutorial.step2.body", "Look for a glowing interaction, read its consequence, and communicate what changed.")],
+		["03", _tr("tutorial.step3.title", "Collect the shard"), _tr("tutorial.step3.body", "Resolved Echoes reveal Memory Shards. Keep the right shard for the right Anchor slot.")],
+		["04", _tr("tutorial.step4.title", "Build the Anchor"), _tr("tutorial.step4.body", "Place compatible shards in order. Late actions can change another timeline several moments later.")],
+		["05", _tr("tutorial.step5.title", "Protect stability"), _tr("tutorial.step5.body", "Use hints, quick chat, and pings when the catastrophe meter turns critical.")]
+	]
+	for step in steps:
+		var card := PanelContainer.new()
+		card.add_theme_stylebox_override("panel", ModernTheme.surface(Color(0.08, 0.15, 0.24, 0.95), 16, Color(0.15, 0.3, 0.45, 0.8)))
+		body.add_child(card)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 14)
+		card.add_child(row)
+		var number := ModernTheme.label(step[0], 22, ModernTheme.GOLD)
+		number.custom_minimum_size.x = 38
+		number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(number)
+		var copy := VBoxContainer.new()
+		copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(copy)
+		copy.add_child(ModernTheme.label(step[1], 17, ModernTheme.TEXT))
+		copy.add_child(ModernTheme.label(step[2], 13, ModernTheme.MUTED))
+	var done := Button.new()
+	done.text = _tr("common.got_it", "I'M READY")
+	ModernTheme.style_button(done, ModernTheme.CYAN, true)
+	done.pressed.connect(_close_modern_overlay)
+	stack.add_child(done)
+
+
+func _show_settings_screen() -> void:
+	var modal := _make_modal(_tr("settings.title", "SETTINGS"))
+	var stack: VBoxContainer = modal.stack
+	var scroll := ScrollContainer.new()
+	ModernTheme.configure_scroll(scroll)
+	stack.add_child(scroll)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	scroll.add_child(body)
+	_add_settings_section(body, _tr("settings.audio", "AUDIO"))
+	_add_audio_slider(body, "master", _tr("settings.master", "Master volume"), 1.0)
+	_add_audio_slider(body, "music", _tr("settings.music", "Music"), 0.7)
+	_add_audio_slider(body, "sfx", _tr("settings.sfx", "Sound effects"), 1.0)
+	_add_audio_slider(body, "ambient", _tr("settings.ambient", "Ambient"), 0.5)
+	_add_settings_section(body, _tr("settings.gameplay", "GAMEPLAY & ACCESSIBILITY"))
+	_add_toggle(body, _tr("settings.vibration", "Vibration feedback"), _accessibility_value("haptic_enabled", true), func(value: bool) -> void:
+		var access = get_node_or_null("/root/Accessibility")
+		if access and access.has_method("set_haptic"): access.set_haptic(value)
+	)
+	_add_toggle(body, _tr("settings.screen_shake", "Screen shake"), _accessibility_value("screen_shake_enabled", true), func(value: bool) -> void:
+		var access = get_node_or_null("/root/Accessibility")
+		if access and access.has_method("set_screen_shake"): access.set_screen_shake(value)
+	)
+	_add_toggle(body, _tr("settings.reduced_motion", "Reduced motion"), _accessibility_value("reduced_motion", false), func(value: bool) -> void:
+		var access = get_node_or_null("/root/Accessibility")
+		if access and access.has_method("set_reduced_motion"): access.set_reduced_motion(value)
+	)
+	_add_toggle(body, _tr("settings.subtitles", "Subtitles"), _accessibility_value("subtitles_enabled", true), func(value: bool) -> void:
+		var access = get_node_or_null("/root/Accessibility")
+		if access and access.has_method("set_subtitles_enabled"): access.set_subtitles_enabled(value)
+	)
+	_add_settings_section(body, _tr("settings.visuals", "VISUALS"))
+	var quality_row := HBoxContainer.new()
+	quality_row.add_theme_constant_override("separation", 10)
+	body.add_child(quality_row)
+	var quality_label := ModernTheme.label(_tr("settings.quality", "Visual quality"), 15, ModernTheme.TEXT)
+	quality_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quality_row.add_child(quality_label)
+	var quality := OptionButton.new()
+	quality.custom_minimum_size = Vector2(160, 56)
+	for item in [_tr("settings.low", "Low"), _tr("settings.medium", "Medium"), _tr("settings.high", "High"), _tr("settings.ultra", "Ultra")]: quality.add_item(item)
+	var gm = get_node_or_null("/root/GraphicsManager")
+	if gm: quality.select(clamp(int(gm.current_quality), 0, 3))
+	quality.item_selected.connect(func(index: int) -> void:
+		var manager = get_node_or_null("/root/GraphicsManager")
+		if manager and manager.has_method("set_quality"): manager.set_quality(index)
+	)
+	ModernTheme.style_button(quality, ModernTheme.CYAN)
+	quality_row.add_child(quality)
+	_add_toggle(body, _tr("settings.fullscreen", "Fullscreen"), _graphics_value("fullscreen", false), func(value: bool) -> void:
+		var manager = get_node_or_null("/root/GraphicsManager")
+		if manager and manager.has_method("set_fullscreen"): manager.set_fullscreen(value)
+	)
+	_add_settings_section(body, _tr("settings.language_section", "LANGUAGE"))
+	var language_row := HBoxContainer.new()
+	language_row.add_theme_constant_override("separation", 10)
+	body.add_child(language_row)
+	var language_label := ModernTheme.label(_tr("menu.language", "Language"), 15, ModernTheme.TEXT)
+	language_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	language_row.add_child(language_label)
+	var language := OptionButton.new()
+	language.custom_minimum_size = Vector2(180, 56)
+	language.add_item("English", 0)
+	language.add_item("العربية", 1)
+	language.select(1 if current_locale == "ar" else 0)
+	language.item_selected.connect(_on_settings_language_selected)
+	ModernTheme.style_button(language, ModernTheme.GOLD)
+	language_row.add_child(language)
+	var reset := Button.new()
+	reset.text = _tr("settings.reset", "RESET TO DEFAULTS")
+	ModernTheme.style_button(reset, ModernTheme.PINK)
+	reset.pressed.connect(_reset_settings)
+	stack.add_child(reset)
+
+
+func _add_settings_section(parent: VBoxContainer, text_value: String) -> void:
+	parent.add_child(ModernTheme.section_title(text_value))
+
+
+func _add_audio_slider(parent: VBoxContainer, channel: String, label_text: String, fallback: float) -> void:
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	parent.add_child(row)
+	var header := HBoxContainer.new()
+	row.add_child(header)
+	var title := ModernTheme.label(label_text, 14, ModernTheme.TEXT)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	var value_label := ModernTheme.label("", 13, ModernTheme.CYAN)
+	header.add_child(value_label)
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.01
+	slider.custom_minimum_size.y = 42
+	var mixer = get_node_or_null("/root/AudioMixer")
+	var value := float(mixer.get_level(channel) if mixer and mixer.has_method("get_level") else fallback)
+	slider.value = value
+	value_label.text = "%d%%" % int(value * 100.0)
+	slider.value_changed.connect(func(next_value: float) -> void:
+		value_label.text = "%d%%" % int(next_value * 100.0)
+		var service = get_node_or_null("/root/AudioMixer")
+		if service and service.has_method("set_channel"): service.set_channel(channel, next_value)
+	)
+	row.add_child(slider)
+
+
+func _add_toggle(parent: VBoxContainer, label_text: String, initial: bool, callback: Callable) -> void:
+	var check := CheckButton.new()
+	check.text = label_text
+	check.button_pressed = initial
+	check.custom_minimum_size.y = 56
+	check.add_theme_font_size_override("font_size", 15)
+	check.add_theme_color_override("font_color", ModernTheme.TEXT)
+	check.toggled.connect(callback)
+	parent.add_child(check)
+
+
+func _accessibility_value(property_name: String, fallback: Variant) -> Variant:
+	var access = get_node_or_null("/root/Accessibility")
+	if access:
+		var value = access.get(property_name)
+		return value if value != null else fallback
+	return fallback
+
+
+func _graphics_value(property_name: String, fallback: Variant) -> Variant:
+	var manager = get_node_or_null("/root/GraphicsManager")
+	if manager:
+		var value = manager.get(property_name)
+		return value if value != null else fallback
+	return fallback
+
+
+func _on_settings_language_selected(index: int) -> void:
+	var loc = get_node_or_null("/root/Localization")
+	if loc and loc.has_method("set_locale"):
+		loc.set_locale("ar" if index == 1 else "en")
+	_close_modern_overlay()
+
+
+func _reset_settings() -> void:
+	var access = get_node_or_null("/root/Accessibility")
+	if access and access.has_method("reset_to_defaults"): access.reset_to_defaults()
+	var mixer = get_node_or_null("/root/AudioMixer")
+	if mixer and mixer.has_method("reset_to_defaults"): mixer.reset_to_defaults()
+	var graphics = get_node_or_null("/root/GraphicsManager")
+	if graphics and graphics.has_method("reset_to_defaults"): graphics.reset_to_defaults()
+	_show_settings_screen()

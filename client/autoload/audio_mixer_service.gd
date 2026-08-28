@@ -46,6 +46,7 @@ var voice_chat_enabled: bool = false
 
 func _ready() -> void:
 	_ensure_audio_buses()
+	load_from_disk()
 	_apply_all()
 	# مزامنة مع AccessibilityService
 	if Accessibility.has_signal("audio_levels_changed"):
@@ -79,6 +80,7 @@ func set_channel(channel: String, level: float) -> void:
 	levels[channel] = clamp(level, 0.0, 1.0)
 	_apply_channel(channel)
 	channel_changed.emit(channel, levels[channel])
+	save_to_disk()
 
 
 func toggle_mute(channel: String) -> void:
@@ -87,6 +89,7 @@ func toggle_mute(channel: String) -> void:
 	muted[channel] = not muted[channel]
 	_apply_channel(channel)
 	muted_changed.emit(channel, muted[channel])
+	save_to_disk()
 
 
 func set_muted(channel: String, value: bool) -> void:
@@ -95,6 +98,7 @@ func set_muted(channel: String, value: bool) -> void:
 	muted[channel] = value
 	_apply_channel(channel)
 	muted_changed.emit(channel, value)
+	save_to_disk()
 
 
 func enable_voice_chat(confirm_age: bool = false) -> bool:
@@ -114,6 +118,7 @@ func disable_voice_chat() -> void:
 	muted["voice"] = true
 	set_channel("voice", 0.0)
 	voice_chat_toggled.emit(false)
+	save_to_disk()
 
 
 func is_voice_chat_enabled() -> bool:
@@ -188,4 +193,12 @@ func load_from_disk() -> void:
 			if m.has(ch): muted[ch] = m[ch]
 		voice_chat_enabled = parsed.get("voice_chat_enabled", false)
 	_apply_all()
+
+
+func reset_to_defaults() -> void:
+	levels = {"master": 1.0, "music": 0.7, "sfx": 1.0, "voice": 0.0, "ui": 1.0, "ambient": 0.5}
+	muted = {"master": false, "music": false, "sfx": false, "voice": true, "ui": false, "ambient": false}
+	voice_chat_enabled = false
+	_apply_all()
+	save_to_disk()
 

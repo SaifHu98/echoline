@@ -12,17 +12,28 @@ func _ready() -> void:
 		haptics_supported = true
 
 func trigger_echo_pulse_haptic() -> void:
+	if not _is_enabled():
+		return
 	screen_shake_requested.emit(0.35, 0.25)
 	if haptics_supported:
 		Input.vibrate_handheld(40) # 40ms light impulse
 
 func trigger_anchor_lock_haptic() -> void:
+	if not _is_enabled():
+		return
 	screen_shake_requested.emit(0.6, 0.4)
 	if haptics_supported:
 		Input.vibrate_handheld(120) # 120ms heavy click
 
 func trigger_catastrophe_alarm_haptic() -> void:
+	if not _is_enabled():
+		return
 	screen_shake_requested.emit(0.2, 0.15)
 	if haptics_supported:
 		Input.vibrate_handheld(60)
+
+
+func _is_enabled() -> bool:
+	var access = get_node_or_null("/root/Accessibility")
+	return access == null or bool(access.get("haptic_enabled"))
 
