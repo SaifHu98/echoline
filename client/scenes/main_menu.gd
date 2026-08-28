@@ -283,9 +283,12 @@ func _on_language() -> void:
 	if language_btn:
 		_animate_button_press(language_btn)
 	var new_locale = "en" if current_locale == "ar" else "ar"
+	current_locale = new_locale
 	var loc = get_node_or_null("/root/Localization")
 	if loc and loc.has_method("set_locale"):
 		loc.set_locale(new_locale)
+	# P5-AUDIT: also update our own UI labels to reflect the locale
+	_update_localized_texts()
 
 
 func _on_credits() -> void:
@@ -296,11 +299,7 @@ func _on_credits() -> void:
 
 
 func _show_tutorial() -> void:
-	if tutorial_panel and is_instance_valid(tutorial_panel):
-		tutorial_panel.queue_free()
-	tutorial_panel = AcceptDialog.new()
-	tutorial_panel.title = "📖  How to Play"
-	tutorial_panel.dialog_text = """ECHO//LINE is a cooperative cross-timeline puzzle game.
+	_show_info_dialog(&"tutorial_panel", "📖  How to Play", """ECHO//LINE is a cooperative cross-timeline puzzle game.
 
 🎯 OBJECTIVE
 Each player occupies a different timeline:
@@ -325,17 +324,11 @@ Use quick messages to coordinate with players worldwide.
 • Some consequences are delayed
 • Multiple solutions exist
 
-Good luck, time traveler!"""
-	tutorial_panel.popup_centered()
-	add_child(tutorial_panel)
+Good luck, time traveler!""")
 
 
 func _show_simple_settings() -> void:
-	if settings_panel and is_instance_valid(settings_panel):
-		settings_panel.queue_free()
-	settings_panel = AcceptDialog.new()
-	settings_panel.title = "⚙  Settings"
-	settings_panel.dialog_text = """ECHO//LINE — Settings
+	_show_info_dialog(&"settings_panel", "⚙  Settings", """ECHO//LINE — Settings
 
 🌐 Language
    Arabic / English (auto-detect)
@@ -355,17 +348,11 @@ func _show_simple_settings() -> void:
 📦 Version
    0.1.0 (Early Access)
 
-Full settings panel coming in next build."""
-	settings_panel.popup_centered()
-	add_child(settings_panel)
+Full settings panel coming in next build.""")
 
 
 func _show_credits() -> void:
-	if credits_panel and is_instance_valid(credits_panel):
-		credits_panel.queue_free()
-	credits_panel = AcceptDialog.new()
-	credits_panel.title = "⭐  Credits"
-	credits_panel.dialog_text = """ECHO//LINE (أَصْدَاء)
+	_show_info_dialog(&"credits_panel", "⭐  Credits", """ECHO//LINE (أَصْدَاء)
 
 A Cooperative Cross-Timeline
 Multiplayer Social Puzzle Game
@@ -390,9 +377,68 @@ Multiplayer Social Puzzle Game
 
 Version 0.1.0
 © 2026 Saif
-Made with ❤️ in Iraq"""
-	credits_panel.popup_centered()
-	add_child(credits_panel)
+Made with ❤️ in Iraq""")
+
+
+# P5-AUDIT: Helper that builds a robust popup dialog using PopupPanel +
+# RichTextLabel inside a Control container. AcceptDialog has issues on
+# Android touch focus (the dialog itself blocks touches). PopupPanel as a
+# direct child of the menu lets us position and dismiss it reliably.
+func _show_info_dialog(slot: StringName, title: String, body: String) -> void:
+	# slot is unused now (we're using one shared popup container),
+	# but kept for backwards compat with the old AcceptDialog approach.
+	var existing := get_node_or_null("InfoDialog")
+	if existing and is_instance_valid(existing):
+		existing.queue_free()
+	var popup := PopupPanel.new()
+	popup.name = "InfoDialog"
+	popup.set_size(Vector2(min(540, get_viewport_rect().size.x - 80),
+		min(640, get_viewport_rect().size.y - 120)))
+	var vbox := VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 12)
+	popup.add_child(vbox)
+	# Title bar
+	var title_bar := HBoxContainer.new()
+	title_bar.add_theme_constant_override("separation", 8)
+	var title_label := Label.new()
+	title_label.text = title
+	title_label.add_theme_font_size_override("font_size", 22)
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_bar.add_child(title_label)
+	# Close button (X)
+	var close_btn := Button.new()
+	close_btn.text = "✕"
+	close_btn.custom_minimum_size = Vector2(56, 56)
+	close_btn.pressed.connect(func() -> void: if is_instance_valid(popup): popup.hide(); popup.queue_free())
+	title_bar.add_child(close_btn)
+	vbox.add_child(title_bar)
+	# Separator
+	var sep := HSeparator.new()
+	vbox.add_child(sep)
+	# Scroll container for body (handles long text on small screens)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var rich := RichTextLabel.new()
+	rich.bbcode_enabled = true
+	rich.fit_content = true
+	rich.scroll_active = false
+	rich.text = body
+	rich.add_theme_font_size_override("normal_font_size", 15)
+	scroll.add_child(rich)
+	vbox.add_child(scroll)
+	# OK button at the bottom
+	var ok_btn := Button.new()
+	ok_btn.text = "✓  OK"
+	ok_btn.custom_minimum_size = Vector2(0, 56)
+	ok_btn.pressed.connect(func() -> void: if is_instance_valid(popup): popup.hide(); popup.queue_free())
+	vbox.add_child(ok_btn)
+	add_child(popup)
+	# Center on screen
+	var vp := get_viewport_rect().size
+	popup.position = Vector2((vp.x - popup.size.x) * 0.5, (vp.y - popup.size.y) * 0.5)
+	popup.popup()
 
 
 func _input(event: InputEvent) -> void:

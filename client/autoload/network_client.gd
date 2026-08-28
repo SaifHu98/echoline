@@ -62,10 +62,12 @@ func _process(delta: float) -> void:
 	if not is_connected:
 		return
 	poll_timer += delta
-	# Send any queued events (FIFO order).
-	while pending_sends.size() > 0 and not poll_pending:
-		var payload: Dictionary = pending_sends.pop_front()
-		_do_post_event(payload)
+	# P5-AUDIT: only dispatch ONE pending event per frame so the awaited
+	# HTTPRequest doesn't stall the entire _process loop. The next event
+	# fires on the following frame.
+	if pending_sends.size() > 0 and not poll_pending:
+		var envelope: Dictionary = pending_sends.pop_front()
+		_do_post_event(envelope)
 	# Periodic long-poll — keeps the session alive and receives server events.
 	if poll_timer >= POLL_INTERVAL_SEC and not poll_pending:
 		poll_timer = 0.0
@@ -118,8 +120,13 @@ func get_last_error() -> String:
 # === Phase 1: HTTP handshake → SID ===
 
 func _handshake() -> void:
-	# Socket.IO v4 polling handshake: GET /socket.io/?EIO=4&transport=polling
-	# Returns "0{json}" where json has sid, pingInterval, pingTimeout, upgrades.
+	# Socket.IO v4 polling handshake (two phases):
+	# Phase 1: Engine.IO OPEN
+	#   GET  /socket.io/?EIO=4&transport=polling
+	#   < 0{"sid":"...","upgrades":[...],"pingInterval":...}
+	# Phase 2: Socket.IO CONNECT to namespace "/"
+	#   POST /socket.io/?EIO=4&transport=polling&sid=...   body="40"
+	#   < 40{"sid":"..."}
 	connection_state = "handshaking"
 	EventBus.network_status_changed.emit(connection_state, last_error)
 	var url := "%s/socket.io/?EIO=4&transport=polling" % server_base
@@ -152,8 +159,32 @@ func _handshake() -> void:
 	if sid == "":
 		_fail_handshake("Empty SID")
 		return
-	# Send the Socket.IO "connect" packet: 40{"sid":...}
-	_emit_socket_io_connect(sid)
+	print("[NetworkClient] Phase 1 OK. sid=%s ping=%dms — sending Socket.IO CONNECT" % [sid, ping_interval_ms])
+	# Phase 2: send Socket.IO CONNECT packet for default namespace "/".
+	# Body = "40" (Engine.IO MESSAGE 4 + Socket.IO CONNECT 0). Empty payload.
+	var connect_url := "%s/socket.io/?EIO=4&transport=polling&sid=%s" % [server_base, sid]
+	http.request(connect_url, PackedStringArray([
+		"User-Agent: ECHO-LINE-Client/0.1",
+		"Content-Type: text/plain;charset=UTF-8",
+	]), HTTPClient.METHOD_POST, "40")
+	var connect_args: Array = await http.request_completed
+	var connect_result: int = connect_args[0]
+	if connect_result != HTTPRequest.RESULT_SUCCESS:
+		_fail_handshake("CONNECT POST failed: %d" % connect_result)
+		return
+	# Read CONNECT ack via long-poll
+	poll_pending = true
+	poll_http.request(connect_url, PackedStringArray(["User-Agent: ECHO-LINE-Client/0.1"]), HTTPClient.METHOD_GET)
+	var poll_args: Array = await poll_http.request_completed
+	poll_pending = false
+	var poll_result: int = poll_args[0]
+	if poll_result != HTTPRequest.RESULT_SUCCESS:
+		_fail_handshake("CONNECT poll failed: %d" % poll_result)
+		return
+	var connect_body: PackedByteArray = poll_args[3]
+	var connect_text: String = connect_body.get_string_from_utf8()
+	# Expect "40{"sid":"..."}" — server assigns a Socket.IO sid.
+	print("[NetworkClient] CONNECT response: %s" % connect_text.substr(0, 80))
 	is_connected = true
 	reconnect_attempts = 0
 	connection_state = "connected"
@@ -162,7 +193,7 @@ func _handshake() -> void:
 	print("[NetworkClient] Connected. sid=%s ping=%dms" % [sid, ping_interval_ms])
 	EventBus.network_connected.emit()
 	EventBus.network_status_changed.emit(connection_state, last_error)
-	# Flush any queued events immediately.
+	# Flush any queued events immediately (long-poll cycle resumes naturally).
 	_do_long_poll()
 
 
@@ -207,24 +238,29 @@ func _send_event(event_name: String, payload: Dictionary,
 
 
 func _do_post_event(envelope: Dictionary) -> void:
-	# Socket.IO v4 polling POST format:
-	# 42["event_name", payload, request_id]
-	# The leading "4" = message, "2" = EVENT.
+	# Socket.IO v4 polling POST format for EVENT with ack:
+	#   Engine.IO MESSAGE (4) + Socket.IO EVENT (2) + ack_id + JSON
+	# Default namespace "/" is OMITTED in the JSON body — Socket.IO
+	# understands the absence of a namespace prefix as "/".
+	# Example: 421["lobby:create",{...}]   (no "/", no namespace prefix)
+	#
+	# We use request_id as the Socket.IO ack id so that when the server
+	# responds with `43[id, args]`, our long-poll handler can dispatch
+	# the matching ack_callback.
 	var event_name: String = envelope.event
 	var payload: Dictionary = envelope.payload
 	var request_id: int = int(envelope.request_id)
-	var inner: Array = []
-	if request_id > 0:
-		inner = [event_name, payload, request_id]
-	else:
-		inner = [event_name, payload]
+	var inner: Array = [event_name, payload]
 	var json_str: String = JSON.stringify(inner)
 	var url: String = "%s/socket.io/?EIO=4&transport=polling&sid=%s" % [
 		server_base, sid]
-	# The body is "4" + json_str + length-padding (Socket.IO v4 expects no
-	# length prefix for POSTs < 1MB).
+	# Engine.IO MESSAGE (4) + Socket.IO EVENT (2) + ack_id (or empty).
+	# When ack_id > 0, server treats the EVENT as having an ack callback.
+	var packet_type: String = "42"
+	if request_id > 0:
+		packet_type = "42%d" % request_id
 	var body: PackedByteArray = PackedByteArray()
-	body.append_array("4".to_utf8_buffer())
+	body.append_array(packet_type.to_utf8_buffer())
 	body.append_array(json_str.to_utf8_buffer())
 	poll_pending = true
 	var headers: PackedStringArray = PackedStringArray([
@@ -276,13 +312,23 @@ func _do_long_poll() -> void:
 
 
 func _dispatch_packets(text: String) -> void:
-	# Split on length-prefix "X" where X is digits, then content.
-	# Simpler: walk the string and dispatch per code.
+	# P5-AUDIT: walk the buffer and dispatch each engine.io / Socket.IO packet.
+	# Packet formats we may receive:
+	#   - "0<json>"        Engine.IO open (shouldn't happen post-handshake)
+	#   - "1"              Engine.IO close
+	#   - "2"              Engine.IO ping (we respond with pong)
+	#   - "3"              Engine.IO pong
+	#   - "4<json>"        Engine.IO MESSAGE (rest is a Socket.IO packet)
+	#       Socket.IO types inside:
+	#         "0"     CONNECT     — payload is {sid, ...}
+	#         "2..."  EVENT       — payload is [namespace, event_name, args...]
+	#         "3..."  ACK         — payload is [namespace, ack_id, args...]
+	#   - "<length>content"    length-prefixed packet
 	var i: int = 0
 	while i < text.length():
 		var c: String = text[i]
 		if c == "0":
-			# engine.io open (shouldn't happen after handshake, but safe)
+			# engine.io open (shouldn't happen after handshake)
 			i += 1
 			continue
 		if c == "1":
@@ -299,10 +345,8 @@ func _dispatch_packets(text: String) -> void:
 			i += 1
 			continue
 		if c == "4":
-			# Socket.IO message — rest is the inner JSON array.
+			# Socket.IO message — rest is JSON array describing the inner packet.
 			var rest: String = text.substr(i + 1)
-			# The JSON may be followed by another packet starting with a digit.
-			# Find the end of the JSON array by counting brackets.
 			var end_idx: int = _find_json_end(rest)
 			if end_idx > 0:
 				var json_text: String = rest.substr(0, end_idx)
@@ -313,7 +357,6 @@ func _dispatch_packets(text: String) -> void:
 			continue
 		# Length-prefixed: "NNcontent" where NN is the content length.
 		if c.is_valid_int():
-			# Read the length digits.
 			var j: int = i
 			while j < text.length() and text[j].is_valid_int():
 				j += 1
@@ -385,42 +428,73 @@ func _handle_socket_io_message(json_text: String) -> void:
 	if json_text.is_empty():
 		return
 	var parsed: Variant = JSON.parse_string(json_text)
-	if not (parsed is Array):
+	if not (parsed is Array) or parsed.size() == 0:
 		return
-	var type_code: String = ""
-	var data = null
-	if parsed.size() >= 1:
-		type_code = str(parsed[0])
-	if parsed.size() >= 2:
-		data = parsed[1]
+
+	# P5-AUDIT: Socket.IO v4 message structure is
+	#   [namespace_or_type, type_code, ...args]
+	# or for legacy v3 (without namespace):
+	#   [type_code, ...args]
+	# We need to detect which form we got.
+	var idx: int = 0
+	var ns: String = "/"
+	if parsed.size() >= 2 and parsed[0] is String and (parsed[0] as String).begins_with("/"):
+		ns = parsed[0]
+		idx = 1
+	if idx >= parsed.size():
+		return
+	var type_code: String = str(parsed[idx])
+	idx += 1
+
 	if type_code == "0":
-		# Socket.IO CONNECTED
+		# Socket.IO CONNECT
 		is_connected = true
 		EventBus.network_connected.emit()
 		return
-	if type_code == "3":
-		# ACK with request_id
-		if data is Array and data.size() >= 2:
-			var ack_id: int = int(data[0])
-			var ack_data = data[1]
-			if ack_callbacks.has(ack_id):
-				var cb: Callable = ack_callbacks[ack_id]
-				ack_callbacks.erase(ack_id)
-				if cb.is_valid():
-					if ack_data is Dictionary:
-						cb.call(ack_data)
-					elif ack_data is Array and ack_data.size() > 0:
-						var dict: Dictionary = {"success": ack_data[0]}
-						for i in range(1, ack_data.size()):
-							dict["arg" + str(i)] = ack_data[i]
-						cb.call(dict)
-					else:
-						cb.call({"success": false, "error": "Empty ack", "data": ack_data})
+	if type_code == "1":
+		# DISCONNECT
+		is_connected = false
+		EventBus.network_error.emit("Server disconnected")
 		return
-	if parsed.size() >= 2:
-		var event_name: String = str(parsed[0])
-		var event_data = parsed[1]
+	if type_code == "2":
+		# EVENT — remaining elements are [event_name, ...args]
+		if idx >= parsed.size():
+			return
+		var event_name: String = str(parsed[idx])
+		idx += 1
+		var event_args: Array = []
+		for k in range(idx, parsed.size()):
+			event_args.append(parsed[k])
+		# Most events deliver a single payload (Dictionary).
+		var event_data = event_args[0] if event_args.size() >= 1 else {}
 		_dispatch_event(event_name, event_data)
+		return
+	if type_code == "3":
+		# ACK — [ack_id, ...args]
+		if idx >= parsed.size():
+			return
+		var ack_id_raw = parsed[idx]
+		var ack_id: int = -1
+		if ack_id_raw is int or ack_id_raw is float:
+			ack_id = int(ack_id_raw)
+		idx += 1
+		var ack_args: Array = []
+		for k in range(idx, parsed.size()):
+			ack_args.append(parsed[k])
+		if ack_callbacks.has(ack_id):
+			var cb: Callable = ack_callbacks[ack_id]
+			ack_callbacks.erase(ack_id)
+			if cb.is_valid():
+				if ack_args.size() == 1 and ack_args[0] is Dictionary:
+					cb.call(ack_args[0])
+				elif ack_args.size() >= 1:
+					var dict: Dictionary = {"success": ack_args[0]}
+					for i in range(1, ack_args.size()):
+						dict["arg" + str(i)] = ack_args[i]
+					cb.call(dict)
+				else:
+					cb.call({"success": false, "error": "Empty ack"})
+		return
 
 
 func _dispatch_event(event_name: String, data) -> void:
