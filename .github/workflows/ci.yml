@@ -49,7 +49,7 @@ jobs:
       - name: GDScript syntax check (Godot)
         uses: chickensoft-games/setup-godot@v2
         with:
-          godot-version: ${{ env.GODOT_VERSION }}
+          version: ${{ env.GODOT_VERSION }}
       - name: GDScript lint
         working-directory: client
         run: |
@@ -190,7 +190,7 @@ jobs:
         env:
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
       - name: OSV-Scanner
-        uses: google/osv-scanner-action@v1
+        uses: google/osv-scanner-action@v2
         with:
           scan-args: '--recursive .'
 
@@ -237,7 +237,7 @@ jobs:
       - name: Setup Godot
         uses: chickensoft-games/setup-godot@v2
         with:
-          godot-version: ${{ env.GODOT_VERSION }}
+          version: ${{ env.GODOT_VERSION }}
           cache: true
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -281,7 +281,7 @@ jobs:
       - name: Setup Godot
         uses: chickensoft-games/setup-godot@v2
         with:
-          godot-version: ${{ env.GODOT_VERSION }}
+          version: ${{ env.GODOT_VERSION }}
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       - name: Install Android SDK packages
@@ -327,7 +327,7 @@ jobs:
       - name: Setup Godot
         uses: chickensoft-games/setup-godot@v2
         with:
-          godot-version: ${{ env.GODOT_VERSION }}
+          version: ${{ env.GODOT_VERSION }}
       - name: Headless parse check
         working-directory: client
         run: |
