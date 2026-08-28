@@ -52,7 +52,9 @@ jobs:
           godot-version: ${{ env.GODOT_VERSION }}
       - name: GDScript lint
         working-directory: client
-        run: godot --headless --path . --script res://scripts/gdscript_syntax_check.gd
+        run: |
+          godot --headless --path . --editor --quit-after 3
+          godot --headless --path . --script res://scripts/gdscript_syntax_check.gd
 
   # ------------------------------------------------------------
   # 2. Unit tests (Node.js) — 37+ tests
@@ -290,6 +292,9 @@ jobs:
         run: |
           mkdir -p client/android/build/release
           echo "$KEYSTORE_BASE64" | base64 -d > client/android/build/release/echoline.keystore
+      - name: Import project
+        working-directory: client
+        run: godot --headless --path . --editor --quit-after 3
       - name: Build Signed APK
         working-directory: client
         run: |
@@ -325,7 +330,9 @@ jobs:
           godot-version: ${{ env.GODOT_VERSION }}
       - name: Headless parse check
         working-directory: client
-        run: godot --headless --path . --script res://scripts/gdscript_syntax_check.gd
+        run: |
+          godot --headless --path . --editor --quit-after 3
+          godot --headless --path . --script res://scripts/gdscript_syntax_check.gd
 
   # ------------------------------------------------------------
   # 9. Merge gate — all must pass
