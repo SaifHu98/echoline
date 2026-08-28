@@ -390,6 +390,99 @@ async function main() {
     check('Cleanup', false, e.message);
   }
 
+  // === Section 8: Room passwords + max_players (Phase 8) ===
+  section('8. Room Passwords + Max Players (Phase 8)');
+  let pwdHost, pwdJoiner, pwdRoom;
+  try {
+    // Create a password-protected room with max_players=2
+    pwdHost = await connect(url);
+    const pwdCreate = await emit(pwdHost, 'lobby:create', {
+      playerUid: 'pwd_host_' + Date.now(),
+      displayName: 'Password Host',
+      language: 'en',
+      scenarioId: 'clocktower_district',
+      maxPlayers: 2,
+      password: 'secret123',
+    });
+    check('lobby:create with max_players=2 + password',
+      pwdCreate?.success === true,
+      'code=' + pwdCreate?.room?.code);
+    if (pwdCreate?.success) {
+      pwdRoom = pwdCreate.room;
+      check('publicState exposes max_players',
+        pwdRoom.maxPlayers === 2, 'max=' + pwdRoom.maxPlayers);
+      check('publicState exposes isPrivate',
+        pwdRoom.isPrivate === true, 'isPrivate=' + pwdRoom.isPrivate);
+      check('publicState exposes hasPassword',
+        pwdRoom.hasPassword === true, 'hasPassword=' + pwdRoom.hasPassword);
+      check('publicState exposes playerCount',
+        pwdRoom.playerCount === 1, 'count=' + pwdRoom.playerCount);
+      // Verify layout uses the requested player count
+      const sp = pwdRoom.storyManifest?.layout?.spawn_points;
+      check('layout spawn_points === max_players',
+        Array.isArray(sp) && sp.length === 2, 'spawn_points=' + sp?.length);
+    }
+
+    // Try to join with WRONG password
+    pwdJoiner = await connect(url);
+    const wrongJoin = await emit(pwdJoiner, 'lobby:join', {
+      playerUid: 'pwd_joiner_' + Date.now(),
+      displayName: 'Pwd Joiner',
+      language: 'en',
+      roomCode: pwdRoom.code,
+      password: 'WRONG',
+    });
+    check('join with wrong password → rejected',
+      wrongJoin?.success === false && wrongJoin?.code === 'WRONG_PASSWORD',
+      'got code=' + wrongJoin?.code);
+
+    // Join with correct password
+    const okJoin = await emit(pwdJoiner, 'lobby:join', {
+      playerUid: 'pwd_joiner_' + Date.now(),
+      displayName: 'Pwd Joiner',
+      language: 'en',
+      roomCode: pwdRoom.code,
+      password: 'secret123',
+    });
+    check('join with correct password → success',
+      okJoin?.success === true,
+      'players=' + okJoin?.room?.playerCount);
+    check('public state shows 2 players',
+      okJoin?.room?.playerCount === 2, 'count=' + okJoin?.room?.playerCount);
+
+    // Verify a private room WITHOUT anyone joined appears in list_rooms
+    const soloHost = await connect(url);
+    const soloCreate = await emit(soloHost, 'lobby:create', {
+      playerUid: 'solo_host_' + Date.now(),
+      displayName: 'Solo Host',
+      language: 'en',
+      scenarioId: 'clocktower_district',
+      maxPlayers: 3,
+      password: 'locked',
+    });
+    const soloCode = soloCreate?.room?.code;
+    await sleep(200);
+    const soloListResp = await fetchJson(url, '/api/rooms?lang=en');
+    const soloListJson = soloListResp.status === 200 ? JSON.parse(soloListResp.body) : null;
+    const soloFound = (soloListJson?.data?.rooms || []).find((r) => r.code === soloCode);
+    check('list_rooms surfaces empty private room with isPrivate=true + max_players=3',
+      !!soloFound && soloFound.isPrivate === true && soloFound.maxPlayers === 3,
+      'found=' + (soloFound ? 'yes isPrivate=' + soloFound.isPrivate + ' max=' + soloFound.maxPlayers : 'no'));
+    // Also confirm that the private room's password (stored as hash) is NOT
+    // exposed in the public listing — we expose only the boolean flags.
+    check('public listing does NOT leak password hash',
+      soloFound && !('password' in soloFound) && !('passwordHash' in soloFound),
+      'keys=' + Object.keys(soloFound || {}).join(','));
+    soloHost?.disconnect();
+    await sleep(300);
+
+    pwdHost?.disconnect();
+    pwdJoiner?.disconnect();
+    await sleep(500);
+  } catch (e) {
+    check('Phase 8 password flow', false, e.message);
+  }
+
   // === Summary ===
   console.log('\n==================================================');
   console.log(' E2E Live Test Summary');
