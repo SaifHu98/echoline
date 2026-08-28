@@ -78,6 +78,8 @@ func _on_match_started(_match_id: String, _initial_state: Dictionary) -> void:
 
 func _on_match_concluded(_recap: Dictionary) -> void:
 	is_in_match = false
+	if lobby_view and lobby_view.has_method("reset_lobby_state"):
+		lobby_view.reset_lobby_state()
 	_show_lobby()
 	_cleanup_bots()
 
@@ -127,6 +129,9 @@ func _regenerate_for_timeline(timeline: String) -> void:
 		world_generator.current_timeline = timeline
 		world_generator.generate_world()
 	if environment_builder and environment_builder.has_method("_apply_timeline_atmosphere"):
+		if environment_builder.has_method("build_world"):
+			environment_builder.current_timeline = timeline
+			environment_builder.build_world()
 		environment_builder._apply_timeline_atmosphere()
 
 
@@ -160,9 +165,8 @@ func _spawn_bots(count: int) -> void:
 		# Spawn near center
 		var angle = randf() * TAU
 		var dist = randf_range(3, 6)
-		bot.global_position = Vector3(cos(angle) * dist, 0, sin(angle) * dist)
-
 		bots_container.add_child(bot)
+		bot.global_position = Vector3(cos(angle) * dist, 0, sin(angle) * dist)
 		spawned_bots.append(bot)
 
 

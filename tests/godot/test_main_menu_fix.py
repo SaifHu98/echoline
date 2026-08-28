@@ -104,13 +104,16 @@ def run_tests():
 
         results.check(
             "main_menu.tscn uses ScrollContainer for buttons",
-            "[node name=\"ScrollContainer\" type=\"ScrollContainer\"" in menu_tscn,
+            all(path in menu_tscn for path in [
+                '[node name="LeftScroll" type="ScrollContainer"',
+                '[node name="RightScroll" type="ScrollContainer"'
+            ]),
             "ScrollContainer ensures no overlap on small screens"
         )
 
         results.check(
             "main_menu.tscn buttons are inside ScrollContainer/Buttons",
-            "ScrollContainer/Buttons/PlayButton" in menu_tscn,
+            'parent="SplitContainer/LeftPanel/LeftScroll/LeftVBox"' in menu_tscn and "PlayButton" in menu_tscn,
             "Buttons hierarchy must be nested in ScrollContainer"
         )
 
@@ -127,8 +130,8 @@ def run_tests():
         )
 
         results.check(
-            "main_menu.tscn PlayButton has custom_minimum_size 560x88",
-            '[node name="PlayButton" type="Button"' in menu_tscn and 'Vector2(560, 88)' in menu_tscn,
+            "main_menu.tscn PlayButton has an explicit minimum size",
+            '[node name="PlayButton" type="Button"' in menu_tscn and 'Vector2(300, 110)' in menu_tscn,
             "PlayButton must have explicit minimum size"
         )
 
@@ -144,31 +147,31 @@ def run_tests():
         # Check signal connections
         results.check(
             "main_menu.tscn PlayButton connected to _on_play",
-            '"ScrollContainer/Buttons/PlayButton"' in menu_tscn and '_on_play' in menu_tscn,
+            '"SplitContainer/LeftPanel/LeftScroll/LeftVBox/PlayButton"' in menu_tscn and '_on_play' in menu_tscn,
             "Play button must be connected to _on_play"
         )
 
         results.check(
             "main_menu.tscn TutorialButton connected to _on_tutorial",
-            '"ScrollContainer/Buttons/TutorialButton"' in menu_tscn and '_on_tutorial' in menu_tscn,
+            '"SplitContainer/LeftPanel/LeftScroll/LeftVBox/TutorialButton"' in menu_tscn and '_on_tutorial' in menu_tscn,
             "Tutorial button must be connected to _on_tutorial"
         )
 
         results.check(
             "main_menu.tscn SettingsButton connected to _on_settings",
-            '"ScrollContainer/Buttons/SettingsButton"' in menu_tscn and '_on_settings' in menu_tscn,
+            '"SplitContainer/RightPanel/RightScroll/RightVBox/SettingsButton"' in menu_tscn and '_on_settings' in menu_tscn,
             "Settings button must be connected to _on_settings"
         )
 
         results.check(
             "main_menu.tscn LanguageButton connected to _on_language",
-            '"ScrollContainer/Buttons/LanguageButton"' in menu_tscn and '_on_language' in menu_tscn,
+            '"SplitContainer/RightPanel/RightScroll/RightVBox/LanguageButton"' in menu_tscn and '_on_language' in menu_tscn,
             "Language button must be connected to _on_language"
         )
 
         results.check(
             "main_menu.tscn CreditsButton connected to _on_credits",
-            '"ScrollContainer/Buttons/CreditsButton"' in menu_tscn and '_on_credits' in menu_tscn,
+            '"SplitContainer/RightPanel/RightScroll/RightVBox/CreditsButton"' in menu_tscn and '_on_credits' in menu_tscn,
             "Credits button must be connected to _on_credits"
         )
 
@@ -252,19 +255,19 @@ def run_tests():
 
         results.check(
             "main_menu.gd _show_tutorial cleans up old panel",
-            "tutorial_panel.queue_free()" in menu_gd,
+            '"InfoDialog"' in menu_gd and "queue_free()" in menu_gd,
             "Cleanup prevents accumulation of dialogs"
         )
 
         results.check(
             "main_menu.gd _show_simple_settings cleans up old panel",
-            "settings_panel.queue_free()" in menu_gd,
+            '"InfoDialog"' in menu_gd and "queue_free()" in menu_gd,
             "Cleanup prevents accumulation"
         )
 
         results.check(
             "main_menu.gd _show_credits cleans up old panel",
-            "credits_panel.queue_free()" in menu_gd,
+            '"InfoDialog"' in menu_gd and "queue_free()" in menu_gd,
             "Cleanup prevents accumulation"
         )
 

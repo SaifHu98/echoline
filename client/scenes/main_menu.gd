@@ -128,7 +128,7 @@ func _attempt_connect_safe() -> void:
 		status_label.text = "Connecting to server..."
 	if has_node("/root/NetworkClient"):
 		var nc = get_node("/root/NetworkClient")
-		if nc and nc.has_method("connect_to_server"):
+		if nc and nc.has_method("is_socket_connected") and nc.has_method("connect_to_server"):
 			print("[MainMenu] NetworkClient found, connecting...")
 			nc.connect_to_server("")
 		else:
@@ -263,7 +263,9 @@ func _on_play() -> void:
 		push_error("[MainMenu] Play scene not found: %s" % PLAY_SCENE)
 		_is_playing = false
 		return
-	get_tree().create_timer(0.15).timeout.connect(func():
+	var fade_tween := create_tween()
+	fade_tween.tween_property(self, "modulate:a", 0.0, 0.15)
+	fade_tween.tween_callback(func():
 		var err = get_tree().change_scene_to_file(PLAY_SCENE)
 		if err != OK:
 			push_error("[MainMenu] change_scene_to_file failed: %d" % err)

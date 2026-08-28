@@ -62,8 +62,7 @@ size = Vector3(8, 0.5, 8)
 
 [node name="GearMechanism" type="CSGCylinder3D" parent="World/PresentCourtyard"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1, -2)
-top_radius = 0.6
-bottom_radius = 0.6
+radius = 0.6
 height = 0.2
 
 [node name="FutureSpire" type="Node3D" parent="World"]
@@ -71,14 +70,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 8)
 
 [node name="SpireBase" type="CSGCylinder3D" parent="World/FutureSpire"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
-top_radius = 0.8
-bottom_radius = 1.0
+radius = 1.0
+cone = true
 height = 4.0
 
 [node name="SpireTop" type="CSGCylinder3D" parent="World/FutureSpire"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0)
-top_radius = 0.3
-bottom_radius = 0.8
+radius = 0.8
+cone = true
 height = 2.0
 
 [node name="PlasmaParticles" type="GPUParticles3D" parent="World/FutureSpire"]

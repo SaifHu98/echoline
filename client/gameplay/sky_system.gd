@@ -11,15 +11,26 @@ var current_time_of_day: float = 0.3  # 0-1 (0 = midnight, 0.5 = noon)
 var weather_type: String = "clear"  # clear, cloudy, rain, fog
 var weather_intensity: float = 0.0
 
-@onready var sun: DirectionalLight3D = $Sun
-@onready var sky: Sky = $WorldEnvironment.environment.sky
-@onready var sky_material: ProceduralSkyMaterial
-@onready var clouds: Array[MeshInstance3D] = []
-@onready var rain_particles: GPUParticles3D
-@onready var fog_volume: WorldEnvironment
+# Sibling lookups (Sun and WorldEnvironment live next to this node
+# under World3D). Resolved in _ready() because @onready cannot use
+# ternary expressions with $path.
+var sun: DirectionalLight3D = null
+var sky: Sky = null
+var sky_material: ProceduralSkyMaterial
+var clouds: Array[MeshInstance3D] = []
+var rain_particles: GPUParticles3D
+var fog_volume: WorldEnvironment = null
 
 
 func _ready() -> void:
+	# Resolve sibling nodes that live next to us under World3D.
+	var parent := get_parent()
+	if parent:
+		sun = parent.get_node_or_null("Sun") as DirectionalLight3D
+		var we := parent.get_node_or_null("WorldEnvironment") as WorldEnvironment
+		fog_volume = we
+		if we and we.environment:
+			sky = we.environment.sky
 	sky_material = ProceduralSkyMaterial.new()
 	if sky:
 		sky.sky_material = sky_material
@@ -145,7 +156,8 @@ func _setup_clouds() -> void:
 		var dist = randf_range(20, 40)
 		cloud.position = Vector3(cos(angle) * dist, 25 + randf() * 15, sin(angle) * dist)
 		cloud.rotation_degrees = Vector3(0, randf() * 360, 0)
-		cloud.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		# Make clouds face the camera (billboard mode is a BaseMaterial3D feature)
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 		add_child(cloud)
 		clouds.append(cloud)
 
@@ -170,7 +182,8 @@ func _setup_rain() -> void:
 	cylinder.top_radius = 0.01
 	cylinder.bottom_radius = 0.01
 	cylinder.height = 0.3
-	rain_particles.mesh = cylinder
+	# In Godot 4 the mesh is set via draw_pass_1 (not .mesh).
+	rain_particles.draw_pass_1 = cylinder
 
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = Color(0.7, 0.8, 1.0, 0.6)

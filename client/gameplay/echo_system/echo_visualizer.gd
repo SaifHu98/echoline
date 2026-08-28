@@ -45,7 +45,7 @@ func _ready() -> void:
 	var particle_mesh = SphereMesh.new()
 	particle_mesh.radius = 0.05
 	particle_mesh.height = 0.1
-	particles.mesh = particle_mesh
+	particles.draw_pass_1 = particle_mesh
 
 	var particle_mat = StandardMaterial3D.new()
 	particle_mat.emission_enabled = true

@@ -126,7 +126,7 @@ func _make_water_segment(from: Vector3, to: Vector3) -> MeshInstance3D:
 	plane.size = Vector2(length + 0.5, 4.0)
 	water.mesh = plane
 	water.position = (from + to) / 2.0
-	water.look_at(to, Vector3.UP)
+	water.look_at_from_position(water.position, to, Vector3.UP)
 	water.rotate_object_local(Vector3.RIGHT, PI / 2)
 	water.position.y = -0.45
 
@@ -203,8 +203,7 @@ func _make_detailed_tree() -> Node3D:
 		var seg_height = trunk_height / trunk_segments
 		var radius_top = 0.18 - (i * 0.02)
 		var radius_bot = 0.22 - (i * 0.02)
-		seg.top_radius = radius_top
-		seg.bottom_radius = radius_bot
+		seg.radius = radius_bot
 		seg.height = seg_height
 		seg.position = Vector3(sin(i * 0.5) * 0.05, (i + 0.5) * seg_height, cos(i * 0.3) * 0.05)
 		var mat = StandardMaterial3D.new()
@@ -249,8 +248,8 @@ func _make_grass_patch(pos: Vector3) -> Node3D:
 	# Cluster of grass blades
 	for i in range(randi_range(3, 7)):
 		var blade = CSGCylinder3D.new()
-		blade.top_radius = 0.0
-		blade.bottom_radius = 0.015
+		blade.radius = 0.015
+		blade.cone = true
 		blade.height = 0.15 + randf() * 0.1
 		blade.position = Vector3(randf_range(-0.3, 0.3), blade.height / 2.0, randf_range(-0.3, 0.3))
 		blade.rotation_degrees = Vector3(randf_range(-15, 15), 0, randf_range(-15, 15))
@@ -286,8 +285,7 @@ func _make_flower(pos: Vector3) -> Node3D:
 	var flower = Node3D.new()
 	flower.position = pos
 	var stem = CSGCylinder3D.new()
-	stem.top_radius = 0.015
-	stem.bottom_radius = 0.02
+	stem.radius = 0.02
 	stem.height = 0.25
 	stem.position = Vector3(0, 0.12, 0)
 	var stem_mat = StandardMaterial3D.new()
@@ -376,8 +374,7 @@ func _make_grand_clocktower() -> Node3D:
 
 	# Clock face
 	var clock = CSGCylinder3D.new()
-	clock.top_radius = 1.0
-	clock.bottom_radius = 1.0
+	clock.radius = 1.0
 	clock.height = 0.15
 	clock.position = Vector3(2.05, 8.25, 0)
 	clock.rotation_degrees = Vector3(0, 0, 90)
@@ -405,8 +402,8 @@ func _make_grand_clocktower() -> Node3D:
 
 	# Roof - cone
 	var roof = CSGCylinder3D.new()
-	roof.top_radius = 0.0
-	roof.bottom_radius = 2.5
+	roof.radius = 2.5
+	roof.cone = true
 	roof.height = 3.0
 	roof.position.y = 11.0
 	var roof_mat = StandardMaterial3D.new()
@@ -417,8 +414,8 @@ func _make_grand_clocktower() -> Node3D:
 
 	# Spire
 	var spire = CSGCylinder3D.new()
-	spire.top_radius = 0.0
-	spire.bottom_radius = 0.15
+	spire.radius = 0.15
+	spire.cone = true
 	spire.height = 1.5
 	spire.position.y = 13.25
 	var spire_mat = StandardMaterial3D.new()
@@ -440,8 +437,7 @@ func _make_ornate_fountain() -> Node3D:
 	for i in range(3):
 		var basin = CSGCylinder3D.new()
 		var radius = 2.0 - i * 0.5
-		basin.top_radius = radius
-		basin.bottom_radius = radius
+		basin.radius = radius
 		basin.height = 0.4 - i * 0.05
 		basin.position.y = 0.2 - i * 0.05
 		var mat = StandardMaterial3D.new()
@@ -453,8 +449,7 @@ func _make_ornate_fountain() -> Node3D:
 
 	# Center pillar
 	var pillar = CSGCylinder3D.new()
-	pillar.top_radius = 0.25
-	pillar.bottom_radius = 0.3
+	pillar.radius = 0.3
 	pillar.height = 2.0
 	pillar.position.y = 1.4
 	var pillar_mat = StandardMaterial3D.new()
@@ -481,7 +476,7 @@ func _make_ornate_fountain() -> Node3D:
 	var particles = GPUParticles3D.new()
 	var sphere = SphereMesh.new()
 	sphere.radius = 0.05
-	particles.mesh = sphere
+	particles.draw_pass_1 = sphere
 	var pmat = StandardMaterial3D.new()
 	pmat.emission_enabled = true
 	pmat.emission = Color(0.5, 0.8, 1.0)
@@ -547,8 +542,7 @@ func _make_pillar() -> Node3D:
 
 	# Column
 	var column = CSGCylinder3D.new()
-	column.top_radius = 0.25
-	column.bottom_radius = 0.3
+	column.radius = 0.3
 	column.height = 2.5
 	column.position.y = 1.55
 	var col_mat = StandardMaterial3D.new()
@@ -572,8 +566,7 @@ func _make_lantern() -> Node3D:
 
 	# Post
 	var post = CSGCylinder3D.new()
-	post.top_radius = 0.05
-	post.bottom_radius = 0.08
+	post.radius = 0.08
 	post.height = 2.5
 	post.position.y = -1.25
 	var post_mat = StandardMaterial3D.new()
@@ -583,8 +576,7 @@ func _make_lantern() -> Node3D:
 
 	# Lamp housing
 	var housing = CSGCylinder3D.new()
-	housing.top_radius = 0.25
-	housing.bottom_radius = 0.2
+	housing.radius = 0.25
 	housing.height = 0.5
 	housing.position.y = 0.25
 	var housing_mat = StandardMaterial3D.new()
@@ -671,8 +663,7 @@ func _make_detailed_rock() -> Node3D:
 func _make_mushroom() -> Node3D:
 	var mush = Node3D.new()
 	var stem = CSGCylinder3D.new()
-	stem.top_radius = 0.05
-	stem.bottom_radius = 0.06
+	stem.radius = 0.06
 	stem.height = 0.15
 	stem.position.y = 0.075
 	var stem_mat = StandardMaterial3D.new()

@@ -35,7 +35,7 @@ const REFRESH_BTN_MIN_HEIGHT: int = 64
 # ----- Dynamic UI (created in _ensure_rooms_panel) -----
 var rooms_scroll: ScrollContainer = null
 var rooms_container: VBoxContainer = null
-var rooms_panel: Panel = null
+var rooms_panel: PanelContainer = null
 var refresh_btn: Button = null
 var join_section: VBoxContainer = null
 var lobby_status_label: Label = null
@@ -862,6 +862,14 @@ func _show_input_state() -> void:
 	if action_row: action_row.visible = false
 
 
+func reset_lobby_state() -> void:
+	is_ready = false
+	selected_timeline = ""
+	is_host = false
+	_show_input_state()
+	_update_card_selection_visuals()
+
+
 # Dynamically build the room browser panel if it wasn't present in the
 # scene (main.tscn inlines the LobbyView without RoomsPanel).
 func _ensure_rooms_panel() -> void:
@@ -871,47 +879,51 @@ func _ensure_rooms_panel() -> void:
 	if vbox == null:
 		return
 
-	rooms_panel = Panel.new()
+	# IMPORTANT: use PanelContainer so children auto-stack vertically.
+	# Using a raw Panel lets children overlap at (0,0) which is the bug
+	# we're fixing here.
+	rooms_panel = PanelContainer.new()
 	rooms_panel.name = "RoomsPanel"
-	rooms_panel.custom_minimum_size = Vector2(0, 200)
+	rooms_panel.custom_minimum_size = Vector2(0, 220)
+
+	# Outer VBox inside PanelContainer — children stack vertically.
+	var rooms_vbox := VBoxContainer.new()
+	rooms_vbox.add_theme_constant_override("separation", 0)
+	rooms_panel.add_child(rooms_vbox)
 
 	var vbox_index := vbox.get_child_count()
 	vbox.add_child(rooms_panel)
 	vbox.move_child(rooms_panel, vbox_index - 2 if vbox_index >= 3 else 1)
 
-	# Header with large refresh button
+	# Header row with title + big refresh button (sized for thumbs)
 	var header_hbox := HBoxContainer.new()
 	header_hbox.name = "Header"
 	header_hbox.add_theme_constant_override("separation", 12)
 	header_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rooms_panel.add_child(header_hbox)
-
-	var header_inner_margin := MarginContainer.new()
-	header_inner_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	header_inner_margin.add_theme_constant_override("margin_left", 16)
-	header_inner_margin.add_theme_constant_override("margin_right", 16)
-	header_inner_margin.add_theme_constant_override("margin_top", 10)
-	header_inner_margin.add_theme_constant_override("margin_bottom", 8)
-	rooms_panel.remove_child(header_hbox)
-	rooms_panel.add_child(header_inner_margin)
-	header_inner_margin.add_child(header_hbox)
+	var header_margin := MarginContainer.new()
+	header_margin.add_theme_constant_override("margin_left", 16)
+	header_margin.add_theme_constant_override("margin_right", 16)
+	header_margin.add_theme_constant_override("margin_top", 10)
+	header_margin.add_theme_constant_override("margin_bottom", 8)
+	rooms_vbox.add_child(header_margin)
+	header_margin.add_child(header_hbox)
 
 	var title_label := Label.new()
 	title_label.text = "🌐 " + _tr("lobby.open_rooms", "Open Rooms")
-	title_label.add_theme_font_size_override("font_size", 16)
+	title_label.add_theme_font_size_override("font_size", 18)
 	title_label.add_theme_color_override("font_color", Color(0, 0.95, 1, 1))
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header_hbox.add_child(title_label)
 
-	# BIG REFRESH BUTTON — easy to tap
+	# BIG REFRESH BUTTON — easy to tap (160 x 64 dp)
 	refresh_btn = Button.new()
 	refresh_btn.name = "RefreshButton"
-	refresh_btn.text = "🔄 " + _tr("lobby.refresh", "REFRESH")
+	refresh_btn.text = _tr("lobby.refresh", "REFRESH")
 	refresh_btn.custom_minimum_size = Vector2(160, REFRESH_BTN_MIN_HEIGHT)
 	refresh_btn.add_theme_font_size_override("font_size", 16)
 	refresh_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	# Make refresh button prominent
+	# Prominent cyan styling
 	var refresh_sb := StyleBoxFlat.new()
 	refresh_sb.bg_color = Color(0, 0.45, 0.65, 0.9)
 	refresh_sb.border_width_left = 2
@@ -936,20 +948,19 @@ func _ensure_rooms_panel() -> void:
 	if not refresh_btn.pressed.is_connected(_on_refresh_rooms_pressed):
 		refresh_btn.pressed.connect(_on_refresh_rooms_pressed)
 
-	# Body — scroll + container
+	# Body — scroll + container (inside the rooms_vbox, vertically below header)
 	var body_margin := MarginContainer.new()
-	body_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	body_margin.add_theme_constant_override("margin_left", 12)
 	body_margin.add_theme_constant_override("margin_right", 12)
 	body_margin.add_theme_constant_override("margin_top", 0)
 	body_margin.add_theme_constant_override("margin_bottom", 12)
-	rooms_panel.add_child(body_margin)
+	rooms_vbox.add_child(body_margin)
 
 	rooms_scroll = ScrollContainer.new()
 	rooms_scroll.name = "RoomsScroll"
 	rooms_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rooms_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rooms_scroll.custom_minimum_size = Vector2(0, 120)
+	rooms_scroll.custom_minimum_size = Vector2(0, 140)
 	rooms_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	body_margin.add_child(rooms_scroll)
 
@@ -1042,15 +1053,16 @@ func _show_status(msg: String) -> void:
 
 
 func _update_localized_texts() -> void:
-	if join_btn: join_btn.text = "🔑 " + _tr("lobby.join", "JOIN")
-	if create_btn: create_btn.text = "➕ " + _tr("lobby.create", "CREATE")
+	if join_btn: join_btn.text = _tr("lobby.join", "JOIN")
+	if create_btn: create_btn.text = _tr("lobby.create", "CREATE")
 	if ready_btn:
 		ready_btn.text = _tr("lobby.ready_done" if is_ready else "lobby.ready", "✓ READY" if is_ready else "READY")
-	if leave_btn: leave_btn.text = "🚪 " + _tr("lobby.leave", "LEAVE")
+	if leave_btn: leave_btn.text = _tr("lobby.leave", "LEAVE")
 	if back_btn: back_btn.text = "← " + _tr("menu.back", "BACK")
-	if refresh_btn: refresh_btn.text = "🔄 " + _tr("lobby.refresh", "REFRESH")
-	if room_code_input and room_code_input.placeholder != null:
-		room_code_input.placeholder = _tr("lobby.code_placeholder", "Enter room code")
+	if refresh_btn: refresh_btn.text = _tr("lobby.refresh", "REFRESH")
+	if room_code_input and is_instance_valid(room_code_input):
+		# Godot 4: LineEdit.placeholder_text (not .placeholder)
+		room_code_input.placeholder_text = _tr("lobby.code_placeholder", "Enter room code")
 	if past_card:
 		past_card.text = "◆  " + _tr("timeline.past", "THE PAST") + "\n" + _tr("timeline.past.desc", "Memory & Heritage")
 	if present_card:

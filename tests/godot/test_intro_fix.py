@@ -162,7 +162,7 @@ def run_tests():
 
     results.check(
         "main_menu.gd uses has_method before NetworkClient call",
-        'NetworkClient.has_method("is_socket_connected")' in menu_content,
+        'has_method("is_socket_connected")' in menu_content,
         "Defensive method check."
     )
 
@@ -257,7 +257,7 @@ def run_tests():
 
         results.check(
             "main_menu.tscn connects button signals",
-            'pressed" from="Layout/Buttons/PlayButton"' in menu_tscn,
+            'pressed" from="SplitContainer/LeftPanel/LeftScroll/LeftVBox/PlayButton"' in menu_tscn,
             "Signal connections wired in scene."
         )
 

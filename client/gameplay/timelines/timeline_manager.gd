@@ -7,11 +7,11 @@ extends Node3D
 @export var current_timeline: String = "past"
 
 # Environment node references (with safe fallback)
-@onready var canal_water_mesh: Node3D = $CanalWater
-@onready var courtyard_tree_mesh: Node3D = $CourtyardTree
-@onready var turbine_mesh: Node3D = $HydroTurbine
-@onready var canopy_bridge_mesh: Node3D = $CanopyBridge
-@onready var gate_stabilizer_mesh: Node3D = $GateStabilizer
+@onready var canal_water_mesh: Node3D = get_node_or_null("CanalWater")
+@onready var courtyard_tree_mesh: Node3D = get_node_or_null("CourtyardTree")
+@onready var turbine_mesh: Node3D = get_node_or_null("HydroTurbine")
+@onready var canopy_bridge_mesh: Node3D = get_node_or_null("CanopyBridge")
+@onready var gate_stabilizer_mesh: Node3D = get_node_or_null("GateStabilizer")
 var world_env: WorldEnvironment
 var directional_light: DirectionalLight3D
 
@@ -21,10 +21,8 @@ func _ready() -> void:
 	# Get reference to WorldEnvironment and DirectionalLight from parent scene
 	var parent = get_parent()
 	if parent:
-		var pparent = parent.get_parent()
-		if pparent:
-			world_env = pparent.get_node_or_null("WorldEnvironment")
-			directional_light = pparent.get_node_or_null("DirectionalLight3D")
+		world_env = parent.get_node_or_null("WorldEnvironment")
+		directional_light = parent.get_node_or_null("Sun")
 
 	if EventBus.has_signal("state_delta_received"):
 		EventBus.state_delta_received.connect(_on_state_delta)
@@ -61,7 +59,7 @@ func _setup_environment() -> void:
 
 
 func _apply_timeline_lighting() -> void:
-	var env = WorldEnvironment.new()
+	var env = Environment.new()
 	var sky = Sky.new()
 	var sky_mat = ProceduralSkyMaterial.new()
 	sky.sky_material = sky_mat

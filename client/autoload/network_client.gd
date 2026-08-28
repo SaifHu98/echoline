@@ -24,6 +24,7 @@ const REQUEST_TIMEOUT_SEC := 8.0
 var is_connected: bool = false
 var server_base: String = DEFAULT_SERVER_BASE
 var sid: String = ""  # Socket.IO session ID
+var engine_cookie: String = ""  # Engine.IO cookie (needed for polling affinity)
 var ping_interval_ms: int = 25000
 var ping_timeout_ms: int = 60000
 var room_code: String = ""
@@ -38,10 +39,13 @@ var ack_callbacks: Dictionary = {}  # request_id → callback
 var ack_counter: int = 0
 var last_ping_time_ms: int = 0
 var poll_pending: bool = false
+var event_pending: bool = false
 var poll_timer: float = 0.0
 var pending_sends: Array = []
 var http: HTTPRequest = null
 var poll_http: HTTPRequest = null
+var heartbeat_http: HTTPRequest = null
+var heartbeat_pending: bool = false
 var connection_state: String = "disconnected"  # "disconnected", "connecting", "handshaking", "connected", "error"
 var last_error: String = ""
 
@@ -55,6 +59,9 @@ func _ready() -> void:
 	poll_http = HTTPRequest.new()
 	add_child(poll_http)
 	poll_http.timeout = 10.0  # P2-3: was 30.0 - reduce wait on Render cold start
+	heartbeat_http = HTTPRequest.new()
+	add_child(heartbeat_http)
+	heartbeat_http.timeout = 5.0
 	set_process(false)  # P2-4: only run _process when connected
 
 
@@ -65,7 +72,7 @@ func _process(delta: float) -> void:
 	# P5-AUDIT: only dispatch ONE pending event per frame so the awaited
 	# HTTPRequest doesn't stall the entire _process loop. The next event
 	# fires on the following frame.
-	if pending_sends.size() > 0 and not poll_pending:
+	if pending_sends.size() > 0 and not event_pending:
 		var envelope: Dictionary = pending_sends.pop_front()
 		_do_post_event(envelope)
 	# Periodic long-poll — keeps the session alive and receives server events.
@@ -83,7 +90,7 @@ func _process(delta: float) -> void:
 
 func connect_to_server(url: String = "") -> void:
 	server_base = url if not url.is_empty() else DEFAULT_SERVER_BASE
-	if is_connected:
+	if is_connected or connection_state in ["connecting", "handshaking"]:
 		return
 	connection_state = "connecting"
 	last_error = ""
@@ -96,6 +103,7 @@ func disconnect_from_server() -> void:
 	connection_state = "disconnected"
 	is_connected = false
 	sid = ""
+	engine_cookie = ""
 	ack_callbacks.clear()
 	pending_sends.clear()
 	set_process(false)  # P2-4: deactivate polling loop
@@ -148,6 +156,12 @@ func _handshake() -> void:
 		return
 	var code: int = completed_args[1]
 	var body: PackedByteArray = completed_args[3]
+	var handshake_headers: PackedStringArray = completed_args[2]
+	for header in handshake_headers:
+		if header.to_lower().begins_with("set-cookie:"):
+			var cookie_value := header.substr(header.find(":") + 1).strip_edges().split(";", false)[0]
+			if cookie_value.begins_with("io="):
+				engine_cookie = cookie_value
 	if code != 200:
 		_fail_handshake("HTTP code %d" % code)
 		return
@@ -164,17 +178,26 @@ func _handshake() -> void:
 	sid = String(info.get("sid", ""))
 	ping_interval_ms = int(info.get("pingInterval", 25000))
 	ping_timeout_ms = int(info.get("pingTimeout", 60000))
+	# Engine.IO keeps polling requests open until an event or heartbeat arrives.
+	# The default 10-second HTTPRequest timeout aborts that transport and makes
+	# the server invalidate the session before the next lobby action.
+	poll_http.timeout = max(REQUEST_TIMEOUT_SEC, float(ping_timeout_ms) / 1000.0 + 5.0)
 	if sid == "":
 		_fail_handshake("Empty SID")
 		return
+	if engine_cookie == "":
+		engine_cookie = "io=" + sid
 	print("[NetworkClient] Phase 1 OK. sid=%s ping=%dms — sending Socket.IO CONNECT" % [sid, ping_interval_ms])
 	# Phase 2: send Socket.IO CONNECT packet for default namespace "/".
 	# Body = "40" (Engine.IO MESSAGE 4 + Socket.IO CONNECT 0). Empty payload.
 	var connect_url := "%s/socket.io/?EIO=4&transport=polling&sid=%s" % [server_base, sid]
-	http.request(connect_url, PackedStringArray([
+	var connect_headers := PackedStringArray([
 		"User-Agent: ECHO-LINE-Client/0.1",
 		"Content-Type: text/plain;charset=UTF-8",
-	]), HTTPClient.METHOD_POST, "40")
+	])
+	if engine_cookie != "":
+		connect_headers.append("Cookie: " + engine_cookie)
+	http.request(connect_url, connect_headers, HTTPClient.METHOD_POST, "40")
 	var connect_args: Array = await http.request_completed
 	var connect_result: int = connect_args[0]
 	if connect_result != HTTPRequest.RESULT_SUCCESS:
@@ -182,7 +205,10 @@ func _handshake() -> void:
 		return
 	# Read CONNECT ack via long-poll
 	poll_pending = true
-	poll_http.request(connect_url, PackedStringArray(["User-Agent: ECHO-LINE-Client/0.1"]), HTTPClient.METHOD_GET)
+	var connect_poll_headers := PackedStringArray(["User-Agent: ECHO-LINE-Client/0.1"])
+	if engine_cookie != "":
+		connect_poll_headers.append("Cookie: " + engine_cookie)
+	poll_http.request(connect_url, connect_poll_headers, HTTPClient.METHOD_GET)
 	var poll_args: Array = await poll_http.request_completed
 	poll_pending = false
 	var poll_result: int = poll_args[0]
@@ -191,8 +217,9 @@ func _handshake() -> void:
 		return
 	var connect_body: PackedByteArray = poll_args[3]
 	var connect_text: String = connect_body.get_string_from_utf8()
-	# Expect "40{"sid":"..."}" — server assigns a Socket.IO sid.
+	# Expect "40{"sid":"..."}" — this is only the namespace sid.
 	print("[NetworkClient] CONNECT response: %s" % connect_text.substr(0, 80))
+	# Keep using the Engine.IO sid from phase 1 for every polling URL.
 	is_connected = true
 	reconnect_attempts = 0
 	connection_state = "connected"
@@ -234,10 +261,6 @@ func _emit_socket_io_connect(session_id: String) -> void:
 
 func _send_event(event_name: String, payload: Dictionary,
 		ack_callback: Callable = Callable()) -> void:
-	if not is_connected:
-		if ack_callback.is_valid():
-			ack_callback.call({"success": false, "error": "Not connected"})
-		return
 	var request_id: int = 0
 	if ack_callback.is_valid():
 		ack_counter += 1
@@ -249,6 +272,16 @@ func _send_event(event_name: String, payload: Dictionary,
 		"payload": payload,
 		"request_id": request_id,
 	}
+	if not is_connected:
+		if connection_state in ["connecting", "handshaking"]:
+			# Keep lobby actions requested during the handshake. The first
+			# frame after CONNECT will flush this queue.
+			pending_sends.append(envelope)
+		else:
+			if request_id > 0 and ack_callbacks.has(request_id):
+				ack_callbacks.erase(request_id)
+				ack_callback.call({"success": false, "error": "Not connected"})
+		return
 	pending_sends.append(envelope)
 
 
@@ -277,19 +310,30 @@ func _do_post_event(envelope: Dictionary) -> void:
 	var body: PackedByteArray = PackedByteArray()
 	body.append_array(packet_type.to_utf8_buffer())
 	body.append_array(json_str.to_utf8_buffer())
-	poll_pending = true
+	event_pending = true
 	var headers: PackedStringArray = PackedStringArray([
 		"User-Agent: ECHO-LINE-Client/0.1",
 		"Content-Type: text/plain;charset=UTF-8",
 	])
+	if engine_cookie != "":
+		headers.append("Cookie: " + engine_cookie)
 	http.request(url, headers, HTTPClient.METHOD_POST, body.get_string_from_utf8())
 	var completed_args2: Array = await http.request_completed
 	var result: int = completed_args2[0]
-	poll_pending = false
+	event_pending = false
 	if result != HTTPRequest.RESULT_SUCCESS:
 		# Re-queue the envelope so we retry next poll cycle.
 		pending_sends.push_front(envelope)
 		return
+	var response_code: int = completed_args2[1]
+	if response_code < 200 or response_code >= 300:
+		var response_body: String = (completed_args2[3] as PackedByteArray).get_string_from_utf8()
+		push_error("[NetworkClient] Event POST failed: HTTP %d body=%s" % [response_code, response_body.substr(0, 160)])
+		if request_id > 0 and ack_callbacks.has(request_id):
+			var callback: Callable = ack_callbacks[request_id]
+			ack_callbacks.erase(request_id)
+			if callback.is_valid():
+				callback.call({"success": false, "error": "HTTP code %d" % response_code})
 
 
 # === Phase 3: Long-poll (GET) ===
@@ -304,9 +348,12 @@ func _do_long_poll() -> void:
 	var url: String = "%s/socket.io/?EIO=4&transport=polling&sid=%s" % [
 		server_base, sid]
 	poll_pending = true
-	poll_http.request(url, PackedStringArray([
+	var poll_headers := PackedStringArray([
 		"User-Agent: ECHO-LINE-Client/0.1",
-	]), HTTPClient.METHOD_GET)
+	])
+	if engine_cookie != "":
+		poll_headers.append("Cookie: " + engine_cookie)
+	poll_http.request(url, poll_headers, HTTPClient.METHOD_GET)
 	var completed_args3: Array = await poll_http.request_completed
 	var result: int = completed_args3[0]
 	poll_pending = false
@@ -360,13 +407,14 @@ func _dispatch_packets(text: String) -> void:
 			i += 1
 			continue
 		if c == "4":
-			# Socket.IO message — rest is JSON array describing the inner packet.
+			# Socket.IO message — the type/id prefix comes before its JSON array.
 			var rest: String = text.substr(i + 1)
-			var end_idx: int = _find_json_end(rest)
+			var json_start: int = rest.find("[")
+			var end_idx: int = _find_json_end(rest.substr(json_start)) if json_start >= 0 else -1
 			if end_idx > 0:
-				var json_text: String = rest.substr(0, end_idx)
-				_handle_socket_io_message(json_text)
-				i = i + 1 + end_idx
+				var packet_end: int = json_start + end_idx
+				_handle_socket_io_packet(rest.substr(0, packet_end))
+				i = i + 1 + packet_end
 				continue
 			i += 1
 			continue
@@ -383,6 +431,31 @@ func _dispatch_packets(text: String) -> void:
 			continue
 		# Unknown — skip one char.
 		i += 1
+
+
+func _handle_socket_io_packet(packet: String) -> void:
+	# Polling frames encode the Socket.IO type and ACK id before the JSON:
+	# 42["event", payload] and 431[{"success":true}].
+	if packet.is_empty():
+		return
+	var type_code: String = packet[0]
+	if type_code == "0" or type_code == "1":
+		return
+	var json_start: int = packet.find("[")
+	if json_start < 0:
+		return
+	var args_variant: Variant = JSON.parse_string(packet.substr(json_start))
+	if not (args_variant is Array):
+		return
+	var message: Array = [type_code]
+	if type_code == "3":
+		var ack_id_text := packet.substr(1, json_start - 1)
+		if not ack_id_text.is_valid_int():
+			return
+		message.append(int(ack_id_text))
+	for value in args_variant:
+		message.append(value)
+	_handle_socket_io_message(JSON.stringify(message))
 
 
 func _find_json_end(s: String) -> int:
@@ -423,11 +496,23 @@ func _do_ping() -> void:
 
 
 func _do_pong() -> void:
-	# Server pinged us. We can't easily reply over the same long-poll,
-	# but Socket.IO v4 polling tolerates the next long-poll containing
-	# the pong code "3". For simplicity: queue a pong on next send.
-	# Most servers accept missing pongs within ping_timeout (60s).
-	pass
+	# Engine.IO requires a pong after every server ping. Use a dedicated
+	# request so the heartbeat never competes with event or room requests.
+	if heartbeat_http == null or heartbeat_pending or sid == "":
+		return
+	heartbeat_pending = true
+	var url := "%s/socket.io/?EIO=4&transport=polling&sid=%s" % [server_base, sid]
+	var heartbeat_headers := PackedStringArray([
+		"User-Agent: ECHO-LINE-Client/0.1",
+		"Content-Type: text/plain;charset=UTF-8",
+	])
+	if engine_cookie != "":
+		heartbeat_headers.append("Cookie: " + engine_cookie)
+	heartbeat_http.request(url, heartbeat_headers, HTTPClient.METHOD_POST, "3")
+	var args: Array = await heartbeat_http.request_completed
+	heartbeat_pending = false
+	if args[0] != HTTPRequest.RESULT_SUCCESS and is_connected:
+		EventBus.network_error.emit("Heartbeat failed")
 
 
 func _handle_close() -> void:
@@ -617,10 +702,17 @@ func list_rooms(language: String = "en",
 func http_list_rooms(language: String = "en",
 		callback: Callable = Callable()) -> void:
 	var url := "%s/api/rooms?lang=%s" % [server_base, language]
-	http.request(url, PackedStringArray([
+	# Room browsing can be called by the lobby timer and by a manual refresh
+	# at the same time. Use one request node per call so HTTPRequest requests
+	# never overwrite each other.
+	var rooms_request := HTTPRequest.new()
+	rooms_request.timeout = REQUEST_TIMEOUT_SEC
+	add_child(rooms_request)
+	rooms_request.request(url, PackedStringArray([
 		"User-Agent: ECHO-LINE-Client/0.1",
 	]), HTTPClient.METHOD_GET)
-	var completed_args4: Array = await http.request_completed
+	var completed_args4: Array = await rooms_request.request_completed
+	rooms_request.queue_free()
 	var result: int = completed_args4[0]
 	if result != HTTPRequest.RESULT_SUCCESS:
 		if callback.is_valid():
@@ -684,16 +776,23 @@ func send_interaction(entity_id: String, action: String,
 	_send_event("match:interact", {
 		"entityId": entity_id,
 		"action": action,
+		"idempotencyKey": "%s_%d" % [player_uid, Time.get_ticks_usec()],
+		"clientSeq": ack_counter + 1,
 	}, callback)
 
 
 func send_chat(intent: String, code: String = "",
 		data: Dictionary = {}, callback: Callable = Callable()) -> void:
-	_send_event("match:chat", {
+	_send_event("match:quick_message", {
 		"intent": intent,
 		"code": code,
 		"data": data,
 	}, callback)
+
+
+func send_quick_message(intent: String, code: String = "",
+		data: Dictionary = {}, callback: Callable = Callable()) -> void:
+	send_chat(intent, code, data, callback)
 
 
 func send_ping(from_timeline: String, type: String, pos: Vector2,

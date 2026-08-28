@@ -35,8 +35,7 @@ func _setup_visuals() -> void:
 
 	# Body
 	var body = CSGCylinder3D.new()
-	body.top_radius = 0.3
-	body.bottom_radius = 0.35
+	body.radius = 0.35
 	body.height = 1.4
 	body.position = Vector3(0, 0.7, 0)
 	var mat = StandardMaterial3D.new()

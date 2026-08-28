@@ -58,11 +58,11 @@ var knowledge_base: Dictionary = {}  # prop_id → success_rate
 var model_node: Node3D
 var label_3d: Label3D
 var speech_bubble: Control
-var awareness_indicator: MeshInstance3D
+var awareness_indicator: CSGSphere3D
 var detection_area: Area3D
 var animation_player: AnimationPlayer
 var current_prop_target: Node3D = null
-var teammate_targets: Array[Node3D] = []
+var teammate_targets: Array = []
 
 
 func _ready() -> void:
@@ -83,8 +83,7 @@ func _setup_visuals() -> void:
 
 	# Body
 	var body = CSGCylinder3D.new()
-	body.top_radius = 0.3
-	body.bottom_radius = 0.35
+	body.radius = 0.35
 	body.height = 1.4
 	body.position = Vector3(0, 0.7, 0)
 	var mat = StandardMaterial3D.new()

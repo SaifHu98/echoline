@@ -104,7 +104,7 @@ func _build_hex_frame(color: Color) -> void:
 	prism.top_radius = 0.8
 	prism.bottom_radius = 0.8
 	prism.height = 0.1
-	prism.side_count = 6
+	prism.radial_segments = 6
 	frame.mesh = prism
 	frame.rotation_degrees = Vector3(90, 0, 30)
 	frame.set_meta("is_ripple_layer", true)

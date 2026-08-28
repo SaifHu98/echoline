@@ -1,0 +1,10 @@
+Initialize godot-rust (API v4.7.stable.official, runtime v4.7.2.stable.official, safeguards balanced)
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+[91mPHYSICS ENGINE 2D: DEFAULT[39m. Go to [1mAdvanced Settings -> Physics -> 2D[22m to change it to [1mRapier2D[22m.[0m
+ERROR: Attempt to open script 'res://client/tests/full_flow.gd' resulted in error 'File not found'.
+   at: load_source_code (modules/gdscript/gdscript.cpp:1139)
+ERROR: Failed loading resource: res://client/tests/full_flow.gd.
+   at: _load (core/io/resource_loader.cpp:317)
+ERROR: Can't load script: client\tests\full_flow.gd
+   at: start (main/main.cpp:4370)

@@ -224,8 +224,6 @@ func _on_flush_completed(result: int, response_code: int, _headers: PackedString
 
 
 func _exit_tree() -> void:
-	# Best-effort flush so any final log entries (including from _exit_tree
-	# callers) are at least queued.
-	if _queue.size() > 0:
-		# We can't await the request here; just push to network and hope.
-		_flush_queue()
+	# The HTTP child is already being torn down, so a request here would fail.
+	# Queued entries remain best-effort in memory until the next active session.
+	pass

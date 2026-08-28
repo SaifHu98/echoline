@@ -41,8 +41,8 @@ func _create_archivist() -> void:
 
 	# Hood (cone)
 	var hood = CSGCylinder3D.new()
-	hood.top_radius = 0.0
-	hood.bottom_radius = 0.4
+	hood.radius = 0.4
+	hood.cone = true
 	hood.height = 0.7
 	hood.position = Vector3(0, 1.95, -0.05)
 	hood.material = _make_material(Color(0.35, 0.25, 0.1), 0.5, Color(1, 0.85, 0.3))
@@ -50,8 +50,8 @@ func _create_archivist() -> void:
 
 	# Robe flowing
 	var robe = CSGCylinder3D.new()
-	robe.top_radius = 0.35
-	robe.bottom_radius = 0.7
+	robe.radius = 0.7
+	robe.cone = true
 	robe.height = 1.0
 	robe.position = Vector3(0, 0.5, 0)
 	robe.material = _make_material(Color(0.45, 0.32, 0.15), 0.3, Color(1, 0.84, 0.4))
@@ -215,8 +215,8 @@ func _create_oracle() -> void:
 
 	# Floating base (energy disk)
 	var disk = CSGCylinder3D.new()
-	disk.top_radius = 0.3
-	disk.bottom_radius = 0.5
+	disk.radius = 0.5
+	disk.cone = true
 	disk.height = 0.1
 	disk.position = Vector3(0, 0.5, 0)
 	var disk_mat = StandardMaterial3D.new()

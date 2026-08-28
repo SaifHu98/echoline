@@ -34,10 +34,9 @@ func _setup_environment() -> void:
 	environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_SCREEN
 	environment.glow_hdr_threshold = 0.85
 	environment.glow_hdr_scale = 2.0
-	environment.glow_luminance_cap = 8.0
 
 	# SSAO
-	environment.ssao_enabled = true
+	environment.ssao_enabled = false
 	environment.ssao_intensity = 1.0
 	environment.ssao_radius = 1.0
 	environment.ssao_power = 1.5
@@ -49,14 +48,11 @@ func _setup_environment() -> void:
 	environment.fog_sun_scatter = 0.3
 
 	# SSR (screen-space reflections for water)
-	environment.ssr_enabled = true
+	environment.ssr_enabled = false
 	environment.ssr_max_steps = 64
 	environment.ssr_fade_in = 0.3
 	environment.ssr_fade_out = 2.0
 	environment.ssr_depth_tolerance = 0.2
-
-	# Sub-scattering
-	environment.sss_enabled = false
 
 	# Adjustments
 	environment.adjustment_enabled = true

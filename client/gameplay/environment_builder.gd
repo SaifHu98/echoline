@@ -11,6 +11,15 @@ var spawned_props: Array[Node3D] = []
 
 
 func _ready() -> void:
+	# The main scene opens on the lobby. Build this expensive decorative
+	# environment only when a match starts.
+	pass
+
+
+func build_world() -> void:
+	for child in get_children():
+		child.queue_free()
+	spawned_props.clear()
 	_build_world()
 
 
@@ -74,7 +83,7 @@ func _make_path_segment(from: Vector3, to: Vector3) -> CSGBox3D:
 	segment.size = Vector3(1.5, 0.06, length)
 	segment.position = (from + to) / 2.0
 	segment.position.y = 0.02
-	segment.look_at(to + Vector3(0, 0.02, 0), Vector3.UP)
+	segment.look_at_from_position(segment.position, to + Vector3(0, 0.02, 0), Vector3.UP)
 	segment.rotate_object_local(Vector3.RIGHT, PI / 2)
 
 	var mat = StandardMaterial3D.new()
@@ -141,7 +150,7 @@ func _build_atmosphere() -> void:
 	var particles = GPUParticles3D.new()
 	var sphere = SphereMesh.new()
 	sphere.radius = 0.03
-	particles.mesh = sphere
+	particles.draw_pass_1 = sphere
 
 	var mat = StandardMaterial3D.new()
 	mat.emission_enabled = true
@@ -194,8 +203,7 @@ func _make_tree() -> Node3D:
 
 	# Trunk
 	var trunk = CSGCylinder3D.new()
-	trunk.top_radius = 0.2
-	trunk.bottom_radius = 0.3
+	trunk.radius = 0.3
 	trunk.height = 1.5 + randf() * 0.8
 	trunk.position = Vector3(0, trunk.height / 2.0, 0)
 	var trunk_mat = StandardMaterial3D.new()
@@ -235,8 +243,7 @@ func _make_bush() -> Node3D:
 func _make_flower() -> Node3D:
 	var flower = Node3D.new()
 	var stem = CSGCylinder3D.new()
-	stem.top_radius = 0.02
-	stem.bottom_radius = 0.03
+	stem.radius = 0.03
 	stem.height = 0.3
 	stem.position = Vector3(0, 0.15, 0)
 	var stem_mat = StandardMaterial3D.new()
@@ -295,8 +302,8 @@ func _make_clocktower() -> Node3D:
 
 	# Roof (pyramid via cone)
 	var roof = CSGCylinder3D.new()
-	roof.top_radius = 0.0
-	roof.bottom_radius = 2.5
+	roof.radius = 2.5
+	roof.cone = true
 	roof.height = 2.5
 	roof.position = Vector3(0, 11.25, 0)
 	var roof_mat = StandardMaterial3D.new()
@@ -306,8 +313,7 @@ func _make_clocktower() -> Node3D:
 
 	# Clock face
 	var clock = CSGCylinder3D.new()
-	clock.top_radius = 0.8
-	clock.bottom_radius = 0.8
+	clock.radius = 0.8
 	clock.height = 0.1
 	clock.position = Vector3(2.05, 9, 0)
 	clock.rotation_degrees = Vector3(0, 0, 90)
@@ -341,8 +347,7 @@ func _make_fountain() -> Node3D:
 
 	# Basin
 	var basin = CSGCylinder3D.new()
-	basin.top_radius = 1.2
-	basin.bottom_radius = 1.2
+	basin.radius = 1.2
 	basin.height = 0.4
 	basin.position = Vector3(0, 0.2, 0)
 	var mat = StandardMaterial3D.new()
@@ -353,8 +358,7 @@ func _make_fountain() -> Node3D:
 
 	# Center pillar
 	var pillar = CSGCylinder3D.new()
-	pillar.top_radius = 0.2
-	pillar.bottom_radius = 0.25
+	pillar.radius = 0.25
 	pillar.height = 1.2
 	pillar.position = Vector3(0, 1.0, 0)
 	pillar.material = mat
@@ -398,8 +402,7 @@ func _make_arch() -> Node3D:
 
 	# Top arch (half torus via rotated cylinder)
 	var top = CSGCylinder3D.new()
-	top.top_radius = 0.25
-	top.bottom_radius = 0.25
+	top.radius = 0.25
 	top.height = 2.5
 	top.position = Vector3(0, 3, 0)
 	top.rotation_degrees = Vector3(0, 0, 90)

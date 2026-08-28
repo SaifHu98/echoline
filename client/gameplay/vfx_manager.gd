@@ -49,7 +49,7 @@ static func spawn_impact(parent: Node3D, position: Vector3, color: Color, scale:
 	var particles = GPUParticles3D.new()
 	var psphere = SphereMesh.new()
 	psphere.radius = 0.05 * scale
-	particles.mesh = psphere
+	particles.draw_pass_1 = psphere
 	var pmat = StandardMaterial3D.new()
 	pmat.emission_enabled = true
 	pmat.emission = color
@@ -131,7 +131,7 @@ static func spawn_beam(parent: Node3D, from: Vector3, to: Vector3, color: Color,
 	cylinder.height = length
 	cyl.mesh = cylinder
 	cyl.position = (from + to) / 2.0
-	cyl.look_at(to)
+	cyl.look_at_from_position(cyl.position, to)
 	cyl.rotate_object_local(Vector3.RIGHT, PI / 2)
 
 	var mat = StandardMaterial3D.new()

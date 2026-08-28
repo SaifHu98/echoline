@@ -3,13 +3,13 @@ extends Control
 
 # In-Game Mobile & Desktop HUD
 
-@onready var stability_bar: ProgressBar = $TopBar/StabilityBar
-@onready var timer_label: Label = $TopBar/TimerLabel
-@onready var stage_label: Label = $TopBar/StageLabel
-@onready var timeline_badge: Label = $TopBar/TimelineBadge
-@onready var interact_btn: Button = $BottomBar/InteractButton
-@onready var quick_chat_btn: Button = $BottomBar/QuickChatButton
-@onready var ping_btn: Button = $BottomBar/PingButton
+@onready var stability_bar: ProgressBar = $HUDTopBar/TopBar/StabilityBar
+@onready var timer_label: Label = $HUDTopBar/TopBar/TimerLabel
+@onready var stage_label: Label = $HUDTopBar/TopBar/StageLabel
+@onready var timeline_badge: Label = $HUDTopBar/TopBar/TimelineBadge
+@onready var interact_btn: Button = $HUDBottomBar/BottomBar/InteractButton
+@onready var quick_chat_btn: Button = $HUDBottomBar/BottomBar/QuickChatButton
+@onready var ping_btn: Button = $HUDBottomBar/BottomBar/PingButton
 @onready var subtitle_label: Label = $SubtitleContainer/SubtitleLabel
 @onready var message_feed: VBoxContainer = $MessageFeed
 
@@ -176,5 +176,6 @@ func _on_quick_chat_pressed() -> void:
 
 
 func _on_ping_pressed() -> void:
-	NetworkClient.send_ping("location", "manual", Vector2(0.5, 0.5))
+	var timeline := NetworkClient.my_timeline if NetworkClient.my_timeline != "" else "past"
+	NetworkClient.send_ping(timeline, "location", Vector2(0.5, 0.5))
 	EventBus.subtitle_requested.emit("📍 Ping sent", 1.5)

@@ -366,7 +366,9 @@
       "description_key": "outcome.partial_testament.desc",
       "requirements": [
         { "timeline": "future", "entity": "temporal_gate_console", "property": "power_supplied", "operator": "==", "value": true },
-        { "timeline": "present", "entity": "clock_gear_mechanism", "property": "gear_seated",    "operator": "==", "value": true }
+        { "timeline": "future", "entity": "temporal_gate_console", "property": "frequency_tuned", "operator": "==", "value": true },
+        { "timeline": "present", "entity": "clock_gear_mechanism", "property": "gear_seated",    "operator": "==", "value": true },
+        { "timeline": "past", "entity": "workshop_anvil", "property": "rune_inscribed", "operator": "==", "value": true }
       ]
     }
   ],

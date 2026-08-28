@@ -32,9 +32,12 @@ func _ready() -> void:
 	# Apply current locale
 	_apply_current_locale()
 
-	# Subscribe to locale changes
-	if EventBus and EventBus.has_signal("locale_changed"):
-		EventBus.locale_changed.connect(_on_locale_changed)
+	# Subscribe to locale changes via autoload path (avoids parse-time
+	# dependency on the EventBus global identifier).
+	var event_bus = get_node_or_null("/root/EventBus")
+	if event_bus and event_bus.has_signal("locale_changed") \
+			and not event_bus.locale_changed.is_connected(_on_locale_changed):
+		event_bus.locale_changed.connect(_on_locale_changed)
 
 	# Ensure background is visible from frame 1 (prevents black flash)
 	if background:
