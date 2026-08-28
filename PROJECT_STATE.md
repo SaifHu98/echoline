@@ -32,8 +32,8 @@ Godot 4 multiplayer timeline-puzzle game with an authoritative Node.js server, s
 - Local smoke: 12/12; 50-room/200-player load: 1,000 operations, 0 errors, p99 9ms, ~3,030 ops/s.
 - Vertical-slice low-quality benchmark: FPS average 146.2, memory max 36MB, particles max 120; all budgets pass.
 - Android debug APK built and verified: package `com.ecouni.echoline`, min SDK 24, target SDK 34, arm64-v8a + x86_64, SHA-256 recorded at build handoff.
-- Build 17 verification artifact is `client/builds/echoline-v17.apk` (363.06 MB), SHA-256 `83d3876bfed59da659cdc333fd10c55c689107ca65d59aad52cc5a8f410b2223`, version code 17 / version name 0.1.0, debug-signed and verified with `aapt2`/`apksigner`.
-- Build 17 is published at `https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline17`; GitHub asset size 380701120 bytes and API SHA-256 `83d3876bfed59da659cdc333fd10c55c689107ca65d59aad52cc5a8f410b2223` match the local artifact exactly.
+- Build 18 verification artifact is `client/builds/echoline-v18.apk` (363.06 MB), SHA-256 `8eb76a6fe57e8c801438c759394a24e0736031c303900f7afe688a7f1aaab7f6`, version code 18 / version name 0.1.0, debug-signed and verified with `aapt2`/`apksigner`.
+- Build 18 is published at `https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline18`; GitHub asset size and API SHA-256 `8eb76a6fe57e8c801438c759394a24e0736031c303900f7afe688a7f1aaab7f6` match the local artifact exactly.
 - Localization and scenario validators: PASS.
 - Current source tree contains no GitHub token patterns; historical Git commits still contain a previously exposed token and must be revoked and purged with an agreed history rewrite before the secret-scan gate can be green.
 

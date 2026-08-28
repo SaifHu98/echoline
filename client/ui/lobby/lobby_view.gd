@@ -1077,6 +1077,14 @@ func _update_localized_texts() -> void:
 	if modern:
 		var heading_title := modern.get_node_or_null("MarginContainer/VBoxContainer/TopBar/Heading/HeadingTitle")
 		if heading_title: heading_title.text = _tr("lobby.title", "TIMELINE LOBBY")
+		var heading_subtitle := modern.get_node_or_null("MarginContainer/VBoxContainer/TopBar/Heading/HeadingSubtitle")
+		if heading_subtitle: heading_subtitle.text = _tr("lobby.subtitle", "Gather your crew. Choose your era. Change the future.")
+		var join_title := modern.get_node_or_null("MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer/JoinSection/JoinTitle")
+		if join_title: join_title.text = _tr("lobby.join_title", "ENTER A ROOM")
+		var rooms_title := modern.get_node_or_null("MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer/RoomsHeader/RoomsTitle")
+		if rooms_title: rooms_title.text = _tr("lobby.open_rooms", "OPEN ROOMS")
+		var timeline_title := modern.get_node_or_null("MarginContainer/VBoxContainer/ScrollContainer/VBoxContainer/TimelineTitle")
+		if timeline_title: timeline_title.text = _tr("lobby.role_select", "CHOOSE YOUR TIMELINE")
 
 
 # =============================================================================
@@ -1167,6 +1175,7 @@ func _build_modern_lobby() -> void:
 	join_section.add_theme_constant_override("separation", 10)
 	join_card.add_child(join_section)
 	var join_title := ModernTheme.label(_tr("lobby.join_title", "ENTER A ROOM"), 13, ModernTheme.CYAN)
+	join_title.name = "JoinTitle"
 	join_section.add_child(join_title)
 	var code_row := HBoxContainer.new()
 	code_row.add_theme_constant_override("separation", 10)
@@ -1191,9 +1200,12 @@ func _build_modern_lobby() -> void:
 	join_section.add_child(create_btn)
 
 	var rooms_header := HBoxContainer.new()
+	rooms_header.name = "RoomsHeader"
 	rooms_header.add_theme_constant_override("separation", 10)
 	content.add_child(rooms_header)
-	rooms_header.add_child(ModernTheme.section_title(_tr("lobby.open_rooms", "OPEN ROOMS")))
+	var rooms_title := ModernTheme.section_title(_tr("lobby.open_rooms", "OPEN ROOMS"))
+	rooms_title.name = "RoomsTitle"
+	rooms_header.add_child(rooms_title)
 	refresh_btn = Button.new()
 	refresh_btn.custom_minimum_size = Vector2(128, 54)
 	refresh_btn.text = _tr("lobby.refresh", "REFRESH")
@@ -1215,6 +1227,7 @@ func _build_modern_lobby() -> void:
 	rooms_scroll.add_child(rooms_container)
 
 	var timeline_header := ModernTheme.section_title(_tr("lobby.role_select", "CHOOSE YOUR TIMELINE"))
+	timeline_header.name = "TimelineTitle"
 	content.add_child(timeline_header)
 	cards_row = VBoxContainer.new()
 	cards_row.name = "TimelineCards"

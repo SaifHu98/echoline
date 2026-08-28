@@ -12,25 +12,25 @@
 
 ## Latest release
 
-### ECHO//LINE v0.1.0 — Build 17
+### ECHO//LINE v0.1.0 — Build 18
 
 **Complete modern UI · long-form solo campaign · responsive settings**
 
-Build 17 adds the complete responsive visual shell for the main menu, lobby,
+Build 18 adds the complete responsive visual shell for the main menu, lobby,
 settings, tutorial, language selection, and credits. It also introduces the
 offline-first **The Last Chime** campaign: 12 chapters and 60 localized missions
 with sequential unlocks and saved progress.
 
-➡️ **[View Build 17 release notes and download the APK](https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline17)**
+➡️ **[View Build 18 release notes and download the APK](https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline18)**
 
 | Artifact | Value |
 |---|---|
 | Package | `com.ecouni.echoline` |
-| Version metadata | `0.1.0` / version code `17` |
+| Version metadata | `0.1.0` / version code `18` |
 | Android support | min SDK 24 · target SDK 34 |
 | ABIs | `arm64-v8a` · `x86_64` |
 | APK size | 363.01 MB |
-| SHA-256 | `83d3876bfed59da659cdc333fd10c55c689107ca65d59aad52cc5a8f410b2223` |
+| SHA-256 | `8eb76a6fe57e8c801438c759394a24e0736031c303900f7afe688a7f1aaab7f6` |
 | Signing | debug-signed verification package; production keystore remains a release gate |
 
 ## The game
@@ -154,15 +154,15 @@ locally. This remains an operational tuning metric, not a hidden failure.
 
 ## Download and install
 
-Download the APK from the [Build 17 GitHub release](https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline17),
+Download the APK from the [Build 18 GitHub release](https://github.com/SaifHu98/echoline/releases/tag/v0.1.0-echoline18),
 then verify its checksum before installation:
 
 ```bash
-sha256sum echoline-v17.apk
-adb install -r echoline-v17.apk
+sha256sum echoline-v18.apk
+adb install -r echoline-v18.apk
 ```
 
-> Build 17 is a debug-signed verification package. A production-signed APK or
+> Build 18 is a debug-signed verification package. A production-signed APK or
 > AAB requires the protected release keystore and a real-device installation
 > smoke test.
 

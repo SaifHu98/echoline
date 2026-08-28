@@ -36,6 +36,10 @@ var _is_playing: bool = false
 var modern_root: Control = null
 var modern_title: Label = null
 var modern_subtitle: Label = null
+var modern_eyebrow: Label = null
+var modern_hero_title: Label = null
+var modern_hero_copy: Label = null
+var modern_play_section: Label = null
 var modern_status: Label = null
 var modern_story_btn: Button = null
 var modern_multiplayer_btn: Button = null
@@ -689,18 +693,19 @@ func _build_modern_shell() -> void:
 	hero_margin.add_theme_constant_override("margin_bottom", 18)
 	var hero_box := VBoxContainer.new()
 	hero_margin.add_child(hero_box)
-	var eyebrow := ModernTheme.label(_tr("menu.eyebrow", "THE FRACTURE IS WAKING"), 12, ModernTheme.CYAN)
-	eyebrow.add_theme_constant_override("outline_size", 4)
-	hero_box.add_child(eyebrow)
-	var hero_title := ModernTheme.label(_tr("menu.hero_title", "Your choices echo through every timeline."), 24, ModernTheme.TEXT)
-	hero_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hero_box.add_child(hero_title)
-	var hero_copy := ModernTheme.label(_tr("menu.hero_copy", "Play alone with your Echo companions or invite friends into a living mystery."), 14, ModernTheme.MUTED)
-	hero_copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hero_box.add_child(hero_copy)
+	modern_eyebrow = ModernTheme.label(_tr("menu.eyebrow", "THE FRACTURE IS WAKING"), 12, ModernTheme.CYAN)
+	modern_eyebrow.name = "HeroEyebrow"
+	modern_eyebrow.add_theme_constant_override("outline_size", 4)
+	hero_box.add_child(modern_eyebrow)
+	modern_hero_title = ModernTheme.label(_tr("menu.hero_title", "Your choices echo through every timeline."), 24, ModernTheme.TEXT)
+	modern_hero_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hero_box.add_child(modern_hero_title)
+	modern_hero_copy = ModernTheme.label(_tr("menu.hero_copy", "Play alone with your Echo companions or invite friends into a living mystery."), 14, ModernTheme.MUTED)
+	modern_hero_copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hero_box.add_child(modern_hero_copy)
 
-	var section := ModernTheme.section_title(_tr("menu.play_section", "CHOOSE YOUR JOURNEY"))
-	content.add_child(section)
+	modern_play_section = ModernTheme.section_title(_tr("menu.play_section", "CHOOSE YOUR JOURNEY"))
+	content.add_child(modern_play_section)
 	modern_story_btn = Button.new()
 	modern_story_btn.custom_minimum_size.y = 78
 	modern_story_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -732,7 +737,7 @@ func _build_modern_shell() -> void:
 	modern_credits_btn.pressed.connect(_on_credits)
 	utility_row.add_child(modern_credits_btn)
 
-	var footer := ModernTheme.label("v0.1.0 · Build 17  •  Early Access", 11, Color(0.55, 0.65, 0.78, 0.9))
+	var footer := ModernTheme.label("v0.1.0 · Build 18  •  Early Access", 11, Color(0.55, 0.65, 0.78, 0.9))
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	page.add_child(footer)
 
@@ -747,6 +752,14 @@ func _update_modern_texts() -> void:
 		modern_title.text = "أصداء" if current_locale == "ar" else "ECHO//LINE"
 	if modern_subtitle:
 		modern_subtitle.text = _tr("app.subtitle", "Echoes across time")
+	if modern_eyebrow:
+		modern_eyebrow.text = _tr("menu.eyebrow", "THE FRACTURE IS WAKING")
+	if modern_hero_title:
+		modern_hero_title.text = _tr("menu.hero_title", "Your choices echo through every timeline.")
+	if modern_hero_copy:
+		modern_hero_copy.text = _tr("menu.hero_copy", "Play alone with your Echo companions or invite friends into a living mystery.")
+	if modern_play_section:
+		modern_play_section.text = _tr("menu.play_section", "CHOOSE YOUR JOURNEY")
 	if modern_story_btn:
 		modern_story_btn.text = "◈  " + _tr("menu.story", "STORY MODE")
 	if modern_multiplayer_btn:
