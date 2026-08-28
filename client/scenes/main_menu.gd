@@ -33,6 +33,14 @@ var _is_playing: bool = false
 
 func _ready() -> void:
 	print("[MainMenu] _ready() called")
+	_log_scene_entered("main_menu")
+
+	# First time the menu loads, emit app_start so the server gets a
+	# single high-signal event marking the run began.
+	var tc := get_node_or_null("/root/TelemetryClient")
+	if tc and tc.has_method("event_app_start") and not Engine.has_singleton("__app_start_emitted__"):
+		Engine.set_meta("__app_start_emitted__", true)
+		tc.event_app_start()
 
 	var bg := get_node_or_null("Background")
 	if bg:
@@ -266,6 +274,7 @@ func _on_play() -> void:
 
 func _on_tutorial() -> void:
 	print("[MainMenu] _on_tutorial() called")
+	_log_button("tutorial")
 	if tutorial_btn:
 		_animate_button_press(tutorial_btn)
 	_show_tutorial()
@@ -273,6 +282,7 @@ func _on_tutorial() -> void:
 
 func _on_settings() -> void:
 	print("[MainMenu] _on_settings() called")
+	_log_button("settings")
 	if settings_btn:
 		_animate_button_press(settings_btn)
 	_show_simple_settings()
@@ -280,6 +290,7 @@ func _on_settings() -> void:
 
 func _on_language() -> void:
 	print("[MainMenu] _on_language() called")
+	_log_button("language")
 	if language_btn:
 		_animate_button_press(language_btn)
 	var new_locale = "en" if current_locale == "ar" else "ar"
@@ -293,6 +304,7 @@ func _on_language() -> void:
 
 func _on_credits() -> void:
 	print("[MainMenu] _on_credits() called")
+	_log_button("credits")
 	if credits_btn:
 		_animate_button_press(credits_btn)
 	_show_credits()
@@ -390,58 +402,142 @@ func _show_info_dialog(slot: StringName, title: String, body: String) -> void:
 	var existing := get_node_or_null("InfoDialog")
 	if existing and is_instance_valid(existing):
 		existing.queue_free()
+
+	# Compute target size based on viewport
+	var vp := get_viewport_rect().size
+	var dialog_size := Vector2(min(620.0, vp.x - 80.0), min(720.0, vp.y - 140.0))
 	var popup := PopupPanel.new()
 	popup.name = "InfoDialog"
-	popup.set_size(Vector2(min(540, get_viewport_rect().size.x - 80),
-		min(640, get_viewport_rect().size.y - 120)))
+	# PopupPanel already has a StyleBox — keep its default theme background
+
+	# Build the content tree BEFORE sizing so layout math is correct.
+	var margin := MarginContainer.new()
+	margin.name = "Margin"
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 20)
+	margin.add_theme_constant_override("margin_bottom", 20)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	popup.add_child(margin)
+
 	var vbox := VBoxContainer.new()
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vbox.add_theme_constant_override("separation", 12)
-	popup.add_child(vbox)
-	# Title bar
+	vbox.add_theme_constant_override("separation", 14)
+	margin.add_child(vbox)
+
+	# Title bar (Label + close button in HBox)
 	var title_bar := HBoxContainer.new()
 	title_bar.add_theme_constant_override("separation", 8)
 	var title_label := Label.new()
 	title_label.text = title
-	title_label.add_theme_font_size_override("font_size", 22)
+	title_label.add_theme_font_size_override("font_size", 26)
+	title_label.add_theme_color_override("font_color", Color(0.95, 0.95, 1.0, 1.0))
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title_bar.add_child(title_label)
-	# Close button (X)
+	# Close (X) button
 	var close_btn := Button.new()
 	close_btn.text = "✕"
-	close_btn.custom_minimum_size = Vector2(56, 56)
-	close_btn.pressed.connect(func() -> void: if is_instance_valid(popup): popup.hide(); popup.queue_free())
+	close_btn.custom_minimum_size = Vector2(60, 60)
+	close_btn.add_theme_font_size_override("font_size", 24)
+	close_btn.pressed.connect(func() -> void:
+		if is_instance_valid(popup):
+			popup.hide()
+			popup.queue_free()
+	)
 	title_bar.add_child(close_btn)
 	vbox.add_child(title_bar)
+
 	# Separator
-	var sep := HSeparator.new()
-	vbox.add_child(sep)
-	# Scroll container for body (handles long text on small screens)
+	vbox.add_child(HSeparator.new())
+
+	# ScrollContainer that fills remaining space; RichTextLabel inside
+	# expands to fill the scroll area and grows with its content.
 	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	vbox.add_child(scroll)
+
 	var rich := RichTextLabel.new()
+	rich.name = "Body"
 	rich.bbcode_enabled = true
 	rich.fit_content = true
-	rich.scroll_active = false
-	rich.text = body
-	rich.add_theme_font_size_override("normal_font_size", 15)
+	rich.scroll_active = true
+	rich.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rich.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rich.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rich.custom_minimum_size = Vector2(dialog_size.x - 80, 0)
+	# Use BBCode formatting for nicer typography (preserves emoji + newlines).
+	rich.text = _format_dialog_body(body)
+	rich.add_theme_font_size_override("normal_font_size", 16)
+	rich.add_theme_color_override("default_color", Color(0.92, 0.94, 0.98, 1.0))
 	scroll.add_child(rich)
-	vbox.add_child(scroll)
-	# OK button at the bottom
+
+	# OK button row
 	var ok_btn := Button.new()
 	ok_btn.text = "✓  OK"
 	ok_btn.custom_minimum_size = Vector2(0, 56)
-	ok_btn.pressed.connect(func() -> void: if is_instance_valid(popup): popup.hide(); popup.queue_free())
+	ok_btn.add_theme_font_size_override("font_size", 18)
+	ok_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ok_btn.pressed.connect(func() -> void:
+		if is_instance_valid(popup):
+			popup.hide()
+			popup.queue_free()
+	)
 	vbox.add_child(ok_btn)
+
+	# Add to scene then size + position
 	add_child(popup)
-	# Center on screen
-	var vp := get_viewport_rect().size
-	popup.position = Vector2((vp.x - popup.size.x) * 0.5, (vp.y - popup.size.y) * 0.5)
-	popup.popup()
+	popup.reset_size()
+	popup.size = dialog_size
+	popup.popup(Rect2i(Vector2i.ZERO, Vector2i(dialog_size)))
+
+	# Center the popup on the viewport.
+	popup.position = Vector2((vp.x - dialog_size.x) * 0.5, (vp.y - dialog_size.y) * 0.5)
+
+
+# Convert a plain-text body into BBCode so the RichTextLabel renders the
+# original line breaks + emoji + indentation faithfully. Without BBCode the
+# RichTextLabel collapses all whitespace and the dialog appears empty.
+func _format_dialog_body(body: String) -> String:
+	var lines: PackedStringArray = body.split("\n")
+	var out: PackedStringArray = []
+	for raw in lines:
+		var line := raw
+		# Indentation: convert runs of leading spaces to nbsp so they survive.
+		var leading := ""
+		var i := 0
+		while i < line.length() and line[i] == " ":
+			leading += " "
+			i += 1
+		var rest := line.substr(leading.length() if false else 0)  # keep raw spaces, BBCode handles them
+		rest = line
+		if rest.strip_edges() == "":
+			out.append("[br][/br]")
+		else:
+			out.append(leading + rest)
+	return "[left]" + "\n".join(out) + "[/left]"
 
 
 func _input(event: InputEvent) -> void:
 	# P3-AUDIT: only handle ESC key — defer every other event to its target.
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		get_tree().quit()
+
+
+# =============================================================================
+# Telemetry helpers (Phase 7: client logs shipped to server)
+# =============================================================================
+
+func _log_button(name: String) -> void:
+	var tc := get_node_or_null("/root/TelemetryClient")
+	if tc and tc.has_method("event_button_pressed"):
+		tc.event_button_pressed(name, "main_menu")
+
+
+func _log_scene_entered(name: String) -> void:
+	var tc := get_node_or_null("/root/TelemetryClient")
+	if tc and tc.has_method("event_scene_changed"):
+		tc.event_scene_changed("", name)

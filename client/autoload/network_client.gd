@@ -109,6 +109,14 @@ func is_socket_connected() -> bool:
 	return is_connected
 
 
+func get_server_base() -> String:
+	return server_base
+
+
+func get_session_id() -> String:
+	return sid
+
+
 func get_connection_state() -> String:
 	return connection_state
 
@@ -201,6 +209,13 @@ func _fail_handshake(reason: String) -> void:
 	connection_state = "error"
 	last_error = reason
 	push_error("[NetworkClient] Handshake failed: %s" % reason)
+	# Telemetry ship-out so server can correlate client failures
+	var tc := get_node_or_null("/root/TelemetryClient")
+	if tc and tc.has_method("log_error"):
+		tc.log_error("network.handshake", reason, {
+			"server_base": server_base,
+			"state": connection_state,
+		})
 	EventBus.network_status_changed.emit(connection_state, last_error)
 	EventBus.network_error.emit(reason)
 	_try_reconnect()

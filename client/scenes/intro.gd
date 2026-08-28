@@ -25,6 +25,10 @@ var _transition_lock: bool = false
 const NEXT_SCENE_PATH := "res://scenes/main_menu.tscn"
 
 func _ready() -> void:
+	var tc := get_node_or_null("/root/TelemetryClient")
+	if tc and tc.has_method("event_scene_changed"):
+		tc.event_scene_changed("", "intro")
+
 	# Apply current locale
 	_apply_current_locale()
 

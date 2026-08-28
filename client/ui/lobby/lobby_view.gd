@@ -41,6 +41,9 @@ signal leave_lobby_requested()
 
 func _ready() -> void:
 	print("[LobbyView] _ready() called")
+	var tc := get_node_or_null("/root/TelemetryClient")
+	if tc and tc.has_method("event_scene_changed"):
+		tc.event_scene_changed("", "lobby")
 	modulate.a = 1.0
 
 	_apply_current_locale()  # sets current_locale from Localization
@@ -491,6 +494,9 @@ func _show_timeline_picker_state() -> void:
 
 func _on_create_pressed() -> void:
 	print("[LobbyView] _on_create_pressed() called")
+	var tc := get_node_or_null("/root/TelemetryClient")
+	if tc and tc.has_method("event_button_pressed"):
+		tc.event_button_pressed("lobby.create", "lobby")
 	if has_node("/root/NetworkClient"):
 		var nc = get_node("/root/NetworkClient")
 		if not nc.is_socket_connected():
@@ -505,6 +511,9 @@ func _on_create_pressed() -> void:
 
 func _on_join_pressed() -> void:
 	print("[LobbyView] _on_join_pressed() called")
+	var tc := get_node_or_null("/root/TelemetryClient")
+	if tc and tc.has_method("event_button_pressed"):
+		tc.event_button_pressed("lobby.join", "lobby")
 	if not room_code_input:
 		return
 	var code = room_code_input.text.strip_edges().to_upper()

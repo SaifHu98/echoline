@@ -30,6 +30,7 @@ const logger = pino({
 const RoomManager = require('./rooms/RoomManager');
 const AdminBridge = require('./admin-bridge/AdminBridge');
 const MatchMaker = require('./rooms/MatchMaker');
+const { ClientTelemetryService } = require('./analytics/ClientTelemetryService');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -49,7 +50,7 @@ app.use(cors({
 app.use(express.json({ limit: '64kb' }));
 
 // ----- HTTP endpoints -----
-let roomManager, adminBridge;
+let roomManager, adminBridge, telemetryService;
 const scenarios = new Map();
 
 app.get('/', (req, res) => res.json({
@@ -68,6 +69,26 @@ app.get('/stats', (req, res) => {
   if (!roomManager) return res.json({ status: 'starting' });
   res.json(roomManager.stats());
 });
+
+// Mount client telemetry routes (Phase 7).
+// Note: these are registered early but `telemetryService` may be set later in
+// bootstrap(). Express looks up the handler at request time.
+app.post('/api/client/logs', (req, res) =>
+  telemetryService ? telemetryService.buildIngestHandler()(req, res)
+                   : res.status(503).json({ success: false, error: 'Telemetry not ready' })
+);
+app.get('/api/admin/logs', (req, res) =>
+  telemetryService ? telemetryService.buildAdminListHandler()(req, res)
+                   : res.status(503).json({ success: false, error: 'Telemetry not ready' })
+);
+app.get('/api/admin/logs/stats', (req, res) =>
+  telemetryService ? telemetryService.buildStatsHandler()(req, res)
+                   : res.status(503).json({ success: false, error: 'Telemetry not ready' })
+);
+app.get('/api/admin/logs/files', (req, res) =>
+  telemetryService ? telemetryService.buildFilesHandler()(req, res)
+                   : res.status(503).json({ success: false, error: 'Telemetry not ready' })
+);
 
 app.get('/api/config', async (req, res) => {
   await adminBridge.refreshIfStale();
@@ -184,6 +205,12 @@ function bootstrap() {
     baseUrl: process.env.ADMIN_API_URL || '',
     apiKey: process.env.ADMIN_API_KEY || '',
     logger,
+  });
+
+  telemetryService = new ClientTelemetryService({
+    logger,
+    rateLimiter: null, // Wired below
+    adminBridge,
   });
 
   roomManager = new RoomManager({

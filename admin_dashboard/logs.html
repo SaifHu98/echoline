@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECHO//LINE — سجلات اللعبة (Client Logs Viewer)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Outfit:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080B10;
+      --bg-card: rgba(16, 22, 34, 0.75);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --accent-cyan: #00E5FF;
+      --accent-amber: #D4AF37;
+      --accent-violet: #9013FE;
+      --accent-green: #00E676;
+      --accent-red: #FF4D6D;
+      --accent-orange: #FFB347;
+      --text-main: #F0F4F8;
+      --text-muted: #8E9BAE;
+      --font-family: 'Cairo', 'Outfit', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      background-image: radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.05) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(144, 19, 254, 0.05) 0%, transparent 40%);
+    }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(10, 14, 22, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 1rem; }
+    .brand-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent-amber), var(--accent-cyan));
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    }
+    .brand-title { font-size: 1.4rem; font-weight: 900; }
+    .nav-links a {
+      color: var(--text-muted); text-decoration: none; margin-left: 1rem;
+      padding: 0.4rem 0.8rem; border-radius: 8px;
+    }
+    .nav-links a:hover { background: rgba(255, 255, 255, 0.05); color: var(--accent-cyan); }
+
+    .container {
+      max-width: 1400px; margin: 2rem auto; padding: 0 1.5rem;
+    }
+
+    .controls {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      align-items: end;
+    }
+    .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .control-group label {
+      font-size: 0.85rem; color: var(--text-muted); font-weight: 600;
+    }
+    .control-group input, .control-group select {
+      padding: 0.6rem 0.8rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    .control-group input:focus, .control-group select:focus {
+      outline: none; border-color: var(--accent-cyan);
+    }
+    .btn {
+      padding: 0.7rem 1.2rem;
+      background: var(--accent-cyan); color: #000;
+      border: none; border-radius: 8px;
+      font-family: inherit; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { box-shadow: 0 0 20px rgba(0, 229, 255, 0.4); transform: translateY(-1px); }
+    .btn.secondary { background: rgba(255,255,255,0.08); color: var(--text-main); }
+    .btn.secondary:hover { background: rgba(255,255,255,0.15); box-shadow: none; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.2rem;
+    }
+    .stat-value { font-size: 2rem; font-weight: 900; line-height: 1; }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem; }
+    .stat-value.error { color: var(--accent-red); }
+    .stat-value.warn { color: var(--accent-orange); }
+    .stat-value.info { color: var(--accent-cyan); }
+    .stat-value.fatal { color: var(--accent-red); }
+
+    .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .panels { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .panel-title {
+      font-size: 1rem; font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--accent-cyan);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .log-entry {
+      padding: 0.7rem 0.8rem;
+      margin-bottom: 0.5rem;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent-cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+    .log-entry.warn { border-left-color: var(--accent-orange); }
+    .log-entry.error { border-left-color: var(--accent-red); }
+    .log-entry.fatal { border-left-color: var(--accent-red); background: rgba(255, 77, 109, 0.08); }
+
+    .log-ts { color: var(--text-muted); font-size: 0.75rem; }
+    .log-cat { color: var(--accent-amber); font-weight: 700; margin-left: 0.5rem; }
+    .log-sev {
+      display: inline-block; padding: 0.05rem 0.4rem; border-radius: 4px;
+      font-size: 0.7rem; font-weight: 700;
+      margin-left: 0.5rem;
+    }
+    .log-sev.info { background: rgba(0,229,255,0.15); color: var(--accent-cyan); }
+    .log-sev.warn { background: rgba(255,179,71,0.15); color: var(--accent-orange); }
+    .log-sev.error { background: rgba(255,77,109,0.15); color: var(--accent-red); }
+    .log-sev.fatal { background: var(--accent-red); color: #fff; }
+
+    .log-msg { margin-top: 0.3rem; color: var(--text-main); }
+    .log-ctx {
+      margin-top: 0.3rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      word-break: break-all;
+    }
+
+    .session-row {
+      display: grid;
+      grid-template-columns: 1fr 60px 60px 60px 80px 80px;
+      gap: 0.4rem;
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid var(--border-color);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      align-items: center;
+    }
+    .session-row.header {
+      font-family: inherit;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .session-row .sid { color: var(--accent-cyan); font-weight: 700; }
+    .sev-pill { padding: 0.05rem 0.4rem; border-radius: 4px; font-size: 0.7rem; }
+    .sev-pill.info { background: rgba(0,229,255,0.15); color: var(--accent-cyan); }
+    .sev-pill.error { background: rgba(255,77,109,0.15); color: var(--accent-red); }
+
+    .error-banner {
+      padding: 0.8rem 1rem;
+      background: rgba(255, 77, 109, 0.12);
+      border: 1px solid var(--accent-red);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      color: var(--accent-red);
+    }
+    .success-banner {
+      padding: 0.8rem 1rem;
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid var(--accent-green);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      color: var(--accent-green);
+    }
+
+    .refresh-bar {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .live-dot {
+      width: 8px; height: 8px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 2s infinite;
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-logo"></div>
+      <div>
+        <div class="brand-title">ECHO//LINE — Client Logs</div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">Phase 7 Telemetry Viewer</div>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="index.html">← لوحة الإدارة</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div id="connection-status"></div>
+
+    <div class="refresh-bar">
+      <span class="live-dot"></span>
+      <span style="color: var(--text-muted); font-size: 0.85rem;">
+        آخر تحديث: <span id="last-refresh">—</span>
+      </span>
+      <span style="flex: 1"></span>
+      <button class="btn secondary" onclick="refreshAll()" style="margin-left: 0.5rem;">⟳ تحديث</button>
+      <label style="margin-right: 1rem; display: flex; align-items: center; gap: 0.4rem; color: var(--text-muted);">
+        <input type="checkbox" id="auto-refresh" checked> Auto (10s)
+      </label>
+    </div>
+
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">إجمالي الأحداث</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value info" id="stat-info">—</div>
+        <div class="stat-label">معلومات</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value warn" id="stat-warn">—</div>
+        <div class="stat-label">تحذيرات</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value error" id="stat-error">—</div>
+        <div class="stat-label">أخطاء</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value fatal" id="stat-fatal">—</div>
+        <div class="stat-label">حرجة</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-sessions">—</div>
+        <div class="stat-label">الجلسات النشطة</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>الخادم (Game Server)</label>
+        <input type="text" id="server-url" value="https://echoline-game-server.onrender.com" />
+      </div>
+      <div class="control-group">
+        <label>الخطورة</label>
+        <select id="filter-severity">
+          <option value="">الكل</option>
+          <option value="fatal">حرجة</option>
+          <option value="error">أخطاء</option>
+          <option value="warn">تحذيرات</option>
+          <option value="info">معلومات</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>الفئة</label>
+        <input type="text" id="filter-category" placeholder="e.g. network.handshake" />
+      </div>
+      <div class="control-group">
+        <label>الجلسة (Session ID)</label>
+        <input type="text" id="filter-session" placeholder="اختياري" />
+      </div>
+      <div class="control-group">
+        <label>عدد النتائج</label>
+        <input type="number" id="filter-limit" value="50" min="1" max="500" />
+      </div>
+      <div class="control-group">
+        <label>&nbsp;</label>
+        <button class="btn" onclick="loadLogs()">تطبيق</button>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title">
+          <span>📋 السجل الأخير</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);" id="log-count">0</span>
+        </div>
+        <div id="logs-container">—</div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">
+          <span>👥 الجلسات النشطة</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);" id="session-count">0</span>
+        </div>
+        <div id="sessions-container">—</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SERVER_KEY = 'echoline_server_url';
+    let refreshTimer = null;
+
+    function getServer() {
+      return document.getElementById('server-url').value.trim() || 'https://echoline-game-server.onrender.com';
+    }
+
+    function timeAgo(unixSec) {
+      const sec = Math.floor(Date.now() / 1000) - unixSec;
+      if (sec < 60) return sec + 's';
+      if (sec < 3600) return Math.floor(sec / 60) + 'm';
+      if (sec < 86400) return Math.floor(sec / 3600) + 'h';
+      return Math.floor(sec / 86400) + 'd';
+    }
+
+    function fmtTs(unixSec) {
+      const d = new Date(unixSec * 1000);
+      return d.toLocaleString();
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[c]);
+    }
+
+    async function fetchJson(path) {
+      const res = await fetch(getServer() + path, { credentials: 'omit' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
+
+    async function loadStats() {
+      try {
+        const data = await fetchJson('/api/admin/logs/stats');
+        document.getElementById('stat-total').textContent = data.total || 0;
+        const t = data.totals || {};
+        document.getElementById('stat-info').textContent = t.info || 0;
+        document.getElementById('stat-warn').textContent = t.warn || 0;
+        document.getElementById('stat-error').textContent = t.error || 0;
+        document.getElementById('stat-fatal').textContent = t.fatal || 0;
+        document.getElementById('stat-sessions').textContent = data.session_count || 0;
+        renderSessions(data.sessions || []);
+        setStatus('success', 'متصل بالخادم — ' + (data.total || 0) + ' حدث');
+      } catch (e) {
+        setStatus('error', 'تعذر الاتصال بالخادم: ' + e.message);
+      }
+    }
+
+    function setStatus(kind, msg) {
+      const el = document.getElementById('connection-status');
+      el.innerHTML = '<div class="' + (kind === 'error' ? 'error-banner' : 'success-banner') + '">' + escapeHtml(msg) + '</div>';
+    }
+
+    async function loadLogs() {
+      const sev = document.getElementById('filter-severity').value;
+      const cat = document.getElementById('filter-category').value.trim();
+      const sid = document.getElementById('filter-session').value.trim();
+      const lim = document.getElementById('filter-limit').value || 50;
+      const params = new URLSearchParams();
+      if (sev) params.set('severity', sev);
+      if (cat) params.set('category', cat);
+      if (sid) params.set('session', sid);
+      params.set('limit', lim);
+      try {
+        const data = await fetchJson('/api/admin/logs?' + params.toString());
+        const container = document.getElementById('logs-container');
+        const entries = data.entries || [];
+        document.getElementById('log-count').textContent = entries.length + ' / ' + (data.count || 0);
+        if (entries.length === 0) {
+          container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">لا توجد سجلات</div>';
+          return;
+        }
+        container.innerHTML = entries.map(e => {
+          const ctx = e.context ? JSON.stringify(e.context) : '';
+          return `
+            <div class="log-entry ${e.severity}">
+              <div>
+                <span class="log-ts">${fmtTs(e.ts)}</span>
+                <span class="log-sev ${e.severity}">${e.severity}</span>
+                <span class="log-cat">${escapeHtml(e.category)}</span>
+                <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 0.5rem;">@${escapeHtml(e.session || 'anon')}</span>
+              </div>
+              <div class="log-msg">${escapeHtml(e.message)}</div>
+              ${ctx ? `<div class="log-ctx">${escapeHtml(ctx)}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        setStatus('error', 'تعذر تحميل السجلات: ' + e.message);
+      }
+    }
+
+    function renderSessions(sessions) {
+      const container = document.getElementById('sessions-container');
+      document.getElementById('session-count').textContent = sessions.length;
+      if (sessions.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">لا توجد جلسات</div>';
+        return;
+      }
+      let html = '<div class="session-row header"><div>الجلسة</div><div>إجمالي</div><div>ℹ</div><div>⚠</div><div>✕</div><div>آخر نشاط</div></div>';
+      sessions.forEach(s => {
+        html += `
+          <div class="session-row">
+            <div class="sid">${escapeHtml(s.session)}</div>
+            <div>${s.total || 0}</div>
+            <div>${s.by_severity?.info || 0}</div>
+            <div>${s.by_severity?.warn || 0}</div>
+            <div>${(s.by_severity?.error || 0) + (s.by_severity?.fatal || 0)}</div>
+            <div>${s.last_seen ? timeAgo(s.last_seen) : '—'}</div>
+          </div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    async function refreshAll() {
+      await Promise.all([loadStats(), loadLogs()]);
+      document.getElementById('last-refresh').textContent = fmtTs(Math.floor(Date.now() / 1000));
+    }
+
+    function startAutoRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      if (document.getElementById('auto-refresh').checked) {
+        refreshTimer = setInterval(refreshAll, 10000);
+      }
+    }
+
+    document.getElementById('auto-refresh').addEventListener('change', startAutoRefresh);
+
+    // First load
+    refreshAll();
+    startAutoRefresh();
+    setInterval(startAutoRefresh, 30000);
+  </script>
+</body>
+</html>
