@@ -6,7 +6,7 @@ extends Node
 # which we feed into audio_manager.gd to play different footstep sounds per
 # material (dirt, stone, water, crystal).
 
-const SURFACES_SCRIPT := preload("res://addons/Surfaces/surfaces.gd")
+const SURFACES_PATH := "res://addons/Surfaces/surfaces.gd"
 
 const SURFACE_FOOTSTEP_BANK := {
 	"": ["res://audio/footsteps/generic_1.ogg"],
@@ -21,6 +21,7 @@ const SURFACE_FOOTSTEP_BANK := {
 }
 
 var is_ready: bool = false
+var _surfaces_script: Script = null
 var last_surface: String = ""
 
 signal surface_changed(surface_name: String)
@@ -29,6 +30,9 @@ signal footstep_should_play(surface_name: String, bank: Array)
 
 func _ready() -> void:
 	is_ready = ClassDB.class_exists("Surfaces")
+	if FileAccess.file_exists(SURFACES_PATH):
+		_surfaces_script = load(SURFACES_PATH) as Script
+	is_ready = is_ready and _surfaces_script != null
 	if is_ready:
 		print("[SurfaceAudioManager] Surfaces API available")
 	else:
@@ -38,7 +42,7 @@ func _ready() -> void:
 func detect_under_player(player: CollisionObject3D) -> String:
 	if not is_ready or player == null:
 		return ""
-	var detected: String = SURFACES_SCRIPT.detect(player)
+	var detected: String = str(_surfaces_script.call("detect", player))
 	if detected != last_surface:
 		last_surface = detected
 		surface_changed.emit(detected)

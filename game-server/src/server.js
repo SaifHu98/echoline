@@ -31,6 +31,8 @@ const RoomManager = require('./rooms/RoomManager');
 const AdminBridge = require('./admin-bridge/AdminBridge');
 const MatchMaker = require('./rooms/MatchMaker');
 const { ClientTelemetryService } = require('./analytics/ClientTelemetryService');
+const { HealthChecks } = require('./security/healthChecks');
+const { TelemetryCollector } = require('./security/telemetry');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -50,8 +52,13 @@ app.use(cors({
 app.use(express.json({ limit: '64kb' }));
 
 // ----- HTTP endpoints -----
-let roomManager, adminBridge, telemetryService;
+let roomManager, adminBridge, telemetryService, healthChecks, telemetry;
 const scenarios = new Map();
+
+function serverVersionHeader(res) {
+  res.set('Cache-Control', 'no-store');
+  res.set('X-Server-Version', '2.0.0');
+}
 
 app.get('/', (req, res) => res.json({
   name: 'ECHO//LINE Game Server',
@@ -63,7 +70,46 @@ app.get('/', (req, res) => res.json({
   timestamp: Date.now(),
 }));
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => {
+  serverVersionHeader(res);
+  res.json({ status: 'ok' });
+});
+
+app.get('/healthz', (req, res) => {
+  if (!healthChecks) return res.status(503).json({ status: 'starting', ok: false });
+  serverVersionHeader(res);
+  healthChecks.livenessHandler()(req, res);
+});
+
+app.get('/readyz', (req, res) => {
+  if (!healthChecks) return res.status(503).json({ status: 'starting', ok: false });
+  serverVersionHeader(res);
+  healthChecks.readinessHandler()(req, res);
+});
+
+app.get('/metrics', (req, res) => {
+  const stats = roomManager?.stats() || { rooms: 0, players: 0, scenarios: scenarios.size };
+  const memory = process.memoryUsage();
+  const snapshot = telemetry?.snapshot() || {};
+  const lines = [
+    '# HELP echoline_uptime_seconds Server uptime in seconds.',
+    '# TYPE echoline_uptime_seconds gauge',
+    `echoline_uptime_seconds ${process.uptime()}`,
+    '# HELP echoline_rooms Active rooms.',
+    '# TYPE echoline_rooms gauge',
+    `echoline_rooms ${stats.rooms}`,
+    '# HELP echoline_players Connected players in active rooms.',
+    '# TYPE echoline_players gauge',
+    `echoline_players ${stats.players}`,
+    '# HELP echoline_heap_used_bytes Node heap used in bytes.',
+    '# TYPE echoline_heap_used_bytes gauge',
+    `echoline_heap_used_bytes ${memory.heapUsed}`,
+    '# HELP echoline_requests_total Requests recorded by the telemetry collector.',
+    '# TYPE echoline_requests_total counter',
+    `echoline_requests_total ${snapshot.requests || 0}`,
+  ];
+  res.type('text/plain').set('Cache-Control', 'no-store').send(`${lines.join('\n')}\n`);
+});
 
 app.get('/stats', (req, res) => {
   if (!roomManager) return res.json({ status: 'starting' });
@@ -157,6 +203,18 @@ app.get('/api/i18n', (req, res) => {
   }
 });
 
+// Keep malformed/oversized client requests cheap and JSON-shaped instead of
+// producing an HTML error page and a noisy stack trace for expected input.
+app.use((err, req, res, next) => {
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ success: false, error: 'Payload too large' });
+  }
+  if (err instanceof SyntaxError && err.status === 400 && err.body !== undefined) {
+    return res.status(400).json({ success: false, error: 'Invalid JSON' });
+  }
+  return next(err);
+});
+
 // ----- HTTP + Socket.IO server -----
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -207,6 +265,8 @@ function bootstrap() {
     logger,
   });
 
+  telemetry = new TelemetryCollector();
+
   telemetryService = new ClientTelemetryService({
     logger,
     rateLimiter: null, // Wired below
@@ -224,6 +284,8 @@ function bootstrap() {
     io,
   });
 
+  healthChecks = new HealthChecks({ logger, db: null, adminBridge, roomManager });
+
   matchMaker = new MatchMaker({
     logger,
     roomManager,
@@ -237,7 +299,12 @@ function bootstrap() {
   setInterval(() => {
     roomManager.tick();
     adminBridge.refreshIfStale();
+    telemetry.recordMemory(process.memoryUsage().heapUsed / 1024 / 1024);
   }, 5000);
+
+  // Prime the optional admin cache before readiness is evaluated. If the
+  // bridge is unavailable, its own fallback policy remains authoritative.
+  adminBridge.refresh().finally(() => healthChecks.markReady());
 
   server.listen(PORT, () => {
     logger.info({ port: PORT, env: NODE_ENV }, 'ECHO//LINE Game Server v2.0 listening');

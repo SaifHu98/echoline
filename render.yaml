@@ -8,6 +8,7 @@ services:
     rootDir: game-server
     buildCommand: npm install --omit=dev
     startCommand: npm start
+    healthCheckPath: /readyz
     autoDeploy: true
     envVars:
       - key: NODE_ENV

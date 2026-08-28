@@ -10,7 +10,6 @@ extends SceneTree
 #   godot --headless scripts/benchmark_vertical_slice.gd --quit-after 60
 
 const VSLICE_SCENE = "res://scenes/vertical_slice.tscn"
-const DURATION_SEC := 60
 const SAMPLE_INTERVAL := 0.5
 
 var frame_samples: Array = []
@@ -20,18 +19,22 @@ var particle_count_samples: Array = []
 var elapsed: float = 0.0
 var slice_root: Node = null
 var quality_label: String = "Medium"
+var duration_sec: float = 60.0
+var finished := false
 
 
 func _initialize() -> void:
 	print("═══ ECHO//LINE Vertical Slice Benchmark ═══")
-	print("Duration: %d seconds" % DURATION_SEC)
-	print("")
 
 	# Parse args: --quality=low|medium|high
 	for arg in OS.get_cmdline_args():
 		if arg.begins_with("--quality="):
 			quality_label = arg.substr("--quality=".length())
+		elif arg.begins_with("--duration="):
+			duration_sec = maxf(1.0, float(arg.substr("--duration=".length())))
 
+	print("Duration: %.0f seconds" % duration_sec)
+	print("")
 	print("Quality preset: %s" % quality_label)
 	print("")
 
@@ -42,40 +45,47 @@ func _initialize() -> void:
 		quit()
 		return
 
-	# Set quality
-	_set_quality()
-
 	# Add to tree
 	root.add_child(slice_root)
 
-	# Start sampling
+	# Defer quality lookup and sampling until the SceneTree is active.
+	call_deferred("_start_benchmark")
+
+
+func _start_benchmark() -> void:
+	_set_quality()
 	_start_sampling()
 
 
 func _set_quality() -> void:
-	var tier = QualityProfile.Tier.MEDIUM_60FPS
+	var quality_profile := get_root().get_node_or_null("QualityProfile")
+	if quality_profile == null:
+		push_error("QualityProfile autoload is unavailable")
+		return
+	var quality = 1
 	match quality_label.to_lower():
-		"low": tier = QualityProfile.Tier.LOW_30FPS
-		"medium": tier = QualityProfile.Tier.MEDIUM_60FPS
-		"high": tier = QualityProfile.Tier.HIGH_60FPS_PREMIUM
-	QualityProfile.set_tier(tier)
+		"low": quality = 0
+		"medium": quality = 1
+		"high": quality = 2
+	quality_profile.set_quality(quality)
 	if slice_root.has_method("_setup_quality"):
 		slice_root._setup_quality()
 
 
 func _process(delta: float) -> bool:
+	if finished:
+		return false
+	if slice_root == null:
+		return false
 	elapsed += delta
 
 	if elapsed >= SAMPLE_INTERVAL:
 		_sample_frame(delta)
 		elapsed = 0.0
 
-	if slice_root and slice_root.has_method("_process"):
-		slice_root._process(delta)
-	return false
-
-	if _benchmark_time() >= DURATION_SEC:
+	if _benchmark_time() >= duration_sec:
 		_finish()
+	return false
 
 
 var benchmark_start: float = 0.0
@@ -102,19 +112,32 @@ func _sample_frame(delta: float) -> void:
 	memory_samples.append(mem)
 
 	# Particle count (estimate from GPUParticles3D)
-	var particles = 0
-	_collect_particles(slice_root, particles)
-	particle_count_samples.append(particles)
+	particle_count_samples.append(_collect_particles(slice_root))
 
 
-func _collect_particles(node: Node, count_ref: int) -> void:
+
+func _collect_particles(node: Node) -> int:
+	var total := 0
 	if node is GPUParticles3D:
-		count_ref += node.amount
+		total += node.amount
 	for child in node.get_children():
-		_collect_particles(child, count_ref)
+		total += _collect_particles(child)
+	return total
+
+
+func _target_fps() -> int:
+	return 30 if quality_label.to_lower() == "low" else 60
+
+
+func _particle_budget() -> int:
+	match quality_label.to_lower():
+		"low": return 120
+		"high": return 400
+		_: return 240
 
 
 func _finish() -> void:
+	finished = true
 	print("")
 	print("═══ Benchmark Results ═══")
 	print("")
@@ -143,8 +166,8 @@ func _finish() -> void:
 	print("  median: %.1f" % fps_median)
 	print("  p99:    %.1f" % fps_p99)
 	print("  max:    %.1f" % fps_max)
-	print("  target: %d" % QualityProfile.get_profile().target_fps)
-	print("  met:    %s" % ("YES" if fps_avg >= QualityProfile.get_profile().target_fps * 0.95 else "NO"))
+	print("  target: %d" % _target_fps())
+	print("  met:    %s" % ("YES" if fps_avg >= _target_fps() * 0.95 else "NO"))
 	print("")
 
 	# Draw calls
@@ -159,7 +182,7 @@ func _finish() -> void:
 	print("Draw Calls:")
 	print("  avg: %d" % draw_avg)
 	print("  max: %d" % draw_max)
-	print("  budget: %d" % int(QualityProfile.get_profile().get("particles_max", 100) * 2))  # rough budget
+	print("  budget: %d" % _particle_budget())
 	print("")
 
 	# Memory
@@ -188,31 +211,30 @@ func _finish() -> void:
 	print("Particles:")
 	print("  avg: %d" % p_avg)
 	print("  max: %d" % p_max)
-	print("  budget: %d" % QualityProfile.get_profile().particles_max)
+	print("  budget: %d" % _particle_budget())
 	print("")
 
 	# Acceptance
 	print("═══ Acceptance ═══")
-	var profile = QualityProfile.get_profile()
-	var pass_fps = fps_avg >= profile.target_fps * 0.95
+	var pass_fps = fps_avg >= _target_fps() * 0.95
 	var pass_draws = draw_max <= 500
-	var pass_particles = p_max <= profile.particles_max
-	print("  ✓ FPS budget: %s" % ("PASS" if pass_fps else "FAIL"))
-	print("  ✓ Draw calls: %s" % ("PASS" if pass_draws else "FAIL"))
-	print("  ✓ Particles:  %s" % ("PASS" if pass_particles else "FAIL"))
+	var pass_particles = p_max <= _particle_budget()
+	print("  FPS budget: %s" % ("PASS" if pass_fps else "FAIL"))
+	print("  Draw calls: %s" % ("PASS" if pass_draws else "FAIL"))
+	print("  Particles:  %s" % ("PASS" if pass_particles else "FAIL"))
 	print("")
 
 	# Write JSON report
 	var report = {
 		"quality": quality_label,
-		"duration_sec": DURATION_SEC,
+		"duration_sec": duration_sec,
 		"fps": {
 			"min": fps_min,
 			"avg": fps_avg,
 			"median": fps_median,
 			"p99": fps_p99,
 			"max": fps_max,
-			"target": profile.target_fps,
+			"target": _target_fps(),
 			"met": pass_fps,
 		},
 		"draw_calls": {
@@ -228,7 +250,7 @@ func _finish() -> void:
 		"particles": {
 			"avg": p_avg,
 			"max": p_max,
-			"budget": profile.particles_max,
+			"budget": _particle_budget(),
 			"met": pass_particles,
 		},
 	}
@@ -237,4 +259,8 @@ func _finish() -> void:
 		f.store_string(JSON.stringify(report, "\t"))
 		print("Report saved to user://benchmark_report.json")
 
+	if is_instance_valid(slice_root):
+		# The benchmark exits immediately after writing the report; queued frees
+		# would never be processed and make leak detection noisy.
+		slice_root.free()
 	quit()

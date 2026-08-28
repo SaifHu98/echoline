@@ -45,6 +45,13 @@ class AdminBridge {
       this.logger.info({ host: this.baseUrl }, 'Admin bridge refreshed');
     } catch (e) {
       this.logger.warn({ err: e.message }, 'Admin bridge refresh failed; using cache');
+      // The game server has safe built-in defaults. Seed them on the first
+      // failed refresh so an optional live-ops outage cannot make the game
+      // fail its readiness probe or block the lobby.
+      if (!this.cache.config) {
+        this.cache = { config: this._defaultConfig(), events: [], quests: [], shop: [], announcements: [] };
+        this.lastFetch = Date.now();
+      }
     }
   }
 

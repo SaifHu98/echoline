@@ -9,10 +9,10 @@ extends Node
 @onready var camera_rig: Node3D = $CameraRig
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
 @onready var sun: DirectionalLight3D = $Sun
-@onready var vfx_pool: VFXPool = $VFXPool
+@onready var vfx_pool: Node = $VFXPool
 @onready var echo_trail: EchoTrailRenderer = $EchoTrailRenderer
-@onready var hud_label: Label = $UI/HUD/InfoLabel
-@onready var quality_label: Label = $UI/HUD/QualityLabel
+@onready var hud_label: Label = $UI/HUD/Panel/InfoLabel
+@onready var quality_label: Label = $UI/HUD/QualityPanel/QualityLabel
 
 var camera_targets: Array = []
 var current_target_index: int = 0
@@ -33,13 +33,13 @@ func _ready() -> void:
 
 
 func _setup_quality() -> void:
-	QualityProfile.load_from_disk()
-	if QualityProfile.auto_detect:
-		var detected = QualityProfile.detect_tier()
-		QualityProfile.set_tier(detected)
-	QualityProfile.apply_tier_to_scene_tree(get_tree(), QualityProfile.current_tier)
+	var quality_profile := get_node_or_null("/root/QualityProfile")
+	if quality_profile == null:
+		return
+	var quality: int = quality_profile.current_quality
+	quality_profile.set_quality(quality)
 	if quality_label:
-		quality_label.text = QualityProfile.get_summary()
+		quality_label.text = "Quality: " + ["LOW", "MEDIUM", "HIGH", "ULTRA"][clampi(quality, 0, 3)]
 
 
 func _register_vfx_templates() -> void:
@@ -82,15 +82,17 @@ func _setup_camera_targets() -> void:
 
 
 func _setup_lighting() -> void:
+	var quality_profile := get_node_or_null("/root/QualityProfile")
+	var quality: int = quality_profile.current_quality if quality_profile else 1
 	if sun:
-		match QualityProfile.current_tier:
-			QualityProfile.Tier.LOW_30FPS:
+		match quality:
+			0:
 				sun.light_energy = 0.8
 				sun.shadow_enabled = false
-			QualityProfile.Tier.MEDIUM_60FPS:
+			1:
 				sun.light_energy = 1.0
 				sun.shadow_enabled = true
-			QualityProfile.Tier.HIGH_60FPS_PREMIUM:
+			2, 3:
 				sun.light_energy = 1.2
 				sun.shadow_enabled = true
 

@@ -1,4 +1,3 @@
-class_name InteractiveProp
 extends Node3D
 
 # ECHO//LINE — Base Interactive Prop

@@ -106,10 +106,10 @@ test('Android build: build script signs APK in release mode', () => {
   assert.match(content, /sign --ks/);
 });
 
-test('Android build: build script warns when keystore missing in release', () => {
+test('Android build: build script fails closed when keystore missing in release', () => {
   const content = fs.readFileSync(SCRIPT, 'utf8');
-  assert.match(content, /Keystore not found/);
-  assert.match(content, /debug keystore/);
+  assert.match(content, /Release keystore not found/);
+  assert.match(content, /Refusing to produce/);
 });
 
 test('Android build: build script verifies output APK with aapt2', () => {

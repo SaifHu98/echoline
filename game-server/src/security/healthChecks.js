@@ -39,6 +39,7 @@ class HealthChecks {
    */
   async liveness() {
     return {
+      status: 'ok',
       ok: true,
       uptime_ms: Date.now() - this.startedAt,
       pid: process.pid,
@@ -70,7 +71,9 @@ class HealthChecks {
 
     // Admin bridge cache freshness
     if (this.adminBridge) {
-      const lastFetch = this.adminBridge.lastFetchTime || 0;
+      // AdminBridge exposes `lastFetch`; keep the legacy name as a fallback
+      // for compatible bridge implementations used by deployments/tests.
+      const lastFetch = this.adminBridge.lastFetch ?? this.adminBridge.lastFetchTime ?? 0;
       const ageSec = (Date.now() - lastFetch) / 1000;
       const cacheOk = ageSec < 600;
       checks.push({ name: 'admin_cache', ok: cacheOk, age_sec: ageSec });
@@ -87,6 +90,7 @@ class HealthChecks {
     }
 
     return {
+      status: ok ? 'ok' : 'not_ready',
       ok,
       ready: this.ready && ok,
       checks,

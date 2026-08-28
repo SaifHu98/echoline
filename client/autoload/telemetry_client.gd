@@ -225,5 +225,6 @@ func _on_flush_completed(result: int, response_code: int, _headers: PackedString
 
 func _exit_tree() -> void:
 	# The HTTP child is already being torn down, so a request here would fail.
-	# Queued entries remain best-effort in memory until the next active session.
+	# Queued entries are intentionally discarded at process exit; periodic
+	# flushes handle delivery while the scene tree is active.
 	pass

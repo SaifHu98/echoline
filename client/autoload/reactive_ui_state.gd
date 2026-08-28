@@ -9,10 +9,7 @@ extends Node
 # Use case: a reactive player_state signal that the HUD automatically re-binds
 # to (without manually disconnecting/reconnecting Godot signals).
 
-const ReactiveSignalScript := preload("res://addons/reactive_signal/reactive_signal.gd")
-const SignalContextScript := preload("res://addons/reactive_signal/signal_context.gd")
-const SignalEffectScript := preload("res://addons/reactive_signal/signal_effect.gd")
-const SignalBinderScript := preload("res://addons/reactive_signal/signal_binder.gd")
+const SIGNAL_CONTEXT_PATH := "res://addons/reactive_signal/signal_context.gd"
 
 var is_ready: bool = false
 var context: Node = null
@@ -32,7 +29,12 @@ func _ready() -> void:
 	if not is_ready:
 		push_warning("[ReactiveUIState] Reactive Signal plugin not enabled — falling back to EventBus")
 		return
-	context = SignalContextScript.new()
+	var signal_context_script: Script = load(SIGNAL_CONTEXT_PATH) as Script
+	if signal_context_script == null:
+		is_ready = false
+		push_warning("[ReactiveUIState] Signal context script missing — falling back to EventBus")
+		return
+	context = signal_context_script.new()
 	context.name = "EchoUIContext"
 	context.set("signals", {
 		"player_state": {"hp": 100, "max_hp": 100, "shards": 0, "timeline": "present"},

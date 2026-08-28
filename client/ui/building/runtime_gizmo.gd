@@ -42,9 +42,7 @@ func _ready() -> void:
 func attach(target: Node3D) -> void:
 	if not is_ready or gizmo == null or target == null:
 		return
-	gizmo.global_position = target.global_position
-	gizmo.global_rotation = target.global_rotation
-	gizmo.global_scale = target.global_scale
+	gizmo.global_transform = target.global_transform
 
 
 func set_mode(mode: String) -> void:

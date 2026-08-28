@@ -10,17 +10,19 @@ extends Node
 #   - Shard gains ("+5 Memory Shards").
 #   - Combo counters in the match HUD.
 
-const GodotxLabelUpStyleScript := preload("res://addons/godotx_label_up/runtime/godotx_label_up_style.gd")
-const GodotxLabelUpStylesScript := preload("res://addons/godotx_label_up/runtime/godotx_label_up_styles.gd")
+const LABEL_STYLE_PATH := "res://addons/godotx_label_up/runtime/godotx_label_up_style.gd"
 
 enum LabelKind { DAMAGE, HEAL, SHARD, COMBO, NARRATIVE }
 
 var is_ready: bool = false
 var _style_cache: Dictionary = {}
+var _style_script: Script = null
 
 
 func _ready() -> void:
 	is_ready = ClassDB.class_exists("GodotxLabelUpManager")
+	if FileAccess.file_exists(LABEL_STYLE_PATH):
+		_style_script = load(LABEL_STYLE_PATH) as Script
 	if is_ready:
 		print("[FloatingLabelService] GodotX Label Up autoload available")
 	else:
@@ -66,9 +68,11 @@ func combo(world_pos: Vector3, camera: Camera3D, text: String) -> int:
 # === Style cache ===
 
 func _get_style(kind: int) -> Resource:
+	if _style_script == null:
+		return null
 	if _style_cache.has(kind):
 		return _style_cache[kind]
-	var style: Resource = GodotxLabelUpStyleScript.new()
+	var style: Resource = _style_script.new()
 	match kind:
 		LabelKind.DAMAGE:
 			style.set("color", Color(1.0, 0.3, 0.3, 1.0))

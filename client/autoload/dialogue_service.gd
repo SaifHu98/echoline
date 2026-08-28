@@ -11,8 +11,6 @@ extends Node
 #   dialogue_service.on_line(display_who, display_text)
 #   dialogue_service.on_choice(index, text)
 
-const DialogueManagerScript := preload("res://addons/dialogue_manager/dialogue_manager.gd")
-
 const ECHO_GREETINGS := "res://data/dialogues/echo_greetings.dialogue"
 
 signal line_spoken(who: String, text: String)
@@ -94,12 +92,12 @@ func play_raw(title: String, lines: Array) -> void:
 
 # === Signal handlers ===
 
-func _on_got_dialogue(resource: DialogueResource) -> void:
+func _on_got_dialogue(_resource: Resource) -> void:
 	# Hook for analytics: track which dialogue resource was opened.
 	pass
 
 
-func _on_dialogue_ended(resource: DialogueResource) -> void:
+func _on_dialogue_ended(_resource: Resource) -> void:
 	dialogue_finished.emit(_current_label)
 	_current_label = ""
 

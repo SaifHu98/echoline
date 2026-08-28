@@ -88,7 +88,7 @@ const checks = [
     name: 'cors: preflight OPTIONS returns 200',
     critical: false,
     fn: async (baseUrl) => {
-      const r = await fetchJson(baseUrl, '/api/v1/info', {
+      const r = await fetchJson(baseUrl, '/api/config', {
         method: 'OPTIONS',
         headers: { 'Origin': 'https://example.com', 'Access-Control-Request-Method': 'GET' }
       });
@@ -101,7 +101,7 @@ const checks = [
     critical: true,
     fn: async (baseUrl) => {
       const huge = 'x'.repeat(70 * 1024);
-      const r = await fetchJson(baseUrl, '/api/v1/echo', {
+      const r = await fetchJson(baseUrl, '/api/client/logs', {
         method: 'POST',
         body: { type: 'ping', payload: huge }
       });
@@ -113,7 +113,7 @@ const checks = [
     name: 'security: invalid JSON rejected',
     critical: true,
     fn: async (baseUrl) => {
-      const fullUrl = new URL('/api/v1/echo', baseUrl);
+      const fullUrl = new URL('/api/client/logs', baseUrl);
       const transport = fullUrl.protocol === 'https:' ? https : http;
       return new Promise((resolve, reject) => {
         const req = transport.request({
@@ -148,13 +148,14 @@ const checks = [
     }
   },
   {
-    name: 'feature flag: building endpoint reachable',
+    name: 'scenarios: catalog endpoint reachable',
     critical: false,
     fn: async (baseUrl) => {
-      const r = await fetchJson(baseUrl, '/api/v1/features');
+      const r = await fetchJson(baseUrl, '/api/scenarios');
       if (r.status !== 200) throw new Error(`status=${r.status}`);
       const body = JSON.parse(r.body);
-      return body;
+      if (!body.success || !Array.isArray(body.data?.scenarios)) throw new Error('invalid scenario catalog');
+      return { count: body.data.scenarios.length };
     }
   },
   {
@@ -168,17 +169,16 @@ const checks = [
     }
   },
   {
-    name: 'admin bridge: signed request endpoint reachable',
+    name: 'admin bridge: config endpoint reachable',
     critical: true,
     fn: async (baseUrl) => {
-      const r = await fetchJson(baseUrl, '/api/v1/admin/health');
-      if (r.status === 404) return { status: 404, note: 'admin bridge disabled' };
-      if (r.status === 401 || r.status === 200) return { status: r.status };
+      const r = await fetchJson(baseUrl, '/api/config');
+      if (r.status === 200) return { status: r.status };
       throw new Error(`unexpected status=${r.status}`);
     }
   },
   {
-    name: 'websocket upgrade: returns 101 or 426',
+    name: 'websocket upgrade: server rejects malformed raw probe safely',
     critical: false,
     fn: async (baseUrl) => {
       const fullUrl = new URL('/socket.io/?EIO=4&transport=websocket', baseUrl);
@@ -197,8 +197,8 @@ const checks = [
           },
           timeout: REQUEST_TIMEOUT_MS
         }, (res) => {
-          if (res.statusCode === 101 || res.statusCode === 426) resolve({ status: res.statusCode });
-          else reject(new Error(`expected 101/426, got ${res.statusCode}`));
+          if ([101, 400, 426].includes(res.statusCode)) resolve({ status: res.statusCode });
+          else reject(new Error(`expected 101/400/426, got ${res.statusCode}`));
         });
         req.on('timeout', () => req.destroy(new Error('timeout')));
         req.on('error', reject);

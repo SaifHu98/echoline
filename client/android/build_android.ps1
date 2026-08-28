@@ -6,8 +6,8 @@
 param(
     [switch]$Release = $false,
     [switch]$AAB = $false,
-    [string]$GodotPath = "C:\Program Files\Godot\godot_4.7.2-stable_win64.exe",
-    [string]$AndroidHome = $env:ANDROID_HOME,
+    [string]$GodotPath = "",
+    [string]$AndroidHome = "",
     [string]$KeystorePath = "keystore\echoline.keystore",
     [string]$KeystorePassword = $env:ECHOLINE_KEYSTORE_PASSWORD,
     [string]$KeystoreUser = $env:ECHOLINE_KEYSTORE_USER,
@@ -26,6 +26,20 @@ Write-Host "Godot path:    $GodotPath"
 Write-Host "Android SDK:   $AndroidHome"
 Write-Host "Project root:  $projectRoot`n"
 
+if ([string]::IsNullOrWhiteSpace($GodotPath)) {
+    $godotCandidates = @(
+        (Join-Path $env:USERPROFILE "Desktop\Godot_v4.7.2-stable_win64_console.exe"),
+        "C:\Program Files\Godot\godot_4.7.2-stable_win64_console.exe",
+        (Join-Path $env:USERPROFILE "Desktop\Godot_v4.7.2-stable_win64.exe"),
+        "C:\Program Files\Godot\godot_4.7.2-stable_win64.exe"
+    )
+    $GodotPath = $godotCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+}
+
+if ([string]::IsNullOrWhiteSpace($AndroidHome)) {
+    $AndroidHome = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } elseif ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { Join-Path $env:LOCALAPPDATA "Android\Sdk" }
+}
+
 if (-not (Test-Path -LiteralPath $GodotPath)) {
     Write-Error "Godot executable not found at: $GodotPath"
     exit 1
@@ -36,12 +50,37 @@ if (-not (Test-Path -LiteralPath $AndroidHome)) {
     exit 1
 }
 
+if (-not [System.IO.Path]::IsPathRooted($KeystorePath)) {
+    $KeystorePath = Join-Path $scriptPath $KeystorePath
+}
+
+Write-Host "Resolved Godot:  $GodotPath"
+Write-Host "Resolved SDK:    $AndroidHome"
+
+if ($Release -and -not $AAB) {
+    if (-not (Test-Path -LiteralPath $KeystorePath)) {
+        Write-Error "Release keystore not found at $KeystorePath. Refusing to produce a falsely production-signed APK."
+        exit 1
+    }
+    if ([string]::IsNullOrWhiteSpace($KeystorePassword) -or [string]::IsNullOrWhiteSpace($KeystoreUser)) {
+        Write-Error "Release signing requires KeystorePassword and KeystoreUser."
+        exit 1
+    }
+}
+
 # Set environment
 $env:ANDROID_HOME = $AndroidHome
-$env:PATH = "$AndroidHome\platform-tools;$AndroidHome\build-tools\34.0.0;$env:PATH"
+$pathSeparator = [System.IO.Path]::PathSeparator
+$platformTools = Join-Path $AndroidHome "platform-tools"
+$buildToolsDir = Join-Path (Join-Path $AndroidHome "build-tools") "34.0.0"
+$env:PATH = "$platformTools$pathSeparator$buildToolsDir$pathSeparator$env:PATH"
+# Godot's Android exporter invokes Gradle internally. A stale daemon can keep
+# the exporter alive after the APK is written, so use a single-use daemon for
+# deterministic CI/local builds.
+$env:GRADLE_OPTS = "$($env:GRADLE_OPTS) -Dorg.gradle.daemon=false"
 
 # Create output directory
-$outputDir = Join-Path $projectRoot "client\builds"
+$outputDir = Join-Path $projectRoot "builds"
 if (-not (Test-Path -LiteralPath $outputDir)) {
     New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 }
@@ -64,9 +103,20 @@ if ($Release) {
         "--path", $projectRoot,
         "--export-release", $presetName, $outputFile
     )
+} else {
+    $godotArgs = @(
+        "--headless",
+        "--path", $projectRoot,
+        "--export-debug", $presetName, $outputFile
+    )
 }
 
-& $GodotPath @godotArgs 2>&1 | Out-Null
+$godotOutput = & $GodotPath @godotArgs 2>&1
+if ($LASTEXITCODE -ne 0) {
+    $godotOutput | Select-Object -Last 25 | ForEach-Object { Write-Host $_ }
+    Write-Error "Godot export failed with exit code $LASTEXITCODE"
+    exit 1
+}
 
 if (-not (Test-Path -LiteralPath $outputFile)) {
     Write-Error "Build failed — output file not created: $outputFile"
@@ -79,22 +129,25 @@ Write-Host "  ✓ Built $outputFile ($([Math]::Round($fileSize, 1)) MB)" -Foregr
 # Sign if release + APK (AAB is signed by Play)
 if ($Release -and -not $AAB) {
     Write-Host "`n[2/3] Signing release APK..." -ForegroundColor Yellow
-    if (-not (Test-Path -LiteralPath $KeystorePath)) {
-        Write-Warning "Keystore not found at $KeystorePath — using debug keystore (NOT for production!)"
-        $KeystorePath = "$env:USERPROFILE\.android\debug.keystore"
-        $KeystorePassword = "android"
-        $KeystoreUser = "androiddebugkey"
-        if (-not (Test-Path -LiteralPath $KeystorePath)) {
-            Write-Error "Debug keystore missing. Generate one with: keytool -genkey -keystore ~/.android/debug.keystore"
-            exit 1
-        }
-    }
-    $apksigner = Join-Path $AndroidHome "build-tools\34.0.0\apksigner.exe"
+    $zipalign = Join-Path $buildToolsDir "zipalign.exe"
+    $apksigner = Join-Path $buildToolsDir "apksigner.exe"
     $alignedFile = $outputFile -replace '\.apk$', '-aligned.apk'
 
-    & "$AndroidHome\build-tools\34.0.0\zipalign.exe" -v 4 $outputFile $alignedFile
+    & $zipalign -v 4 $outputFile $alignedFile
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "zipalign failed with exit code $LASTEXITCODE"
+        exit 1
+    }
     & $apksigner sign --ks $KeystorePath --ks-pass "pass:$KeystorePassword" --ks-key-alias $KeystoreUser --key-pass "pass:$KeystorePassword" --out $outputFile $alignedFile
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "apksigner sign failed with exit code $LASTEXITCODE"
+        exit 1
+    }
     & $apksigner verify --print-certs $outputFile
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "apksigner verification failed with exit code $LASTEXITCODE"
+        exit 1
+    }
     Remove-Item -LiteralPath $alignedFile -Force -ErrorAction SilentlyContinue
     Write-Host "  ✓ Signed APK" -ForegroundColor Green
 } else {
@@ -104,9 +157,14 @@ if ($Release -and -not $AAB) {
 # Verify
 Write-Host "`n[3/3] Verifying APK..." -ForegroundColor Yellow
 if (-not $AAB) {
-    $aapt = Join-Path $AndroidHome "build-tools\34.0.0\aapt2.exe"
+    $aapt = Join-Path $buildToolsDir "aapt2.exe"
     if (Test-Path -LiteralPath $aapt) {
-        & $aapt dump badging $outputFile 2>&1 | Select-String -Pattern "package:|application-label:|launchable-activity:|sdkVersion:|targetSdkVersion:|native-code:" | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkCyan }
+        $aaptOutput = & $aapt dump badging $outputFile 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "aapt2 verification failed with exit code $LASTEXITCODE"
+            exit 1
+        }
+        $aaptOutput | Select-String -Pattern "package:|application-label:|launchable-activity:|sdkVersion:|targetSdkVersion:|native-code:" | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkCyan }
     }
 }
 

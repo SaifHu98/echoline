@@ -1,4 +1,7 @@
 <?php
+// Keep CLI output buffered so session configuration remains valid during the
+// lightweight test runner; production requests are not affected.
+ob_start();
 /**
  * Security unit tests for Admin Panel
  * Run from CLI: php tests/security/test_security.php
@@ -264,4 +267,5 @@ test('rate limit: allows up to max then blocks', function () {
 // ====================================================================
 echo "\n";
 echo "Total: $total | Passed: $pass | Failed: $fail\n";
+ob_end_flush();
 exit($fail > 0 ? 1 : 0);

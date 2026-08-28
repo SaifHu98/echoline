@@ -7,15 +7,22 @@ extends Control
 #
 # Used by building_scene.gd to display Anchor Stability per timeline.
 
-const GodotxHealthBarControlScript := preload("res://addons/godotx_health_bar/runtime/godotx_health_bar_control.gd")
-const GodotxHealthBarStyleScript := preload("res://addons/godotx_health_bar/runtime/godotx_health_bar_style.gd")
+const HEALTH_BAR_CONTROL_PATH := "res://addons/godotx_health_bar/runtime/godotx_health_bar_control.gd"
+const HEALTH_BAR_STYLE_PATH := "res://addons/godotx_health_bar/runtime/godotx_health_bar_style.gd"
 
 var _bar: Control = null
 var is_ready: bool = false
+var _bar_script: Script = null
+var _style_script: Script = null
 
 
 func _ready() -> void:
 	is_ready = ClassDB.class_exists("GodotxHealthBarControl")
+	if FileAccess.file_exists(HEALTH_BAR_CONTROL_PATH):
+		_bar_script = load(HEALTH_BAR_CONTROL_PATH) as Script
+	if FileAccess.file_exists(HEALTH_BAR_STYLE_PATH):
+		_style_script = load(HEALTH_BAR_STYLE_PATH) as Script
+	is_ready = is_ready and _bar_script != null and _style_script != null
 	if not is_ready:
 		push_warning("[AnchorHealthBar] GodotX Health Bar plugin not enabled")
 		return
@@ -23,7 +30,7 @@ func _ready() -> void:
 
 
 func _build_bar() -> void:
-	_bar = GodotxHealthBarControlScript.new()
+	_bar = _bar_script.new()
 	_bar.name = "AnchorStabilityBar"
 	_bar.custom_minimum_size = Vector2(220, 22)
 	if _bar.has_method("set"):
@@ -44,7 +51,7 @@ func set_stability(value: float) -> void:
 func set_style_fill(color: Color) -> void:
 	if _bar == null:
 		return
-	var style: Resource = GodotxHealthBarStyleScript.new()
+	var style: Resource = _style_script.new()
 	if style and style.has_method("set"):
 		style.set("fill_color", color)
 		_bar.set("style", style)

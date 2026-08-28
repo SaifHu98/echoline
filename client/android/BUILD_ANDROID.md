@@ -54,8 +54,8 @@ runnable=true
 custom_features="android,etc2"
 export_filter="all_resources"
 include_filter=""
-exclude_filter=""
-export_path="client/builds/echoline.apk"
+exclude_filter="addons/**,demo/**,editor_only/**,road_demos/**"
+export_path="./echoline.apk"
 pck_only=false
 encryption_key=""
 apk_expansion=false
@@ -73,10 +73,11 @@ screen_orientation="landscape"
 
 ```powershell
 cd client
-& "C:\Program Files\Godot\godot_4.7.2-stable_win64.exe" --headless --export-debug "Android" builds/echoline-debug.apk
+& .\android\build_android.ps1 -Debug
 ```
 
-The APK is generated at `client/builds/echoline-debug.apk` (~60 MB).
+The APK is generated at `client/builds/echoline-debug.apk`; the current full
+asset set is approximately 363 MB and is verified with `aapt2`.
 
 ### Release build (signed)
 
@@ -87,16 +88,13 @@ The APK is generated at `client/builds/echoline-debug.apk` (~60 MB).
 keytool -genkey -v -keystore client/android/keystore/echoline.keystore -alias echoline -keyalg RSA -keysize 2048 -validity 10950
 ```
 
-2. Add to gradle.properties:
-```properties
-ECHOLINE_KEYSTORE_PATH=keystore/echoline.keystore
-ECHOLINE_KEYSTORE_USER=echoline
-ECHOLINE_KEYSTORE_PASSWORD=YOUR_PASSWORD
-```
-
-3. Build:
+2. Build and sign with the protected values (the script refuses a missing
+   keystore and never falls back to the debug key):
 ```powershell
-& "C:\Program Files\Godot\godot_4.7.2-stable_win64.exe" --headless --export-release "Android" builds/echoline-release.apk
+& .\android\build_android.ps1 -Release `
+  -KeystorePath "android\keystore\echoline.keystore" `
+  -KeystorePassword $env:ECHOLINE_KEYSTORE_PASSWORD `
+  -KeystoreUser $env:ECHOLINE_KEYSTORE_USER
 ```
 
 #### Option B: Manual signing (post-build)
@@ -126,7 +124,7 @@ keytool -genkey -v -keystore echoline.keystore -alias echoline -keyalg RSA -keys
 & "$env:ANDROID_HOME\platform-tools\adb.exe" install -r client/builds/echoline-release.apk
 
 # Launch
-& "$env:ANDROID_HOME\platform-tools\adb.exe" shell am start -n com.echoline.game/.MainActivity
+& "$env:ANDROID_HOME\platform-tools\adb.exe" shell am start -n com.ecouni.echoline/.MainActivity
 
 # View logs (Godot prints to logcat under "godot")
 & "$env:ANDROID_HOME\platform-tools\adb.exe" logcat -s godot -v threadtime
@@ -201,7 +199,7 @@ Crash reports are sent to Render via `/api/v1/telemetry/crash`. Backend aggregat
 - Check keystore file integrity: `keytool -list -keystore echoline.keystore`
 
 ### "INSTALL_FAILED_UPDATE_INCOMPATIBLE"
-- Uninstall first: `adb uninstall com.echoline.game`
+- Uninstall first: `adb uninstall com.ecouni.echoline`
 - Then install new APK
 
 ### "INSTALL_FAILED_NO_MATCHING_ABIS"
@@ -221,9 +219,8 @@ Crash reports are sent to Render via `/api/v1/telemetry/crash`. Backend aggregat
 
 ## File Sizes (reference)
 
-- Debug APK: ~85 MB
-- Release APK (uncompressed): ~70 MB
-- Release APK (Play signed): ~55 MB
+- Debug APK: approximately 363 MB with the current full asset set
+- Release APK: depends on signing and resource optimization
 - AAB (Play Asset Delivery): ~45 MB main + 30 MB asset packs
 
 ## Security

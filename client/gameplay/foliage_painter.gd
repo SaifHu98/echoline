@@ -9,7 +9,7 @@ extends Node3D
 # At runtime: use the API below to spawn foliage instances via the
 # MultiMesh that the plugin manages internally.
 
-const FoliageFlowScript := preload("res://addons/FoliageFlow/FoliageFlow.gd")
+const FOLIAGE_FLOW_PATH := "res://addons/FoliageFlow/FoliageFlow.gd"
 
 const TIMELINE_FOLIAGE := {
 	"past": {
@@ -43,12 +43,16 @@ const TIMELINE_FOLIAGE := {
 var foliage_node: Node3D = null
 var current_timeline: String = ""
 var is_ready: bool = false
+var _foliage_flow_script: Script = null
 
 signal foliage_ready(timeline: String)
 
 
 func _ready() -> void:
 	is_ready = ClassDB.class_exists("FoliageFlow")
+	if FileAccess.file_exists(FOLIAGE_FLOW_PATH):
+		_foliage_flow_script = load(FOLIAGE_FLOW_PATH) as Script
+	is_ready = is_ready and _foliage_flow_script != null
 	if not is_ready:
 		push_warning("[FoliagePainter] FoliageFlow plugin not enabled")
 
@@ -61,7 +65,7 @@ func attach_to_terrain(terrain_node: Node3D, timeline: String) -> void:
 	current_timeline = timeline
 	if foliage_node and is_instance_valid(foliage_node):
 		foliage_node.queue_free()
-	foliage_node = FoliageFlowScript.new()
+	foliage_node = _foliage_flow_script.new()
 	foliage_node.name = "Foliage_" + timeline.capitalize()
 	if terrain_node:
 		terrain_node.add_child(foliage_node)

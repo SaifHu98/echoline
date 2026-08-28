@@ -15,7 +15,10 @@ func _ready() -> void:
 
 
 func initialize(profile_tier: int) -> void:
-	var pool_size = QualityProfile.get_profile(profile_tier).get("vfx_pool_size", 32)
+	var pool_size := 16
+	match profile_tier:
+		0: pool_size = 8
+		2, 3: pool_size = 32
 	for type in pools.keys():
 		if pools[type].has_method("initialize"):
 			pools[type].initialize(template_scenes.get(type), pool_size, parent_node)

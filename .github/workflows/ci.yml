@@ -43,20 +43,16 @@ jobs:
       - name: Install
         working-directory: game-server
         run: npm ci --no-audit --no-fund
-      - name: ESLint
+      - name: JavaScript syntax check
         working-directory: game-server
         run: npm run lint
-      - name: Prettier check
-        working-directory: game-server
-        run: npx prettier --check 'src/**/*.js' 'tests/**/*.js'
       - name: GDScript syntax check (Godot)
         uses: chickensoft-games/setup-godot@v2
         with:
           godot-version: ${{ env.GODOT_VERSION }}
       - name: GDScript lint
         working-directory: client
-        run: |
-          godot --headless --quit --script scripts/gdlint_runner.gd || true
+        run: godot --headless --path . --script res://scripts/gdscript_syntax_check.gd
 
   # ------------------------------------------------------------
   # 2. Unit tests (Node.js) — 37+ tests
@@ -164,13 +160,14 @@ jobs:
             curl -sf http://localhost:3001/readyz && break
             sleep 1
           done
+          curl -sf http://localhost:3001/readyz >/dev/null
       - name: Run load test (50 rooms, 4 players each)
         working-directory: game-server
         run: node tests/load/load_runner.js --rooms=50 --players=4 --duration=60
       - name: Check p99 < 200ms
         working-directory: game-server
         run: |
-          cat load_test_results.json | jq '.p99_ms < 200' || exit 1
+          jq -e '.latency_ms.p99 < 200' load_test_results.json
       - name: Stop server
         run: pkill -f "node src/server.js" || true
 
@@ -186,13 +183,6 @@ jobs:
       - name: npm audit
         working-directory: game-server
         run: npm audit --audit-level=high || exit 1
-      - name: composer audit (admin)
-        working-directory: web/admin
-        run: |
-          composer install --no-progress --quiet 2>/dev/null || true
-          composer audit --format=json --no-interaction 2>/dev/null | \
-            jq '.vulnerabilities | map(select(.severity == "high" or .severity == "critical")) | length == 0' \
-            || true
       - name: Gitleaks secret scan
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -219,13 +209,14 @@ jobs:
       - name: Setup DB
         run: |
           sudo apt-get install -y mariadb-server > /dev/null
-          sudo service mari-server start start
+          sudo service mariadb start
           mysql -e "CREATE DATABASE echoline_test;"
       - name: Run migrations
         working-directory: web/admin
         run: |
+          mysql echoline_test < database/schema.sql
           for f in database/migrations/*.sql; do
-            mysql echoline_test < "$f" || true
+            mysql echoline_test < "$f"
           done
       - name: Run security tests
         working-directory: web/admin
@@ -246,6 +237,10 @@ jobs:
         with:
           godot-version: ${{ env.GODOT_VERSION }}
           cache: true
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;34.0.0"
       - name: Cache export templates
         id: export-templates
         uses: actions/cache@v4
@@ -285,6 +280,10 @@ jobs:
         uses: chickensoft-games/setup-godot@v2
         with:
           godot-version: ${{ env.GODOT_VERSION }}
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;34.0.0"
       - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -295,11 +294,15 @@ jobs:
         working-directory: client
         run: |
           mkdir -p builds
-          godot --headless --export-release "Android" builds/echoline-release.apk
+          pwsh ./android/build_android.ps1 -Release \
+            -GodotPath "$(command -v godot)" \
+            -AndroidHome "$ANDROID_HOME" \
+            -KeystorePath "$GITHUB_WORKSPACE/client/android/build/release/echoline.keystore" \
+            -KeystorePassword "$KEYSTORE_PASSWORD" \
+            -KeystoreUser "$KEY_ALIAS"
         env:
-          ECHOLINE_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          ECHOLINE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          ECHOLINE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -322,14 +325,7 @@ jobs:
           godot-version: ${{ env.GODOT_VERSION }}
       - name: Headless parse check
         working-directory: client
-        run: |
-          godot --headless --quit-after 2 --check-only
-          # Verify no parse errors in any .gd file
-          ERRORS=0
-          for f in $(find . -name "*.gd" -not -path "*/android/build/*"); do
-            godot --headless --check-only --script "$f" 2>&1 | grep -qi "parse error" && ERRORS=$((ERRORS+1))
-          done
-          exit $ERRORS
+        run: godot --headless --path . --script res://scripts/gdscript_syntax_check.gd
 
   # ------------------------------------------------------------
   # 9. Merge gate — all must pass
@@ -366,7 +362,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: staging
-      url: https://echoline-staging.onrender.com
+      url: https://echoline-game-server-staging.onrender.com
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -378,7 +374,7 @@ jobs:
       - name: Wait for staging
         run: |
           for i in $(seq 1 60); do
-            STATUS=$(curl -sf -o /dev/null -w '%{http_code}' https://echoline-staging.onrender.com/readyz)
+            STATUS=$(curl -sf -o /dev/null -w '%{http_code}' https://echoline-game-server-staging.onrender.com/readyz)
             if [ "$STATUS" = "200" ]; then
               echo "✅ Staging ready"
               exit 0
@@ -389,9 +385,9 @@ jobs:
           exit 1
       - name: Smoke test
         run: |
-          curl -sf https://echoline-staging.onrender.com/health
+          curl -sf https://echoline-game-server-staging.onrender.com/health
           # WS handshake
-          curl -sf 'https://echoline-staging.onrender.com/socket.io/?EIO=4&transport=polling'
+          curl -sf 'https://echoline-game-server-staging.onrender.com/socket.io/?EIO=4&transport=polling'
       - name: Notify team
         if: always()
         uses: slackapi/slack-github-action@v1

@@ -8,7 +8,7 @@ extends Node3D
 # We construct the terrain procedurally via LowPolyTerrainManager API
 # + a deterministic Delaunay heightmap (no sculpting required).
 
-const LOWPOLY_MANAGER := preload("res://addons/lowpolyterrain/LowPolyTerrainManager.gd")
+const LOWPOLY_MANAGER_PATH := "res://addons/lowpolyterrain/LowPolyTerrainManager.gd"
 
 const TIMELINE_PROFILES := {
 	"past": {
@@ -37,12 +37,16 @@ const TIMELINE_PROFILES := {
 var terrain: Node3D = null
 var current_timeline: String = ""
 var is_ready: bool = false
+var _lowpoly_manager_script: Script = null
 
 signal mobile_terrain_ready(timeline: String, node: Node3D)
 
 
 func _ready() -> void:
 	is_ready = ClassDB.class_exists("LowPolyTerrainManager")
+	if FileAccess.file_exists(LOWPOLY_MANAGER_PATH):
+		_lowpoly_manager_script = load(LOWPOLY_MANAGER_PATH) as Script
+	is_ready = is_ready and _lowpoly_manager_script != null
 	if not is_ready:
 		push_warning("[MobileTerrainGenerator] lowpolyterrain not enabled — using flat PlaneMesh fallback")
 
@@ -61,7 +65,7 @@ func generate_for_timeline(timeline: String) -> void:
 func _build_lowpoly(timeline: String, profile: Dictionary) -> void:
 	if terrain and is_instance_valid(terrain):
 		terrain.queue_free()
-	terrain = LOWPOLY_MANAGER.new()
+	terrain = _lowpoly_manager_script.new()
 	terrain.name = "MobileTerrain_" + timeline.capitalize()
 	terrain.set("total_size_meters", profile.total_size_meters)
 	add_child(terrain)

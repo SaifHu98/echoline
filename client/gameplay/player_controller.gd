@@ -13,7 +13,7 @@ extends CharacterBody3D
 # UX: it auto-detects the platform and switches between keyboard/mouse,
 # gamepad, and virtual joystick inputs.
 
-const RealControllerScript := preload("res://addons/real-controller/character.gd")
+const REAL_CONTROLLER_PATH := "res://addons/real-controller/character.gd"
 
 const TIMELINE_SPAWN_OFFSET := {
 	"past": Vector3(0, 5.0, -20.0),
@@ -27,7 +27,7 @@ var is_jumping: bool = false
 
 
 func _ready() -> void:
-	is_ready = FileAccess.file_exists("res://addons/real-controller/character.gd")
+	is_ready = FileAccess.file_exists(REAL_CONTROLLER_PATH)
 	if not is_ready:
 		push_warning("[PlayerController] real-controller addon missing — using base CharacterBody3D")
 		return
